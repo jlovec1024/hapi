@@ -63,10 +63,11 @@ export function getHappyCliCommand(args: string[]): HappyCliCommand {
   const isBunRuntime = Boolean((process.versions as Record<string, string | undefined>).bun);
 
   if (isBunRuntime) {
-    // Bun can run TypeScript directly
+    // Bun can run TypeScript directly. Force CLI project root as working directory
+    // so tsconfig path aliases (e.g. @/*) resolve correctly regardless of session cwd.
     return {
       command: process.execPath,
-      args: [entrypoint, ...args]
+      args: ['--cwd', projectRoot, entrypoint, ...args]
     };
   }
 
