@@ -144,6 +144,10 @@ export default {
   // Code block
   'code.copy': 'Copy',
 
+  // Long content collapse
+  'content.collapse.close': 'Collapse long content',
+  'content.collapse.openWithHidden': 'Expand long content (partially hidden)',
+
   // Diff view
   'diff.title': 'Diff',
   'diff.view': 'View',

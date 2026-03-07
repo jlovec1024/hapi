@@ -146,6 +146,10 @@ export default {
   // Code block
   'code.copy': '复制',
 
+  // Long content collapse
+  'content.collapse.close': '收起长消息',
+  'content.collapse.openWithHidden': '展开长消息（已隐藏部分）',
+
   // Diff view
   'diff.title': '差异',
   'diff.view': '查看',

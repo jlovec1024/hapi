@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { stripAnsiAndControls } from '@/components/assistant-ui/markdown-utils'
+import { LongContentCollapse } from '@/components/LongContentCollapse'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useTranslation } from '@/lib/use-translation'
@@ -134,11 +135,13 @@ export function CliOutputBlock(props: { text: string }) {
                             <DialogTitle>{t('terminal.commandName')}</DialogTitle>
                         </DialogHeader>
                         <div className="mt-3 max-h-[75vh] overflow-auto">
-                            <div className="min-w-0 max-w-full overflow-x-auto overflow-y-hidden">
-                                <pre className="m-0 w-max min-w-full bg-[var(--app-code-bg)] p-2 text-xs font-mono">
-                                    {content}
-                                </pre>
-                            </div>
+                            <LongContentCollapse text={content}>
+                                <div className="min-w-0 max-w-full overflow-x-auto overflow-y-hidden">
+                                    <pre className="m-0 w-max min-w-full bg-[var(--app-code-bg)] p-2 text-xs font-mono">
+                                        {content}
+                                    </pre>
+                                </div>
+                            </LongContentCollapse>
                         </div>
                     </DialogContent>
                 </Dialog>
