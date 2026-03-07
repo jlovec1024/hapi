@@ -58,6 +58,11 @@ export default {
   // Session header
   'session.title': 'Files',
   'session.more': 'More actions',
+  'session.git.staged': '{n} staged',
+  'session.git.unstaged': '{n} unstaged',
+  'session.git.unavailable': 'Git unavailable',
+  'session.git.loading': 'Git loading\u2026',
+  'session.git.detached': 'detached',
 
   // Session actions
   'session.action.rename': 'Rename',

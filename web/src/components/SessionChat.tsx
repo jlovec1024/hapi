@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { AssistantRuntimeProvider } from '@assistant-ui/react'
 import type { ApiClient } from '@/api/client'
-import type { AttachmentMetadata, DecryptedMessage, ModelMode, PermissionMode, Session } from '@/types/api'
+import type { AttachmentMetadata, DecryptedMessage, GitStatusFiles, ModelMode, PermissionMode, Session } from '@/types/api'
 import type { ChatBlock, NormalizedMessage } from '@/chat/types'
 import type { Suggestion } from '@/hooks/useActiveSuggestions'
 import { normalizeDecryptedMessage } from '@/chat/normalize'
@@ -15,6 +15,7 @@ import { createAttachmentAdapter } from '@/lib/attachmentAdapter'
 import { SessionHeader } from '@/components/SessionHeader'
 import { usePlatform } from '@/hooks/usePlatform'
 import { useSessionActions } from '@/hooks/mutations/useSessionActions'
+import { useGitStatusFiles } from '@/hooks/queries/useGitStatusFiles'
 import { useVoiceOptional } from '@/lib/voice-context'
 import { RealtimeVoiceSession, registerSessionStore, registerVoiceHooksStore, voiceHooks } from '@/realtime'
 
@@ -52,6 +53,21 @@ export function SessionChat(props: {
         props.session.id,
         agentFlavor
     )
+
+    // Git status for header summary
+    const hasPath = Boolean(props.session.metadata?.path)
+    const {
+        status: gitStatus,
+        error: gitError,
+        isLoading: gitLoading,
+    } = useGitStatusFiles(hasPath ? props.api : null, hasPath ? props.session.id : null)
+    const lastGitStatusRef = useRef<GitStatusFiles | null>(null)
+
+    if (gitStatus) {
+        lastGitStatusRef.current = gitStatus
+    }
+
+    const gitStatusForHeader = gitStatus ?? lastGitStatusRef.current
 
     // Voice assistant integration
     const voice = useVoiceOptional()
@@ -274,6 +290,9 @@ export function SessionChat(props: {
                 onViewFiles={props.session.metadata?.path ? handleViewFiles : undefined}
                 api={props.api}
                 onSessionDeleted={props.onBack}
+                gitSummary={gitStatusForHeader}
+                gitLoading={gitLoading && !gitStatusForHeader}
+                gitError={Boolean(gitError) && !gitStatusForHeader}
             />
 
             {sessionInactive ? (

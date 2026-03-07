@@ -1,6 +1,7 @@
 import { useId, useMemo, useRef, useState } from 'react'
-import type { Session } from '@/types/api'
 import type { ApiClient } from '@/api/client'
+import type { GitStatusFiles, Session } from '@/types/api'
+
 import { isTelegramApp } from '@/hooks/useTelegram'
 import { useSessionActions } from '@/hooks/mutations/useSessionActions'
 import { SessionActionMenu } from '@/components/SessionActionMenu'
@@ -42,6 +43,66 @@ function FilesIcon(props: { className?: string }) {
     )
 }
 
+function GitBranchIcon(props: { className?: string }) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={props.className}
+        >
+            <line x1="6" y1="3" x2="6" y2="15" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="6" r="3" />
+            <path d="M18 9a9 9 0 0 1-9 9" />
+        </svg>
+    )
+}
+
+type GitSummary = Pick<GitStatusFiles, 'branch' | 'totalStaged' | 'totalUnstaged'>
+
+function GitStatusBar(props: { gitSummary: GitSummary | null; isLoading: boolean; hasError: boolean }) {
+    const { t } = useTranslation()
+
+    if (props.isLoading) {
+        return (
+            <div className="flex items-center gap-1.5 text-xs text-[var(--app-hint)]" role="status">
+                <GitBranchIcon className="text-[var(--app-hint)]" />
+                <span>{t('session.git.loading')}</span>
+            </div>
+        )
+    }
+
+    if (props.hasError || !props.gitSummary) {
+        return (
+            <div className="flex items-center gap-1.5 text-xs text-[var(--app-hint)]">
+                <GitBranchIcon className="text-[var(--app-hint)]" />
+                <span>{t('session.git.unavailable')}</span>
+            </div>
+        )
+    }
+
+    const { branch, totalStaged, totalUnstaged } = props.gitSummary
+    const branchLabel = branch ?? t('session.git.detached')
+
+    return (
+        <div className="flex items-center gap-1.5 text-xs text-[var(--app-hint)]">
+            <GitBranchIcon className="text-[var(--app-hint)]" />
+            <span className="font-semibold text-[var(--app-fg)]">{branchLabel}</span>
+            <span aria-hidden="true">&middot;</span>
+            <span>{t('session.git.staged', { n: totalStaged })}</span>
+            <span aria-hidden="true">&middot;</span>
+            <span>{t('session.git.unstaged', { n: totalUnstaged })}</span>
+        </div>
+    )
+}
+
 function MoreVerticalIcon(props: { className?: string }) {
     return (
         <svg
@@ -65,11 +126,15 @@ export function SessionHeader(props: {
     onViewFiles?: () => void
     api: ApiClient | null
     onSessionDeleted?: () => void
+    gitSummary?: GitSummary | null
+    gitLoading?: boolean
+    gitError?: boolean
 }) {
     const { t } = useTranslation()
     const { session, api, onSessionDeleted } = props
     const title = useMemo(() => getSessionTitle(session), [session])
     const worktreeBranch = session.metadata?.worktree?.branch
+    const showGitStatus = Boolean(session.metadata?.path)
 
     const [menuOpen, setMenuOpen] = useState(false)
     const [menuAnchorPoint, setMenuAnchorPoint] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -145,6 +210,13 @@ export function SessionHeader(props: {
                                 <span>{t('session.item.worktree')}: {worktreeBranch}</span>
                             ) : null}
                         </div>
+                        {showGitStatus ? (
+                            <GitStatusBar
+                                gitSummary={props.gitSummary ?? null}
+                                isLoading={props.gitLoading ?? false}
+                                hasError={props.gitError ?? false}
+                            />
+                        ) : null}
                     </div>
 
                     {props.onViewFiles ? (

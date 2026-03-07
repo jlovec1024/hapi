@@ -58,6 +58,11 @@ export default {
   // Session header
   'session.title': '文件',
   'session.more': '更多操作',
+  'session.git.staged': '{n} 已暂存',
+  'session.git.unstaged': '{n} 未暂存',
+  'session.git.unavailable': 'Git 不可用',
+  'session.git.loading': 'Git 加载中…',
+  'session.git.detached': '游离头指针',
 
   // Session actions
   'session.action.rename': '重命名',

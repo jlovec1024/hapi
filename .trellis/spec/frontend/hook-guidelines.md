@@ -321,6 +321,133 @@ const query = useQuery({
 
 ---
 
+## Scenario: Session header Git status (cross-layer contract)
+
+### 1. Scope / Trigger
+
+- Trigger: Added/updated Git status summary rendered in session header and fetched through query hook.
+- Why code-spec depth is required:
+  - Cross-layer data flow: backend Git RPC -> API client methods -> query hook -> SessionChat -> SessionHeader.
+  - Contract-sensitive UI states: loading/unavailable/normal must remain stable during refetch.
+
+### 2. Signatures
+
+- Query hook signature:
+
+```typescript
+useGitStatusFiles(api: ApiClient | null, sessionId: string | null): {
+  status: GitStatusFiles | null
+  error: string | null
+  isLoading: boolean
+}
+```
+
+- API client signatures consumed by the hook:
+
+```typescript
+api.getGitStatus(sessionId: string): Promise<GitStatus>
+api.getGitDiffNumstat(sessionId: string): Promise<GitDiffNumstat>
+```
+
+- Header props contract:
+
+```typescript
+gitSummary?: Pick<GitStatusFiles, 'branch' | 'totalStaged' | 'totalUnstaged'> | null
+gitLoading?: boolean
+gitError?: boolean
+```
+
+### 3. Contracts
+
+- Request preconditions:
+  - `api` and `sessionId` must both be non-null before query execution.
+  - If either is missing, the hook must not perform network calls.
+
+- Response contract (normalized for header):
+  - `branch: string | null` (`null` means detached state, must render localized detached label)
+  - `totalStaged: number` (>= 0)
+  - `totalUnstaged: number` (>= 0)
+
+- UI text contract:
+  - All status labels must come from i18n keys:
+    - `session.git.staged`
+    - `session.git.unstaged`
+    - `session.git.loading`
+    - `session.git.unavailable`
+    - `session.git.detached`
+
+- Boundary contract (anti-flicker):
+  - Keep last successful `GitStatusFiles` in a ref.
+  - During refetch, prefer cached status over transient loading/error display.
+
+### 4. Validation & Error Matrix
+
+- `api === null || sessionId === null` -> query disabled, no request, header Git block hidden or remains in non-loading state.
+- Hook request in-flight and no cached status -> show loading UI.
+- Hook request fails and no cached status -> show unavailable UI.
+- Hook request fails but cached status exists -> continue showing cached normal state (no unavailable flicker).
+- `branch === null` -> show detached label (not empty string).
+- `session.metadata.path` missing -> do not render Git status block in header.
+
+### 5. Good/Base/Bad Cases
+
+- Good:
+  - Session path points to dirty repo, branch is `main`, staged/unstaged counters render with localized labels.
+- Base:
+  - Session path points to clean repo, counters show `0` and branch still renders.
+- Bad:
+  - Session path exists but transient refetch error replaces existing summary with `Git unavailable` (flicker regression).
+
+### 6. Tests Required
+
+- Unit (hook-level):
+  - Assert `useGitStatusFiles` returns normalized totals and branch from combined API data.
+  - Assert query does not execute when `api` or `sessionId` is missing.
+- Component (SessionHeader):
+  - Assert tri-state rendering:
+    - loading state when `gitLoading=true` and no summary
+    - unavailable state when `gitError=true` and no summary
+    - normal state when summary present
+  - Assert detached fallback label when `branch` is null.
+- Integration (SessionChat -> SessionHeader):
+  - Assert last successful git summary remains visible during subsequent loading/error.
+  - Assertion point: no text switch to `session.git.unavailable` if cached summary exists.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+// recompute ad-hoc summary and drop existing typed contract
+const gitSummary = gitStatus
+  ? {
+      branch: gitStatus.branch,
+      staged: gitStatus.totalStaged,
+      unstaged: gitStatus.totalUnstaged,
+    }
+  : null
+
+// on any query error, always show unavailable
+<SessionHeader gitError={Boolean(gitError)} gitSummary={gitSummary} />
+```
+
+#### Correct
+
+```typescript
+// reuse GitStatusFiles shape directly, avoid duplicate mapping
+const lastGitStatusRef = useRef<GitStatusFiles | null>(null)
+if (gitStatus) lastGitStatusRef.current = gitStatus
+const gitStatusForHeader = gitStatus ?? lastGitStatusRef.current
+
+<SessionHeader
+  gitSummary={gitStatusForHeader}
+  gitLoading={gitLoading && !gitStatusForHeader}
+  gitError={Boolean(gitError) && !gitStatusForHeader}
+/>
+```
+
+---
+
 ## Common Mistakes
 
 - ❌ Forgetting `use` prefix on hook names

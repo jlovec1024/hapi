@@ -15,7 +15,7 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_NOTIFICATION: ${TELEGRAM_NOTIFICATION:-true}
     ports:
-      - "${HAPI_LISTEN_PORT:-3006}:3006"
+      - "${HAPI_LISTEN_PORT:-3006}:${HAPI_LISTEN_PORT:-3006}"
     volumes:
       - hub-data:/data/hapi
     restart: unless-stopped
