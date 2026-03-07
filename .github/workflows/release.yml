@@ -7,6 +7,7 @@ on:
 
 permissions:
     contents: write
+    id-token: write
 
 jobs:
     release:
@@ -14,8 +15,30 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - uses: oven-sh/setup-bun@v2
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  registry-url: 'https://registry.npmjs.org'
             - run: bun install
             - run: bun run build:single-exe:all
+            - name: Prepare npm packages
+              run: cd cli && bun run prepare-npm-packages
+            - name: Publish npm platform packages
+              run: |
+                  set -euo pipefail
+                  for platform in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-x64; do
+                    echo "Publishing @jlovec/hapi-$platform"
+                    cd "${GITHUB_WORKSPACE}/cli/npm/$platform"
+                    npm publish --access public --provenance
+                  done
+            - name: Publish npm main package
+              run: |
+                  cd "${GITHUB_WORKSPACE}/cli/npm/main"
+                  npm publish --access public --provenance
+            - name: Verify npm publish
+              run: |
+                  npm view @jlovec/hapi version --registry=https://registry.npmjs.org
+                  npm view @jlovec/hapi-linux-x64 version --registry=https://registry.npmjs.org
             - name: Package release artifacts
               run: |
                   cd cli/dist-exe
