@@ -118,13 +118,13 @@ async function main(): Promise<void> {
     const platforms = ['darwin-arm64', 'darwin-x64', 'linux-arm64', 'linux-x64', 'win32-x64'];
     for (const platform of platforms) {
         const npmDir = join(projectRoot, 'npm', platform);
-        run(`npm publish --access public${dryRun ? ' --dry-run' : ''}${dryRun ? '' : ' --provenance --registry=https://registry.npmjs.org'}`, npmDir);
+        run(`npm publish --access public${dryRun ? ' --dry-run' : ''}`, npmDir);
     }
 
     // Step 4: Publish main package
     console.log('\n📤 Step 4: Publishing main package...');
     const mainNpmDir = join(projectRoot, 'npm', 'main');
-    run(`npm publish --access public${dryRun ? ' --dry-run' : ''}${dryRun ? '' : ' --provenance --registry=https://registry.npmjs.org'}`, mainNpmDir);
+    run(`npm publish --access public${dryRun ? ' --dry-run' : ''}`, mainNpmDir);
 
     // --publish-npm 模式到此结束
     if (publishNpm) {
