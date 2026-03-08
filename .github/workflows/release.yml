@@ -29,12 +29,12 @@ jobs:
                   for platform in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-x64; do
                     echo "Publishing @jlovec/hapi-$platform"
                     cd "${GITHUB_WORKSPACE}/cli/npm/$platform"
-                    npm publish --access public --provenance
+                    npm publish 
                   done
             - name: Publish npm main package
               run: |
                   cd "${GITHUB_WORKSPACE}/cli/npm/main"
-                  npm publish --access public --provenance
+                  npm publish 
             - name: Verify npm publish
               run: |
                   npm view @jlovec/hapi version --registry=https://registry.npmjs.org
