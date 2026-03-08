@@ -13,9 +13,9 @@ jobs:
     release:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
             - uses: oven-sh/setup-bun@v2
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v6
               with:
                   node-version: '24'
                   registry-url: 'https://registry.npmjs.org'
@@ -27,25 +27,9 @@ jobs:
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
               run: |
-                  set -euo pipefail
-                  echo "${NODE_AUTH_TOKEN}"
-                  for platform in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-x64; do
-                    echo "Publishing @jlovec/hapi-$platform"
-                    cd "${GITHUB_WORKSPACE}/cli/npm/$platform"
-                    npm publish --access public --provenance --registry=https://registry.npmjs.org
-                  done
-            - name: Publish npm main package
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-              run: |
-                  set -euo pipefail
-                  unset NODE_AUTH_TOKEN NPM_TOKEN
-                  cd "${GITHUB_WORKSPACE}/cli/npm/main"
-                  npm publish --access public --provenance --registry=https://registry.npmjs.org
-            - name: Verify npm publish
-              run: |
-                  npm view @jlovec/hapi version --registry=https://registry.npmjs.org
-                  npm view @jlovec/hapi-linux-x64 version --registry=https://registry.npmjs.org
+                  VERSION="${GITHUB_REF#refs/tags/v}"
+                  cd cli
+                  bun run release-all "$VERSION" --publish-npm
             - name: Package release artifacts
               run: |
                   cd cli/dist-exe
