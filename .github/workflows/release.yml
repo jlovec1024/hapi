@@ -19,22 +19,32 @@ jobs:
               with:
                   node-version: '20'
                   registry-url: 'https://registry.npmjs.org'
+                  token: ''
             - run: bun install
             - run: bun run build:single-exe:all
             - name: Prepare npm packages
               run: cd cli && bun run prepare-npm-packages
             - name: Publish npm platform packages
+              env:
+                  NODE_AUTH_TOKEN: ''
+                  NPM_TOKEN: ''
               run: |
                   set -euo pipefail
+                  unset NODE_AUTH_TOKEN NPM_TOKEN
                   for platform in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-x64; do
                     echo "Publishing @jlovec/hapi-$platform"
                     cd "${GITHUB_WORKSPACE}/cli/npm/$platform"
-                    npm publish 
+                    npm publish --access public --provenance --registry=https://registry.npmjs.org
                   done
             - name: Publish npm main package
+              env:
+                  NODE_AUTH_TOKEN: ''
+                  NPM_TOKEN: ''
               run: |
+                  set -euo pipefail
+                  unset NODE_AUTH_TOKEN NPM_TOKEN
                   cd "${GITHUB_WORKSPACE}/cli/npm/main"
-                  npm publish 
+                  npm publish --access public --provenance --registry=https://registry.npmjs.org
             - name: Verify npm publish
               run: |
                   npm view @jlovec/hapi version --registry=https://registry.npmjs.org
