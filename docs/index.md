@@ -1,6 +1,6 @@
 ---
 layout: home
-title: HAPI 文档
+title: 主神 (Zhushen) 文档
 ---
 
 <script setup>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { isObject, toSessionSummary } from '@hapi/protocol'
+import { isObject, toSessionSummary } from '@zs/protocol'
 import type {
     Machine,
     MachinesResponse,

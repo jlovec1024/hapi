@@ -15,9 +15,9 @@ import { platform, arch, homedir } from 'node:os'
 import { isBunCompiled } from '../utils/bunCompiled'
 
 function getHapiHome(): string {
-    return process.env.HAPI_HOME
-        ? process.env.HAPI_HOME.replace(/^~/, homedir())
-        : join(homedir(), '.hapi')
+    return process.env.ZS_HOME
+        ? process.env.ZS_HOME.replace(/^~/, homedir())
+        : join(homedir(), '.zhushen')
 }
 
 function getPlatformDir(): string {
@@ -58,7 +58,7 @@ export interface TunnelConfig {
     localPort: number
     enabled: boolean
     apiDomain?: string | null  // TUNWG_API - default: relay.hapi.run (official relay)
-    authKey?: string | null    // TUNWG_AUTH - default: hapi
+    authKey?: string | null    // TUNWG_AUTH - default: zs
     useRelay?: boolean         // TUNWG_RELAY
 }
 
@@ -116,7 +116,7 @@ export class TunnelManager {
         if (this.config.apiDomain) {
             env.TUNWG_API = this.config.apiDomain
         }
-        env.TUNWG_AUTH = this.config.authKey ?? 'hapi'
+        env.TUNWG_AUTH = this.config.authKey ?? 'zs'
         if (this.config.useRelay) {
             env.TUNWG_RELAY = 'true'
         }

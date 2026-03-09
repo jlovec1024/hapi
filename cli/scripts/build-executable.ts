@@ -118,7 +118,7 @@ function parseTarget(target: string): { platform: string; arch: string } {
 
 function getFeatureFlag(platform: string, arch: string): string {
     const platformToken = platform === 'win32' ? 'WIN32' : platform.toUpperCase();
-    return `HAPI_TARGET_${platformToken}_${arch.toUpperCase()}`;
+    return `ZS_TARGET_${platformToken}_${arch.toUpperCase()}`;
 }
 
 function getPlatformDir(platform: string, arch: string): string {
@@ -243,13 +243,13 @@ async function main(): Promise<void> {
     const args = process.argv.slice(2);
     const target = getArg(args, '--target');
     const outdirArg = getArg(args, '--outdir') ?? 'dist-exe';
-    const name = getArg(args, '--name') ?? 'hapi';
+    const name = getArg(args, '--name') ?? 'zs';
     const buildAll = args.includes('--all');
     const includeWebAssets = args.includes('--with-web-assets');
 
     if (args.includes('--target') && !target) {
-        console.error('Usage: bun run scripts/build-executable.ts [--target <bun-platform[-arch[-variant]]>] [--outdir dist-exe] [--name hapi] [--with-web-assets]');
-        console.error('   or: bun run scripts/build-executable.ts --all [--outdir dist-exe] [--name hapi] [--with-web-assets]');
+        console.error('Usage: bun run scripts/build-executable.ts [--target <bun-platform[-arch[-variant]]>] [--outdir dist-exe] [--name zs] [--with-web-assets]');
+        console.error('   or: bun run scripts/build-executable.ts --all [--outdir dist-exe] [--name zs] [--with-web-assets]');
         process.exit(1);
     }
 

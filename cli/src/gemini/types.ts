@@ -1,4 +1,4 @@
-import type { GeminiPermissionMode } from '@hapi/protocol/types';
+import type { GeminiPermissionMode } from '@zs/protocol/types';
 
 export type PermissionMode = GeminiPermissionMode;
 

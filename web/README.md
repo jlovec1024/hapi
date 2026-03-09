@@ -1,6 +1,6 @@
-# hapi-web
+# zhushen-web
 
-用于监控与控制 hapi 会话的 React Mini App / PWA。
+用于监控与控制 zhushen 会话的 React Mini App / PWA。
 
 ## 功能概览
 
@@ -127,11 +127,11 @@ bun run dev:web
 bun run build:web
 ```
 
-构建产物位于 `web/dist`，由 hapi Hub 提供静态服务。单可执行文件模式下可将其内嵌。
+构建产物位于 `web/dist`，由 zhushen Hub 提供静态服务。单可执行文件模式下可将其内嵌。
 
 ## 独立托管
 
-可将 `web/dist` 部署到静态托管平台（如 GitHub Pages、Cloudflare Pages），并连接任意 hapi Hub：
+可将 `web/dist` 部署到静态托管平台（如 GitHub Pages、Cloudflare Pages），并连接任意 zhushen Hub：
 
 1. 构建 web app。若静态站点使用子路径，请设置 Vite base：
 
@@ -140,7 +140,7 @@ bun run build:web -- --base /<repo>/
 ```
 
 2. 将 `web/dist` 部署到静态站点。
-3. 在 Hub 端配置 CORS，允许该静态站点来源（`HAPI_PUBLIC_URL` 或 `CORS_ORIGINS`）。
-4. 打开静态站点，在登录页点击右上角 Hub 按钮，输入 hapi Hub 的 origin。
+3. 在 Hub 端配置 CORS，允许该静态站点来源（`ZS_PUBLIC_URL` 或 `CORS_ORIGINS`）。
+4. 打开静态站点，在登录页点击右上角 Hub 按钮，输入 zhushen Hub 的 origin。
 
 在同一对话框中清空 Hub override，可恢复同源访问行为。

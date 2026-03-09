@@ -27,7 +27,7 @@ beforeAll(() => {
 })
 
 beforeEach(() => {
-    localStorage.setItem('hapi-lang', 'zh-CN')
+    localStorage.setItem('zs-lang', 'zh-CN')
 })
 
 function renderWithI18n(ui: React.ReactElement) {

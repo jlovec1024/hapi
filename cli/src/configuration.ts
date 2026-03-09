@@ -1,5 +1,5 @@
 /**
- * Global configuration for HAPI CLI
+ * Global configuration for Zhushen CLI
  *
  * Centralizes all configuration including environment variables and paths
  * Environment files should be loaded using Node's --env-file flag
@@ -29,20 +29,20 @@ class Configuration {
 
     constructor() {
         // Server configuration
-        this._apiUrl = process.env.HAPI_API_URL || 'http://localhost:3006'
+        this._apiUrl = process.env.ZS_API_URL || 'http://localhost:3006'
         this._cliApiToken = process.env.CLI_API_TOKEN || ''
 
         // Check if we're running as runner based on process args
         const args = getCliArgs()
         this.isRunnerProcess = args.length >= 2 && args[0] === 'runner' && (args[1] === 'start-sync')
 
-        // Directory configuration - Priority: HAPI_HOME env > default home dir
-        if (process.env.HAPI_HOME) {
+        // Directory configuration - Priority: ZS_HOME env > default home dir
+        if (process.env.ZS_HOME) {
             // Expand ~ to home directory if present
-            const expandedPath = process.env.HAPI_HOME.replace(/^~/, homedir())
+            const expandedPath = process.env.ZS_HOME.replace(/^~/, homedir())
             this.happyHomeDir = expandedPath
         } else {
-            this.happyHomeDir = join(homedir(), '.hapi')
+            this.happyHomeDir = join(homedir(), '.zhushen')
         }
 
         this.logsDir = join(this.happyHomeDir, 'logs')
@@ -51,7 +51,7 @@ class Configuration {
         this.runnerStateFile = join(this.happyHomeDir, 'runner.state.json')
         this.runnerLockFile = join(this.happyHomeDir, 'runner.state.json.lock')
 
-        this.isExperimentalEnabled = ['true', '1', 'yes'].includes(process.env.HAPI_EXPERIMENTAL?.toLowerCase() || '')
+        this.isExperimentalEnabled = ['true', '1', 'yes'].includes(process.env.ZS_EXPERIMENTAL?.toLowerCase() || '')
 
         this.currentCliVersion = packageJson.version
 

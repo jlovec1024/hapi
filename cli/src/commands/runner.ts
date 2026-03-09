@@ -103,20 +103,20 @@ export const runnerCommand: CommandDefinition = {
         }
 
         console.log(`
-${chalk.bold('hapi runner')} - Runner management
+${chalk.bold('zs runner')} - Runner management
 
 ${chalk.bold('Usage:')}
-  hapi runner start              Start the runner (detached)
-  hapi runner stop               Stop the runner (sessions stay alive)
-  hapi runner status             Show runner status
-  hapi runner list               List active sessions
+  zs runner start              Start the runner (detached)
+  zs runner stop               Stop the runner (sessions stay alive)
+  zs runner status             Show runner status
+  zs runner list               List active sessions
 
-  If you want to kill all hapi related processes run 
-  ${chalk.cyan('hapi doctor clean')}
+  If you want to kill all zs related processes run
+  ${chalk.cyan('zs doctor clean')}
 
 ${chalk.bold('Note:')} The runner runs in the background and manages Claude sessions.
 
-${chalk.bold('To clean up runaway processes:')} Use ${chalk.cyan('hapi doctor clean')}
+${chalk.bold('To clean up runaway processes:')} Use ${chalk.cyan('zs doctor clean')}
 `)
     }
 }

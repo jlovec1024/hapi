@@ -39,12 +39,12 @@ function isSupportedPlatform(platformName = platform, archName = arch) {
 }
 
 function getBinaryPath(platformName = platform, archName = arch) {
-    const pkgName = `@jlovec/hapi-${platformName}-${archName}`;
+    const pkgName = `@jlovec/zhushen-${platformName}-${archName}`;
 
     try {
         // Try to find the platform-specific package
         const pkgPath = require.resolve(`${pkgName}/package.json`);
-        const binName = platformName === 'win32' ? 'hapi.exe' : 'hapi';
+        const binName = platformName === 'win32' ? 'zs.exe' : 'zs';
         return path.join(path.dirname(pkgPath), 'bin', binName);
     } catch (e) {
         return null;
@@ -96,14 +96,14 @@ function reportUnsupportedPlatform(platformName = platform, archName = arch, log
 }
 
 function reportMissingPlatformPackage(platformName = platform, archName = arch, log = console.error) {
-    const platformPackage = `@jlovec/hapi-${platformName}-${archName}`;
+    const platformPackage = `@jlovec/zhushen-${platformName}-${archName}`;
     log(`Missing platform package: ${platformPackage}`);
     log('');
     log(`Detected platform ${platformName}-${archName} is supported, but the platform binary package was not installed.`);
     log('This may happen when using a registry mirror that has not synced all optionalDependencies.');
     log('');
     log('Try reinstalling with the official npm registry:');
-    log(`  npm install -g @jlovec/hapi --registry=${OFFICIAL_NPM_REGISTRY}`);
+    log(`  npm install -g @jlovec/zhushen --registry=${OFFICIAL_NPM_REGISTRY}`);
     log('');
     log('Or download the binary manually from:');
     log(`  ${RELEASE_URL}`);

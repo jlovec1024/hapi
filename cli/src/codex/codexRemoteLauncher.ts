@@ -577,7 +577,7 @@ class CodexRemoteLauncher extends RemoteLauncherBase {
             await appServerClient.connect();
             await appServerClient.initialize({
                 clientInfo: {
-                    name: 'hapi-codex-client',
+                    name: 'zs-codex-client',
                     version: '1.0.0'
                 }
             });

@@ -73,8 +73,8 @@ export function createSocketServer(deps: SocketServerDeps): {
     io.bind(engine)
 
     const rpcRegistry = new RpcRegistry()
-    const idleTimeoutMs = resolveEnvNumber('HAPI_TERMINAL_IDLE_TIMEOUT_MS', DEFAULT_IDLE_TIMEOUT_MS)
-    const maxTerminals = resolveEnvNumber('HAPI_TERMINAL_MAX_TERMINALS', DEFAULT_MAX_TERMINALS)
+    const idleTimeoutMs = resolveEnvNumber('ZS_TERMINAL_IDLE_TIMEOUT_MS', DEFAULT_IDLE_TIMEOUT_MS)
+    const maxTerminals = resolveEnvNumber('ZS_TERMINAL_MAX_TERMINALS', DEFAULT_MAX_TERMINALS)
     const maxTerminalsPerSocket = maxTerminals
     const maxTerminalsPerSession = maxTerminals
     const cliNs = io.of('/cli')

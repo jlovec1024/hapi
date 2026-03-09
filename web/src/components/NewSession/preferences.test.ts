@@ -17,15 +17,15 @@ describe('NewSession preferences', () => {
     })
 
     it('loads saved values from storage', () => {
-        localStorage.setItem('hapi:newSession:agent', 'codex')
-        localStorage.setItem('hapi:newSession:yolo', 'true')
+        localStorage.setItem('zs:newSession:agent', 'codex')
+        localStorage.setItem('zs:newSession:yolo', 'true')
 
         expect(loadPreferredAgent()).toBe('codex')
         expect(loadPreferredYoloMode()).toBe(true)
     })
 
     it('falls back to default agent on invalid stored value', () => {
-        localStorage.setItem('hapi:newSession:agent', 'unknown-agent')
+        localStorage.setItem('zs:newSession:agent', 'unknown-agent')
 
         expect(loadPreferredAgent()).toBe('claude')
     })
@@ -34,7 +34,7 @@ describe('NewSession preferences', () => {
         savePreferredAgent('gemini')
         savePreferredYoloMode(true)
 
-        expect(localStorage.getItem('hapi:newSession:agent')).toBe('gemini')
-        expect(localStorage.getItem('hapi:newSession:yolo')).toBe('true')
+        expect(localStorage.getItem('zs:newSession:agent')).toBe('gemini')
+        expect(localStorage.getItem('zs:newSession:yolo')).toBe('true')
     })
 })

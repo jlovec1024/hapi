@@ -10,7 +10,7 @@ const testEnv = dotenv.config({
 
 const defaultIsolatedHome = join(
     tmpdir(),
-    `hapi-integration-test-${process.pid}-${process.cwd().replace(/[\\/]/g, '_')}`
+    `zs-integration-test-${process.pid}-${process.cwd().replace(/[\\/]/g, '_')}`
 )
 
 export default defineConfig({
@@ -32,7 +32,7 @@ export default defineConfig({
         env: {
             ...process.env,
             ...testEnv,
-            HAPI_HOME: process.env.HAPI_HOME || testEnv?.HAPI_HOME || defaultIsolatedHome,
+            ZS_HOME: process.env.ZS_HOME || testEnv?.ZS_HOME || defaultIsolatedHome,
         }
     },
     resolve: {

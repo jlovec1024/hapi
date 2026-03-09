@@ -4,7 +4,7 @@ import type {
     SessionSummary,
     SyncEvent as ProtocolSyncEvent,
     WorktreeMetadata
-} from '@hapi/protocol/types'
+} from '@zs/protocol/types'
 
 export type {
     AgentState,
@@ -20,7 +20,7 @@ export type {
     TeamTask,
     TodoItem,
     WorktreeMetadata
-} from '@hapi/protocol/types'
+} from '@zs/protocol/types'
 
 export type SessionMetadataSummary = {
     path: string

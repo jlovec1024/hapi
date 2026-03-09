@@ -7,7 +7,7 @@ import { appendMcpConfigArg } from "./utils/mcpConfig";
 import { systemPrompt } from "./utils/systemPrompt";
 import { withBunRuntimeEnv } from "@/utils/bunRuntime";
 import { spawnWithAbort } from "@/utils/spawnWithAbort";
-import { getHapiBlobsDir } from "@/constants/uploadPaths";
+import { getZsBlobsDir } from "@/constants/uploadPaths";
 import { stripNewlinesForWindowsShellArg } from "@/utils/shellEscape";
 import { getDefaultClaudeCodePath } from "./sdk/utils";
 
@@ -72,8 +72,8 @@ export async function claudeLocal(opts: {
     logger.debug(`[ClaudeLocal] Using hook settings: ${opts.hookSettingsPath}`);
 
     // Add blobs directory for file upload access
-    args.push('--add-dir', getHapiBlobsDir());
-    logger.debug(`[ClaudeLocal] Adding blobs directory: ${getHapiBlobsDir()}`);
+    args.push('--add-dir', getZsBlobsDir());
+    logger.debug(`[ClaudeLocal] Adding blobs directory: ${getZsBlobsDir()}`);
 
     // Prepare environment variables
     // Note: Local mode uses global Claude installation

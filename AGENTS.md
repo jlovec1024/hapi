@@ -4,7 +4,7 @@
 
 AI 代理在此仓库中的简要指南。建议渐进式加载: 先读根目录 README，再按需读各包 README。
 
-## HAPI 是什么?
+## 主神是什么?
 
 本地优先平台，用于运行 AI 编码代理 (Claude Code、Codex、Gemini)，并通过 Web/手机进行远程控制。CLI 包装代理并连接 hub; hub 提供 Web 应用并处理实时同步。
 

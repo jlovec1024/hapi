@@ -9,13 +9,13 @@ import { apiValidationError } from '@/utils/errorUtils'
 import { AsyncLock } from '@/utils/lock'
 import type { RawJSONLines } from '@/claude/types'
 import { configuration } from '@/configuration'
-import type { ClientToServerEvents, ServerToClientEvents, Update } from '@hapi/protocol'
+import type { ClientToServerEvents, ServerToClientEvents, Update } from '@zs/protocol'
 import {
     TerminalClosePayloadSchema,
     TerminalOpenPayloadSchema,
     TerminalResizePayloadSchema,
     TerminalWritePayloadSchema
-} from '@hapi/protocol'
+} from '@zs/protocol'
 import type {
     AgentState,
     MessageContent,

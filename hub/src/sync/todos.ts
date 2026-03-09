@@ -1,7 +1,7 @@
-import { isObject } from '@hapi/protocol'
-import { unwrapRoleWrappedRecordEnvelope } from '@hapi/protocol/messages'
-import { TodoItemSchema, TodosSchema } from '@hapi/protocol/schemas'
-import type { TodoItem } from '@hapi/protocol/types'
+import { isObject } from '@zs/protocol'
+import { unwrapRoleWrappedRecordEnvelope } from '@zs/protocol/messages'
+import { TodoItemSchema, TodosSchema } from '@zs/protocol/schemas'
+import type { TodoItem } from '@zs/protocol/types'
 
 export { TodoItemSchema, TodosSchema }
 export type { TodoItem }

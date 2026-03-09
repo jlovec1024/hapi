@@ -4,7 +4,7 @@ type ColorScheme = 'light' | 'dark'
 
 export type AppearancePreference = 'system' | 'dark' | 'light'
 
-const APPEARANCE_KEY = 'hapi-appearance'
+const APPEARANCE_KEY = 'zs-appearance'
 
 function isBrowser(): boolean {
     return typeof window !== 'undefined' && typeof document !== 'undefined'

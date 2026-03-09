@@ -1,4 +1,4 @@
-import { isObject } from '@hapi/protocol'
+import { isObject } from '@zs/protocol'
 
 export type RequestUserInputOption = {
     label: string

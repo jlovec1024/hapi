@@ -21,7 +21,7 @@ export async function handleAuthCommand(args: string[]): Promise<void> {
         const hasToken = Boolean(envToken || settingsToken)
         const tokenSource = envToken ? 'environment' : (settingsToken ? 'settings file' : 'none')
         console.log(chalk.bold('\nDirect Connect Status\n'))
-        console.log(chalk.gray(`  HAPI_API_URL: ${configuration.apiUrl}`))
+        console.log(chalk.gray(`  ZS_API_URL: ${configuration.apiUrl}`))
         console.log(chalk.gray(`  CLI_API_TOKEN: ${hasToken ? 'set' : 'missing'}`))
         console.log(chalk.gray(`  Token Source: ${tokenSource}`))
         console.log(chalk.gray(`  Machine ID: ${settings.machineId ?? 'not set'}`))
@@ -31,10 +31,10 @@ export async function handleAuthCommand(args: string[]): Promise<void> {
             console.log('')
             console.log(chalk.yellow('  Token not configured. To get your token:'))
             console.log(chalk.gray('    1. Check the server startup logs (first run shows generated token)'))
-            console.log(chalk.gray('    2. Read ~/.hapi/settings.json on the server'))
+            console.log(chalk.gray('    2. Read ~/.zhushen/settings.json on the server'))
             console.log(chalk.gray('    3. Ask your server administrator (if token is set via env var)'))
             console.log('')
-            console.log(chalk.gray('  Then run: hapi auth login'))
+            console.log(chalk.gray('  Then run: zs auth login'))
         }
         return
     }
@@ -86,16 +86,16 @@ export async function handleAuthCommand(args: string[]): Promise<void> {
 
 function showHelp(): void {
     console.log(`
-${chalk.bold('hapi auth')} - Authentication management
+${chalk.bold('zs auth')} - Authentication management
 
 ${chalk.bold('Usage:')}
-  hapi auth status            Show current configuration
-  hapi auth login             Enter and save CLI_API_TOKEN
-  hapi auth logout            Clear saved credentials
+  zs auth status            Show current configuration
+  zs auth login             Enter and save CLI_API_TOKEN
+  zs auth logout            Clear saved credentials
 
 ${chalk.bold('Token priority (highest to lowest):')}
   1. CLI_API_TOKEN environment variable
-  2. ~/.hapi/settings.json
+  2. ~/.zhushen/settings.json
   3. Interactive prompt (on first run)
 `)
 }

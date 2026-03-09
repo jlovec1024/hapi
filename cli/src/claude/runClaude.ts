@@ -14,8 +14,8 @@ import { registerKillSessionHandler } from './registerKillSessionHandler';
 import type { Session } from './session';
 import { bootstrapSession } from '@/agent/sessionFactory';
 import { createModeChangeHandler, createRunnerLifecycle, setControlledByUser } from '@/agent/runnerLifecycle';
-import { isModelModeAllowedForFlavor, isPermissionModeAllowedForFlavor } from '@hapi/protocol';
-import { ModelModeSchema, PermissionModeSchema } from '@hapi/protocol/schemas';
+import { isModelModeAllowedForFlavor, isPermissionModeAllowedForFlavor } from '@zs/protocol';
+import { ModelModeSchema, PermissionModeSchema } from '@zs/protocol/schemas';
 import { formatMessageWithAttachments } from '@/utils/attachmentFormatter';
 
 export interface StartOptions {
@@ -326,7 +326,7 @@ export async function runClaude(options: StartOptions = {}): Promise<void> {
                 syncSessionModes();
             },
             mcpServers: {
-                'hapi': {
+                'zs': {
                     type: 'http' as const,
                     url: happyServer.url,
                 }

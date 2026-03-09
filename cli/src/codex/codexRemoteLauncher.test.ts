@@ -111,8 +111,8 @@ function createSessionStub() {
     };
 
     const session = {
-        path: '/tmp/hapi-update',
-        logPath: '/tmp/hapi-update/test.log',
+        path: '/tmp/zs-update',
+        logPath: '/tmp/zs-update/test.log',
         client,
         queue,
         codexArgs: undefined,

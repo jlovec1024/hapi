@@ -3,7 +3,7 @@
  *
  * Automatically starts the HAPI hub when CLI is launched
  * if specific conditions are met:
- * 1. HAPI_API_URL is not set (using default localhost:3006)
+ * 1. ZS_API_URL is not set (using default localhost:3006)
  * 2. cliApiToken exists in settings.json (hub was previously started)
  * 3. Port 3006 is not currently listening
  */
@@ -90,9 +90,9 @@ async function waitForServerReady(
  * Determine if hub should be auto-started
  */
 async function shouldAutoStartServer(): Promise<boolean> {
-    // Condition 1: HAPI_API_URL not set (using default localhost:3006)
-    if (process.env.HAPI_API_URL) {
-        logger.debug('[AUTO-START] HAPI_API_URL is set, skipping auto-start')
+    // Condition 1: ZS_API_URL not set (using default localhost:3006)
+    if (process.env.ZS_API_URL) {
+        logger.debug('[AUTO-START] ZS_API_URL is set, skipping auto-start')
         return false
     }
 
@@ -158,7 +158,7 @@ export async function maybeAutoStartServer(): Promise<void> {
 
         if (!isReady) {
             console.log(chalk.yellow('Warning: Hub did not start within expected time'))
-            console.log(chalk.gray('  Try running `hapi hub` manually to see errors'))
+            console.log(chalk.gray('  Try running `zs hub` manually to see errors'))
             return
         }
 

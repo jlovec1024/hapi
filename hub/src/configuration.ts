@@ -1,22 +1,22 @@
 /**
- * Configuration for hapi-hub (Direct Connect)
+ * Configuration for zhushen-hub (Direct Connect)
  *
  * Configuration is loaded with priority: environment variable > settings.json > default
  * When values are read from environment variables and not present in settings.json,
  * they are automatically saved for future use
  *
  * Optional environment variables:
- * - CLI_API_TOKEN: Shared secret for hapi CLI authentication (auto-generated if not set)
- * - HAPI_LISTEN_HOST: Host/IP to bind the HTTP service (default: 127.0.0.1)
- * - HAPI_LISTEN_PORT: Port for HTTP service (default: 3006)
- * - HAPI_PUBLIC_URL: Public URL for external access
+ * - CLI_API_TOKEN: Shared secret for zhushen CLI authentication (auto-generated if not set)
+ * - ZS_LISTEN_HOST: Host/IP to bind the HTTP service (default: 127.0.0.1)
+ * - ZS_LISTEN_PORT: Port for HTTP service (default: 3006)
+ * - ZS_PUBLIC_URL: Public URL for external access
  * - CORS_ORIGINS: Comma-separated CORS origins
- * - HAPI_RELAY_API: Relay API domain for tunwg (default: relay.hapi.run)
- * - HAPI_RELAY_AUTH: Relay auth key for tunwg (default: hapi)
- * - HAPI_RELAY_FORCE_TCP: Force TCP relay mode when UDP is unavailable (true/1)
+ * - ZS_RELAY_API: Relay API domain for tunwg (default: relay.hapi.run)
+ * - ZS_RELAY_AUTH: Relay auth key for tunwg (default: zs)
+ * - ZS_RELAY_FORCE_TCP: Force TCP relay mode when UDP is unavailable (true/1)
  * - VAPID_SUBJECT: Contact email or URL for Web Push (defaults to mailto:admin@hapi.run)
- * - HAPI_HOME: Data directory (default: ~/.hapi)
- * - DB_PATH: SQLite database path (default: {HAPI_HOME}/hapi.db)
+ * - ZS_HOME: Data directory (default: ~/.zhushen)
+ * - DB_PATH: SQLite database path (default: {ZS_HOME}/zhushen.db)
  */
 
 import { existsSync, mkdirSync } from 'node:fs'
@@ -106,9 +106,9 @@ class Configuration {
     /** Create configuration asynchronously */
     static async create(): Promise<Configuration> {
         // 1. Determine data directory (env only - not persisted)
-        const dataDir = process.env.HAPI_HOME
-            ? process.env.HAPI_HOME.replace(/^~/, homedir())
-            : join(homedir(), '.hapi')
+        const dataDir = process.env.ZS_HOME
+            ? process.env.ZS_HOME.replace(/^~/, homedir())
+            : join(homedir(), '.zhushen')
 
         // Ensure data directory exists before loading settings
         if (!existsSync(dataDir)) {
@@ -118,7 +118,7 @@ class Configuration {
         // 2. Determine DB path (env only - not persisted)
         const dbPath = process.env.DB_PATH
             ? process.env.DB_PATH.replace(/^~/, homedir())
-            : join(dataDir, 'hapi.db')
+            : join(dataDir, 'zhushen.db')
 
         // 3. Load hub settings (with persistence)
         const settingsResult = await loadServerSettings(dataDir)

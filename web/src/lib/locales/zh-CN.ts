@@ -24,7 +24,7 @@ export default {
   'login.server.description': '设置 HAPI 服务器地址以使用 API 和实时更新。',
   'login.server.current': '当前：',
   'login.server.origin': '服务器地址',
-  'login.server.placeholder': 'https://hapi.example.com',
+  'login.server.placeholder': 'https://zhushen.example.com',
   'login.server.hint': '仅使用 http(s) 协议。任何路径将被忽略。',
   'login.server.required': '必须先填写服务器地址才能登录。',
   'login.server.useSameOrigin': '使用同源',

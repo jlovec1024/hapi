@@ -1,7 +1,7 @@
 import type { AgentType } from './types'
 
-const AGENT_STORAGE_KEY = 'hapi:newSession:agent'
-const YOLO_STORAGE_KEY = 'hapi:newSession:yolo'
+const AGENT_STORAGE_KEY = 'zs:newSession:agent'
+const YOLO_STORAGE_KEY = 'zs:newSession:yolo'
 
 const VALID_AGENTS: AgentType[] = ['claude', 'codex', 'cursor', 'gemini', 'opencode']
 

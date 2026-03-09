@@ -8,8 +8,8 @@ import type { CodexSession } from './session';
 import { parseCodexCliOverrides } from './utils/codexCliOverrides';
 import { bootstrapSession } from '@/agent/sessionFactory';
 import { createModeChangeHandler, createRunnerLifecycle, setControlledByUser } from '@/agent/runnerLifecycle';
-import { isPermissionModeAllowedForFlavor } from '@hapi/protocol';
-import { PermissionModeSchema } from '@hapi/protocol/schemas';
+import { isPermissionModeAllowedForFlavor } from '@zs/protocol';
+import { PermissionModeSchema } from '@zs/protocol/schemas';
 import { formatMessageWithAttachments } from '@/utils/attachmentFormatter';
 
 export { emitReadyIfIdle } from './utils/emitReadyIfIdle';

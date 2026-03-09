@@ -9,7 +9,7 @@ export async function runCli(): Promise<void> {
     const args = getCliArgs()
 
     if (args.includes('-v') || args.includes('--version')) {
-        console.log(`hapi version: ${packageJson.version}`)
+        console.log(`zs version: ${packageJson.version}`)
         process.exit(0)
     }
 
@@ -21,7 +21,7 @@ export async function runCli(): Promise<void> {
 
     if (command.requiresRuntimeAssets) {
         await ensureRuntimeAssets()
-        logger.debug('Starting hapi CLI with args: ', process.argv)
+        logger.debug('Starting zs CLI with args: ', process.argv)
     }
 
     await command.run(context)

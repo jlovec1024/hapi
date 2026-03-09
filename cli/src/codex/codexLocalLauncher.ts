@@ -10,9 +10,9 @@ export async function codexLocalLauncher(session: CodexSession): Promise<'switch
     const resumeSessionId = session.sessionId;
     let scanner: Awaited<ReturnType<typeof createCodexSessionScanner>> | null = null;
 
-    // Start hapi hub for MCP bridge (same as remote mode)
+    // Start zs hub for MCP bridge (same as remote mode)
     const { server: happyServer, mcpServers } = await buildHapiMcpBridge(session.client);
-    logger.debug(`[codex-local]: Started hapi MCP bridge server at ${happyServer.url}`);
+    logger.debug(`[codex-local]: Started zs MCP bridge server at ${happyServer.url}`);
 
     const handleSessionFound = (sessionId: string) => {
         session.onSessionFound(sessionId);
@@ -80,6 +80,6 @@ export async function codexLocalLauncher(session: CodexSession): Promise<'switch
     } finally {
         await scanner?.cleanup();
         happyServer.stop();
-        logger.debug('[codex-local]: Stopped hapi MCP bridge server');
+        logger.debug('[codex-local]: Stopped zs MCP bridge server');
     }
 }

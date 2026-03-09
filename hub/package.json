@@ -1,8 +1,8 @@
 {
-    "name": "hapi-hub",
+    "name": "zhushen-hub",
     "private": true,
     "version": "0.1.0",
-    "description": "Hub server for HAPI - control AI coding sessions",
+    "description": "Hub server for zhushen - control AI coding sessions",
     "author": "weishu",
     "license": "AGPL-3.0-only",
     "type": "module",
@@ -15,7 +15,7 @@
         "generate:embedded-web-assets": "bun run scripts/generate-embedded-web-assets.ts"
     },
     "dependencies": {
-        "@hapi/protocol": "workspace:*",
+        "@zs/protocol": "workspace:*",
         "@socket.io/bun-engine": "^0.1.0",
         "hono": "^4.11.2",
         "jose": "^6.1.3",

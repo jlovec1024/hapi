@@ -1,6 +1,6 @@
-import { isObject } from '@hapi/protocol'
-import { unwrapRoleWrappedRecordEnvelope } from '@hapi/protocol/messages'
-import type { TeamState } from '@hapi/protocol/types'
+import { isObject } from '@zs/protocol'
+import { unwrapRoleWrappedRecordEnvelope } from '@zs/protocol/messages'
+import type { TeamState } from '@zs/protocol/types'
 
 type TeamStateDelta = Partial<TeamState> & { _action?: 'create' | 'delete' | 'update' }
 

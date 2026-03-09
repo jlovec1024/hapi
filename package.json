@@ -1,5 +1,5 @@
 {
-    "name": "hapi",
+    "name": "zhushen",
     "private": true,
     "workspaces": ["cli", "shared", "hub", "web", "website", "docs"],
     "scripts": {

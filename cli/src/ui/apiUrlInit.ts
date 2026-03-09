@@ -1,9 +1,9 @@
 /**
  * API URL initialization module
  *
- * Handles HAPI_API_URL initialization with priority:
+ * Handles ZS_API_URL initialization with priority:
  * 1. Environment variable (highest - allows temporary override)
- * 2. Settings file (~/.hapi/settings.json)
+ * 2. Settings file (~/.zhushen/settings.json)
  * 3. Default value (http://localhost:3006)
  */
 
@@ -16,7 +16,7 @@ import { readSettings } from '@/persistence'
  */
 export async function initializeApiUrl(): Promise<void> {
     // 1. Environment variable has highest priority (allows temporary override)
-    if (process.env.HAPI_API_URL) {
+    if (process.env.ZS_API_URL) {
         return
     }
 

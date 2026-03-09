@@ -11,8 +11,8 @@ import { createModeChangeHandler, createRunnerLifecycle, setControlledByUser } f
 import { startHookServer } from '@/claude/utils/startHookServer';
 import { cleanupHookSettingsFile, generateHookSettingsFile } from '@/modules/common/hooks/generateHookSettings';
 import { resolveGeminiRuntimeConfig } from './utils/config';
-import { isPermissionModeAllowedForFlavor } from '@hapi/protocol';
-import { PermissionModeSchema } from '@hapi/protocol/schemas';
+import { isPermissionModeAllowedForFlavor } from '@zs/protocol';
+import { PermissionModeSchema } from '@zs/protocol/schemas';
 import { formatMessageWithAttachments } from '@/utils/attachmentFormatter';
 
 export async function runGemini(opts: {

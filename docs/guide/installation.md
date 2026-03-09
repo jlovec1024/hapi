@@ -1,6 +1,6 @@
 # 安装指南（Installation）
 
-安装 HAPI CLI 并完成 hub 配置。
+安装主神 CLI 并完成 hub 配置。
 
 ## 前置条件
 
@@ -27,7 +27,7 @@ opencode --version
 
 ## 架构说明
 
-HAPI 由三个组件组成：
+主神由三个组件组成：
 
 | 组件 | 作用 | 是否必需 |
 |-----------|------|----------|
@@ -60,20 +60,20 @@ HAPI 由三个组件组成：
               └───────────┘
 ```
 
-- **CLI**：运行 `hapi` 启动会话，CLI 封装你的 AI Agent 并与 hub 同步。
-- **Hub**：运行 `hapi hub`，负责会话存储、权限处理、远程访问能力。
-- **Runner**：运行 `hapi runner start`，让你无需保持终端前台也能从手机/Web 远程拉起会话。
+- **CLI**：运行 `zs` 启动会话，CLI 封装你的 AI Agent 并与 hub 同步。
+- **Hub**：运行 `zs hub`，负责会话存储、权限处理、远程访问能力。
+- **Runner**：运行 `zs runner start`，让你无需保持终端前台也能从手机/Web 远程拉起会话。
 
 ### 典型工作流
 
-**仅本地使用**：`hapi hub` → `hapi` → 在终端工作
+**仅本地使用**：`zs hub` → `zs` → 在终端工作
 
-**远程访问**：`hapi hub --relay` → `hapi runner start` → 从手机/Web 控制
+**远程访问**：`zs hub --relay` → `zs runner start` → 从手机/Web 控制
 
 ## 安装 CLI
 
 ```bash
-npm install -g @jlovec/hapi --registry=https://registry.npmjs.org
+npm install -g @jlovec/zhushen --registry=https://registry.npmjs.org
 ```
 
 > 建议使用官方 npm registry 进行全局安装；部分镜像可能无法及时同步平台包。
@@ -81,7 +81,7 @@ npm install -g @jlovec/hapi --registry=https://registry.npmjs.org
 或使用 Homebrew：
 
 ```bash
-brew install jlovec1024/tap/hapi
+brew install jlovec1024/tap/zhushen
 ```
 
 ## 其他安装方式
@@ -90,7 +90,7 @@ brew install jlovec1024/tap/hapi
 <summary>npx（免安装）</summary>
 
 ```bash
-npx @jlovec/hapi
+npx @jlovec/zhushen
 ```
 </details>
 
@@ -129,42 +129,41 @@ Hub 可部署在：
 ### 默认模式：Public Relay（推荐）
 
 ```bash
-hapi hub --relay
+zs hub --relay
 ```
 
 终端会显示访问 URL 和二维码，扫码即可从任意网络访问。
 
-`hapi server` 仍可作为别名使用。
 
 - 使用 WireGuard + TLS 实现 **端到端加密**
 - 几乎零配置
 - 可穿透 NAT、防火墙和复杂网络环境
 
-> **提示**：relay 默认使用 UDP。若连接不稳定，可设置 `HAPI_RELAY_FORCE_TCP=true` 强制 TCP。
+> **提示**：relay 默认使用 UDP。若连接不稳定，可设置 `ZS_RELAY_FORCE_TCP=true` 强制 TCP。
 
 ### 仅本地模式
 
 ```bash
-hapi hub
+zs hub
 # 或
-hapi hub --no-relay
+zs hub --no-relay
 ```
 
 默认监听 `http://localhost:3006`。
 
-首次运行时，HAPI 会：
+首次运行时，主神会：
 
-1. 创建 `~/.hapi/`
+1. 创建 `~/.zhushen/`
 2. 生成安全 access token
-3. 打印 token 并保存到 `~/.hapi/settings.json`
+3. 打印 token 并保存到 `~/.zhushen/settings.json`
 
 <details>
 <summary>配置文件</summary>
 
 ```
-~/.hapi/
+~/.zhushen/
 ├── settings.json      # 主配置
-├── hapi.db           # SQLite 数据库（hub）
+├── zhushen.db           # SQLite 数据库（hub）
 ├── runner.state.json  # Runner 进程状态
 └── logs/             # 日志目录
 ```
@@ -176,15 +175,15 @@ hapi hub --no-relay
 | 变量 | 默认值 | settings.json 字段 | 说明 |
 |----------|---------|---------------|-------------|
 | `CLI_API_TOKEN` | 自动生成 | `cliApiToken` | 认证共享密钥 |
-| `HAPI_API_URL` | `http://localhost:3006` | `apiUrl` | CLI 连接 hub 的 URL |
-| `HAPI_LISTEN_HOST` | `127.0.0.1` | `listenHost` | Hub HTTP 监听地址 |
-| `HAPI_LISTEN_PORT` | `3006` | `listenPort` | Hub HTTP 端口 |
-| `HAPI_PUBLIC_URL` | - | `publicUrl` | 对外访问 URL |
+| `ZS_API_URL` | `http://localhost:3006` | `apiUrl` | CLI 连接 hub 的 URL |
+| `ZS_LISTEN_HOST` | `127.0.0.1` | `listenHost` | Hub HTTP 监听地址 |
+| `ZS_LISTEN_PORT` | `3006` | `listenPort` | Hub HTTP 端口 |
+| `ZS_PUBLIC_URL` | - | `publicUrl` | 对外访问 URL |
 | `CORS_ORIGINS` | - | `corsOrigins` | 允许的 CORS 来源（逗号分隔） |
-| `HAPI_RELAY_FORCE_TCP` | `false` | - | relay 强制 TCP |
+| `ZS_RELAY_FORCE_TCP` | `false` | - | relay 强制 TCP |
 | `VAPID_SUBJECT` | `mailto:admin@hapi.run` | - | Web Push 联系信息 |
-| `HAPI_HOME` | `~/.hapi` | - | 配置目录路径 |
-| `DB_PATH` | `~/.hapi/hapi.db` | - | 数据库文件路径 |
+| `ZS_HOME` | `~/.zhushen` | - | 配置目录路径 |
+| `DB_PATH` | `~/.zhushen/zhushen.db` | - | 数据库文件路径 |
 </details>
 
 <details>
@@ -208,28 +207,28 @@ JSON Schema: [settings.schema.json](https://hapi.run/schemas/settings.schema.jso
 
 ## CLI 配置
 
-如果 hub 不在 localhost，请在运行 `hapi` 前设置：
+如果 hub 不在 localhost，请在运行 `zs` 前设置：
 
 ```bash
-export HAPI_API_URL="http://your-hub:3006"
+export ZS_API_URL="http://your-hub:3006"
 export CLI_API_TOKEN="your-token-here"
 ```
 
 也可以使用交互登录：
 
 ```bash
-hapi auth login
+zs auth login
 ```
 
 认证相关命令：
 
 ```bash
-hapi auth status
-hapi auth login
-hapi auth logout
+zs auth status
+zs auth login
+zs auth logout
 ```
 
-每台机器都会在 `~/.hapi/settings.json` 里记录唯一 machine ID，用于：
+每台机器都会在 `~/.zhushen/settings.json` 里记录唯一 machine ID，用于：
 
 - 多机器连接同一个 hub
 - 在指定机器远程拉起会话
@@ -272,7 +271,7 @@ https://tailscale.com/download
 
 ```bash
 sudo tailscale up
-hapi hub
+zs hub
 ```
 
 通过 Tailscale IP 访问：
@@ -291,7 +290,7 @@ http://100.x.x.x:3006
 
 **自签名证书（HTTPS）说明**
 
-当 `HAPI_API_URL` 指向自签名（或不受信任）证书的 `https://...` URL 时，CLI 可能报错：
+当 `ZS_API_URL` 指向自签名（或不受信任）证书的 `https://...` URL 时，CLI 可能报错：
 
 ```
 Error: self signed certificate
@@ -320,10 +319,10 @@ export NODE_TLS_REJECT_UNAUTHORIZED=0
 运行后台服务以支持远程拉起会话：
 
 ```bash
-hapi runner start
-hapi runner status
-hapi runner logs
-hapi runner stop
+zs runner start
+zs runner status
+zs runner logs
+zs runner stop
 ```
 
 Runner 运行后：
@@ -338,38 +337,38 @@ Runner 运行后：
 如果你偏好 pm2：
 
 ```bash
-pm2 start "hapi runner start --foreground" --name hapi-runner
+pm2 start "zs runner start --foreground" --name zhushen-runner
 pm2 save
 ```
 </details>
 
 ### 后台服务常驻部署
 
-确保 HAPI 在终端关闭或系统重启后依然运行。
+确保 主神在终端关闭或系统重启后依然运行。
 
 <details>
 <summary>快速方式：nohup</summary>
 
 ```bash
 # Hub
-nohup hapi hub --relay > ~/.hapi/logs/hub.log 2>&1 &
+nohup zs hub --relay > ~/.zhushen/logs/hub.log 2>&1 &
 
 # Runner
-nohup hapi runner start --foreground > ~/.hapi/logs/runner.log 2>&1 &
+nohup zs runner start --foreground > ~/.zhushen/logs/runner.log 2>&1 &
 ```
 
 查看日志：
 
 ```bash
-tail -f ~/.hapi/logs/hub.log
-tail -f ~/.hapi/logs/runner.log
+tail -f ~/.zhushen/logs/hub.log
+tail -f ~/.zhushen/logs/runner.log
 ```
 
 停止进程：
 
 ```bash
-pkill -f "hapi hub"
-pkill -f "hapi runner"
+pkill -f "zs hub"
+pkill -f "zs runner"
 ```
 </details>
 
@@ -383,13 +382,13 @@ pm2 支持崩溃自动重启、开机自启。
 npm install -g pm2
 
 # 启动 hub 与 runner
-pm2 start "hapi hub --relay" --name hapi-hub
-pm2 start "hapi runner start --foreground" --name hapi-runner
+pm2 start "zs hub --relay" --name zhushen-hub
+pm2 start "zs runner start --foreground" --name zhushen-runner
 
 # 查看状态与日志
 pm2 status
-pm2 logs hapi-hub
-pm2 logs hapi-runner
+pm2 logs zhushen-hub
+pm2 logs zhushen-runner
 
 # 系统重启后自动恢复
 pm2 startup    # 按提示执行
@@ -402,7 +401,7 @@ pm2 save       # 保存进程列表
 
 在 macOS 上可通过 plist 配置自动启动。
 
-**Hub**（`~/Library/LaunchAgents/com.hapi.hub.plist`）：
+**Hub**（`~/Library/LaunchAgents/com.zhushen.hub.plist`）：
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -410,10 +409,10 @@ pm2 save       # 保存进程列表
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.hapi.hub</string>
+    <string>com.zhushen.hub</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/hapi</string>
+        <string>/usr/local/bin/zs</string>
         <string>hub</string>
         <string>--relay</string>
     </array>
@@ -422,14 +421,14 @@ pm2 save       # 保存进程列表
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/Users/YOUR_USERNAME/.hapi/logs/hub.log</string>
+    <string>/Users/YOUR_USERNAME/.zhushen/logs/hub.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/YOUR_USERNAME/.hapi/logs/hub.log</string>
+    <string>/Users/YOUR_USERNAME/.zhushen/logs/hub.log</string>
 </dict>
 </plist>
 ```
 
-**Runner**（`~/Library/LaunchAgents/com.hapi.runner.plist`）：
+**Runner**（`~/Library/LaunchAgents/com.zhushen.runner.plist`）：
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -437,10 +436,10 @@ pm2 save       # 保存进程列表
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.hapi.runner</string>
+    <string>com.zhushen.runner</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/hapi</string>
+        <string>/usr/local/bin/zs</string>
         <string>runner</string>
         <string>start</string>
         <string>--foreground</string>
@@ -450,9 +449,9 @@ pm2 save       # 保存进程列表
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/Users/YOUR_USERNAME/.hapi/logs/runner.log</string>
+    <string>/Users/YOUR_USERNAME/.zhushen/logs/runner.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/YOUR_USERNAME/.hapi/logs/runner.log</string>
+    <string>/Users/YOUR_USERNAME/.zhushen/logs/runner.log</string>
 </dict>
 </plist>
 ```
@@ -461,17 +460,17 @@ pm2 save       # 保存进程列表
 
 ```bash
 # 加载（启动）
-launchctl load ~/Library/LaunchAgents/com.hapi.hub.plist
-launchctl load ~/Library/LaunchAgents/com.hapi.runner.plist
+launchctl load ~/Library/LaunchAgents/com.zhushen.hub.plist
+launchctl load ~/Library/LaunchAgents/com.zhushen.runner.plist
 
 # 卸载（停止）
-launchctl unload ~/Library/LaunchAgents/com.hapi.hub.plist
-launchctl unload ~/Library/LaunchAgents/com.hapi.runner.plist
+launchctl unload ~/Library/LaunchAgents/com.zhushen.hub.plist
+launchctl unload ~/Library/LaunchAgents/com.zhushen.runner.plist
 ```
 
 > **macOS 休眠提示**：显示器休眠后，后台进程可能被挂起。可使用 `caffeinate` 防止休眠：
 > ```bash
-> caffeinate -dimsu hapi hub --relay
+> caffeinate -dimsu zs hub --relay
 > ```
 > 或在单独终端运行 `caffeinate -dimsu`。
 </details>
@@ -481,16 +480,16 @@ launchctl unload ~/Library/LaunchAgents/com.hapi.runner.plist
 
 可创建 user-level systemd 服务实现自动启动。
 
-**Hub**（`~/.config/systemd/user/hapi-hub.service`）：
+**Hub**（`~/.config/systemd/user/zhushen-hub.service`）：
 
 ```ini
 [Unit]
-Description=HAPI Hub
+Description=Zhushen Hub
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/hapi hub --relay
+ExecStart=/usr/local/bin/zs hub --relay
 Restart=always
 RestartSec=5
 
@@ -498,16 +497,16 @@ RestartSec=5
 WantedBy=default.target
 ```
 
-**Runner**（`~/.config/systemd/user/hapi-runner.service`）：
+**Runner**（`~/.config/systemd/user/zhushen-runner.service`）：
 
 ```ini
 [Unit]
-Description=HAPI Runner
-After=network.target hapi-hub.service
+Description=Zhushen Runner
+After=network.target zhushen-hub.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/hapi runner start --foreground
+ExecStart=/usr/local/bin/zs runner start --foreground
 Restart=always
 RestartSec=5
 
@@ -522,16 +521,16 @@ WantedBy=default.target
 systemctl --user daemon-reload
 
 # 启用（登录时自启）
-systemctl --user enable hapi-hub
-systemctl --user enable hapi-runner
+systemctl --user enable zhushen-hub
+systemctl --user enable zhushen-runner
 
 # 立即启动
-systemctl --user start hapi-hub
-systemctl --user start hapi-runner
+systemctl --user start zhushen-hub
+systemctl --user start zhushen-runner
 
 # 查看状态/日志
-systemctl --user status hapi-hub
-journalctl --user -u hapi-hub -f
+systemctl --user status zhushen-hub
+journalctl --user -u zhushen-hub -f
 ```
 
 > **注销后继续运行**：

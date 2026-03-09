@@ -1,9 +1,9 @@
 /**
- * Cross-platform HAPI CLI spawning utility
+ * Cross-platform Zhushen CLI spawning utility
  *
  * ## Background
  *
- * HAPI CLI runs in two modes:
+ * Zhushen CLI runs in two modes:
  * 1. **Compiled binary**: A single executable built with `bun build --compile`
  * 2. **Development mode**: Running TypeScript directly via `bun`
  *
@@ -20,7 +20,7 @@
  *
  * ## Cross-Platform Support
  *
- * This utility handles spawning HAPI CLI subprocesses (for runner processes)
+ * This utility handles spawning Zhushen CLI subprocesses (for runner processes)
  * in a cross-platform way, detecting the current runtime mode and using
  * the appropriate command and arguments.
  */
@@ -93,12 +93,12 @@ export function spawnHappyCLI(args: string[], options: SpawnOptions = {}): Child
     directory = process.cwd()
   }
   // Note: We're executing the current runtime with the calculated entrypoint path below,
-  // bypassing the 'hapi' wrapper that would normally be found in the shell's PATH.
-  // However, we log it as 'hapi' here because other engineers are typically looking
-  // for when "hapi" was started and don't care about the underlying node process
+  // bypassing the 'zs' wrapper that would normally be found in the shell's PATH.
+  // However, we log it as 'zs' here because other engineers are typically looking
+  // for when "zs" was started and don't care about the underlying node process
   // details and flags we use to achieve the same result.
-  const fullCommand = `hapi ${args.join(' ')}`;
-  logger.debug(`[SPAWN HAPI CLI] Spawning: ${fullCommand} in ${directory}`);
+  const fullCommand = `zs ${args.join(' ')}`;
+  logger.debug(`[SPAWN ZS CLI] Spawning: ${fullCommand} in ${directory}`);
   
   const desiredCwd = typeof options.cwd === 'string' ? options.cwd : undefined;
   const { command: spawnCommand, args: spawnArgs } = getHappyCliCommand(args, desiredCwd);

@@ -13,7 +13,7 @@ const sendHookRequest = async (
             'Content-Length': Buffer.byteLength(body)
         }
         if (token) {
-            headers['x-hapi-hook-token'] = token
+            headers['x-zs-hook-token'] = token
         }
 
         const req = request({

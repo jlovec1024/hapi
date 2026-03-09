@@ -5,8 +5,8 @@ describe('codexMcpConfig', () => {
     describe('buildMcpServerConfigArgs', () => {
         it('builds config args for a single MCP server', () => {
             const mcpServers = {
-                hapi: {
-                    command: 'hapi',
+                zs: {
+                    command: 'zs',
                     args: ['mcp', '--url', 'http://localhost:3000']
                 }
             };
@@ -14,21 +14,21 @@ describe('codexMcpConfig', () => {
             const args = buildMcpServerConfigArgs(mcpServers);
 
             expect(args).toEqual([
-                '-c', 'mcp_servers.hapi.command="hapi"',
-                '-c', "mcp_servers.hapi.args=['mcp','--url','http://localhost:3000']"
+                '-c', 'mcp_servers.zs.command="zs"',
+                '-c', "mcp_servers.zs.args=['mcp','--url','http://localhost:3000']"
             ]);
         });
 
         it('builds config args for multiple MCP servers', () => {
             const mcpServers = {
-                hapi: { command: 'hapi', args: ['mcp'] },
+                zs: { command: 'zs', args: ['mcp'] },
                 other: { command: 'node', args: ['server.js'] }
             };
 
             const args = buildMcpServerConfigArgs(mcpServers);
 
             expect(args).toContain('-c');
-            expect(args).toContain('mcp_servers.hapi.command="hapi"');
+            expect(args).toContain('mcp_servers.zs.command="zs"');
             expect(args).toContain('mcp_servers.other.command="node"');
         });
 

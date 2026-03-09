@@ -1,7 +1,7 @@
 /**
- * Minimal persistence functions for HAPI CLI
- * 
- * Handles settings, encryption key, and runner state storage in ~/.hapi/ (or HAPI_HOME override)
+ * Minimal persistence functions for Zhushen CLI
+ *
+ * Handles settings, encryption key, and runner state storage in ~/.zhushen/ (or ZS_HOME override)
  */
 
 import { FileHandle } from 'node:fs/promises'
@@ -17,7 +17,7 @@ interface Settings {
   machineIdConfirmedByServer?: boolean
   runnerAutoStartWhenRunningHappy?: boolean
   cliApiToken?: string
-  // API URL for server connections (priority: env HAPI_API_URL > this > default)
+  // API URL for server connections (priority: env ZS_API_URL > this > default)
   apiUrl?: string
   // Legacy field name (for migration, read-only)
   serverUrl?: string

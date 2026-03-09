@@ -1,6 +1,6 @@
-# hapi-hub
+# zhushen-hub
 
-hapi hub 的 HTTP API 与实时更新服务。
+zs hub 的 HTTP API 与实时更新服务。
 
 ## 功能
 
@@ -20,15 +20,15 @@ hapi hub 的 HTTP API 与实时更新服务。
 
 ### 可选
 
-- `HAPI_LISTEN_HOST`：HTTP 监听地址（默认：`127.0.0.1`）。
-- `HAPI_LISTEN_PORT`：HTTP 端口（默认：`3006`）。
-- `HAPI_PUBLIC_URL`：对外 HTTPS URL，同时用于推导 web app 默认 CORS 来源。
+- `ZS_LISTEN_HOST`：HTTP 监听地址（默认：`127.0.0.1`）。
+- `ZS_LISTEN_PORT`：HTTP 端口（默认：`3006`）。
+- `ZS_PUBLIC_URL`：对外 HTTPS URL，同时用于推导 web app 默认 CORS 来源。
 - `CORS_ORIGINS`：逗号分隔来源或 `*`。
-- `HAPI_HOME`：数据目录（默认：`~/.hapi`）。
-- `DB_PATH`：SQLite 数据库路径（默认：`HAPI_HOME/hapi.db`）。
-- `HAPI_RELAY_API`：Relay API 域名（默认：`relay.hapi.run`）。
-- `HAPI_RELAY_AUTH`：Relay 认证 key（默认：`hapi`）。
-- `HAPI_RELAY_FORCE_TCP`：强制 TCP relay 模式（`true/1`）。
+- `ZS_HOME`：数据目录（默认：`~/.zhushen`）。
+- `DB_PATH`：SQLite 数据库路径（默认：`ZS_HOME/hapi.db`）。
+- `ZS_RELAY_API`：Relay API 域名（默认：`relay.hapi.run`）。
+- `ZS_RELAY_AUTH`：Relay 认证 key（默认：`zs`）。
+- `ZS_RELAY_FORCE_TCP`：强制 TCP relay 模式（`true/1`）。
 - `VAPID_SUBJECT`：Web Push 联系邮箱/URL。
 
 ## 运行
@@ -37,12 +37,11 @@ hapi hub 的 HTTP API 与实时更新服务。
 
 ```bash
 export CLI_API_TOKEN="shared-secret"
-export HAPI_PUBLIC_URL="https://your-domain.example"
+export ZS_PUBLIC_URL="https://your-domain.example"
 
-hapi hub
+zs hub
 ```
 
-`hapi server` 仍支持作为别名。
 
 源码方式：
 
@@ -204,14 +203,14 @@ hub 构建产物为 `hub/dist/index.js`，web 资源位于 `web/dist`。
 
 ## 网络说明
 
-- 若 web app 与 hub 不同源部署，请设置 `CORS_ORIGINS`（或 `HAPI_PUBLIC_URL`）以包含静态站点来源。
+- 若 web app 与 hub 不同源部署，请设置 `CORS_ORIGINS`（或 `ZS_PUBLIC_URL`）以包含静态站点来源。
 
 ## 独立托管 Web
 
 Web UI 可与 hub 分离托管（例如 GitHub Pages、Cloudflare Pages）：
 
 1. 在仓库根目录构建并部署 `web/dist`。
-2. 设置 `CORS_ORIGINS`（或 `HAPI_PUBLIC_URL`）为静态站点来源。
-3. 打开静态站点，在登录页点击 Hub 按钮并输入 hapi hub 来源。
+2. 设置 `CORS_ORIGINS`（或 `ZS_PUBLIC_URL`）为静态站点来源。
+3. 打开静态站点，在登录页点击 Hub 按钮并输入 zs hub 来源。
 
 若将 hub override 留空，则保持默认同源行为（由 hub 直接提供 web 资源）。

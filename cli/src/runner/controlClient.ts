@@ -52,7 +52,7 @@ async function runnerPost(path: string, body?: any): Promise<{ error?: string } 
   }
 
   try {
-    const timeout = process.env.HAPI_RUNNER_HTTP_TIMEOUT ? parseInt(process.env.HAPI_RUNNER_HTTP_TIMEOUT) : 10_000;
+    const timeout = process.env.ZS_RUNNER_HTTP_TIMEOUT ? parseInt(process.env.ZS_RUNNER_HTTP_TIMEOUT) : 10_000;
     const response = await fetch(`http://127.0.0.1:${state.httpPort}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -110,7 +110,7 @@ export async function stopRunnerHttp(): Promise<void> {
 
 /**
  * The version check is still quite naive.
- * For instance we are not handling the case where we upgraded hapi,
+ * For instance we are not handling the case where we upgraded zs,
  * the runner is still running, and it recieves a new message to spawn a new session.
  * This is a tough case - we need to somehow figure out to restart ourselves,
  * yet still handle the original request.
@@ -133,7 +133,7 @@ export async function stopRunnerHttp(): Promise<void> {
  * Not just a boolean.
  * 
  * We can destructure the response on the caller for richer output.
- * For instance when running `hapi runner status` we can show more information.
+ * For instance when running `zs runner status` we can show more information.
  */
 export async function checkIfRunnerRunningAndCleanupStaleState(): Promise<boolean> {
   const state = await readRunnerState();
@@ -185,7 +185,7 @@ export async function isRunnerRunningCurrentlyInstalledHappyVersion(): Promise<b
     
     // PREVIOUS IMPLEMENTATION - Keeping this commented in case we need it
     // Kirill does not understand how the upgrade of npm packages happen and whether 
-    // we will get a new path or not when hapi is upgraded globally.
+    // we will get a new path or not when zs is upgraded globally.
     // If reading package.json doesn't work correctly after npm upgrades, 
     // we can revert to spawning a process (but should add timeout and cleanup!)
     /*

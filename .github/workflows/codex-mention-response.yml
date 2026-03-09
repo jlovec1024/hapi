@@ -30,7 +30,7 @@ jobs:
             const marker = "*HAPI Bot*";
             const triggeringCommentId = context.payload.comment.id;
             const replyMarker = `<!-- reply-to:${triggeringCommentId} -->`;
-            const allowedLogins = (process.env.HAPI_BOT_LOGINS || "github-actions[bot]")
+            const allowedLogins = (process.env.ZS_BOT_LOGINS || "github-actions[bot]")
               .split(",").map(v => v.trim()).filter(Boolean);
 
             // Check user write permission
@@ -101,7 +101,7 @@ jobs:
             core.setOutput("event_type", isIssueComment ? "issue_comment" : "pr_review_comment");
             core.setOutput("is_pr", isPR ? "true" : "false");
         env:
-          HAPI_BOT_LOGINS: ${{ vars.HAPI_BOT_LOGINS }}
+          ZS_BOT_LOGINS: ${{ vars.ZS_BOT_LOGINS }}
 
       - name: Checkout repository
         if: steps.check_skip.outputs.should_skip != 'true'

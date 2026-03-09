@@ -17,16 +17,16 @@ RUN bun install --frozen-lockfile
 
 COPY . .
 
-# Claude Code binary required by hapi CLI runtime
+# Claude Code binary required by zhushen CLI runtime
 RUN bun add -g @anthropic-ai/claude-code
 
-# Ensure hapi CLI is available on PATH for runner spawns
-RUN printf '#!/usr/bin/env sh\nexec bun run --cwd /app/cli src/index.ts "$@"\n' > /usr/local/bin/hapi \
-    && chmod +x /usr/local/bin/hapi
+# Ensure zs CLI is available on PATH for runner spawns
+RUN printf '#!/usr/bin/env sh\nexec bun run --cwd /app/cli src/index.ts "$@"\n' > /usr/local/bin/zs \
+    && chmod +x /usr/local/bin/zs
 
-ENV HAPI_HOME=/data/hapi
-ENV HAPI_API_URL=http://hub:3006
-ENV HAPI_CLAUDE_PATH=/usr/local/bin/claude
+ENV ZS_HOME=/data/zhushen
+ENV ZS_API_URL=http://hub:3006
+ENV ZS_CLAUDE_PATH=/usr/local/bin/claude
 
 # Foreground runner mode for containerized long-running service
 CMD ["bun", "run", "--cwd", "cli", "src/index.ts", "runner", "start-sync"]

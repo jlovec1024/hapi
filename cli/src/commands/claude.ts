@@ -1,7 +1,7 @@
 import chalk from 'chalk'
 import { execFileSync } from 'node:child_process'
 import { z } from 'zod'
-import { PROTOCOL_VERSION } from '@hapi/protocol'
+import { PROTOCOL_VERSION } from '@zs/protocol'
 import type { StartOptions } from '@/claude/runClaude'
 import { configuration } from '@/configuration'
 import { isRunnerRunningCurrentlyInstalledHappyVersion } from '@/runner/controlClient'
@@ -34,7 +34,7 @@ export const claudeCommand: CommandDefinition = {
             if (arg === '-h' || arg === '--help') {
                 showHelp = true
                 unknownArgs.push(arg)
-            } else if (arg === '--hapi-starting-mode') {
+            } else if (arg === '--zs-starting-mode') {
                 options.startingMode = z.enum(['local', 'remote']).parse(args[++i])
             } else if (arg === '--yolo') {
                 options.permissionMode = 'bypassPermissions'
@@ -65,37 +65,36 @@ export const claudeCommand: CommandDefinition = {
 
         if (showHelp) {
             console.log(`
-${chalk.bold('hapi')} - Claude Code On the Go
+${chalk.bold('zs')} - Claude Code On the Go
 
 ${chalk.bold('Usage:')}
-  hapi [options]         Start Claude with remote control (direct-connect)
-  hapi auth              Manage authentication
-  hapi codex             Start Codex mode
-  hapi cursor            Start Cursor Agent mode
-  hapi gemini            Start Gemini ACP mode
-  hapi opencode          Start OpenCode ACP mode
-  hapi mcp               Start MCP stdio bridge
-  hapi connect           (not available in direct-connect mode)
-  hapi notify            (not available in direct-connect mode)
-  hapi hub               Start the API + web hub
-  hapi hub --relay       Start with public relay
-  hapi server            Alias for hapi hub
-  hapi runner            Manage background service that allows
+  zs [options]         Start Claude with remote control (direct-connect)
+  zs auth              Manage authentication
+  zs codex             Start Codex mode
+  zs cursor            Start Cursor Agent mode
+  zs gemini            Start Gemini ACP mode
+  zs opencode          Start OpenCode ACP mode
+  zs mcp               Start MCP stdio bridge
+  zs connect           (not available in direct-connect mode)
+  zs notify            (not available in direct-connect mode)
+  zs hub               Start the API + web hub
+  zs hub --relay       Start with public relay
+  zs runner            Manage background service that allows
                             to spawn new sessions away from your computer
-  hapi doctor            System diagnostics & troubleshooting
+  zs doctor            System diagnostics & troubleshooting
 
 ${chalk.bold('Examples:')}
-  hapi                    Start session (will prompt for token if not set)
-  hapi auth login         Configure CLI_API_TOKEN interactively
-  hapi --yolo             Start with bypassing permissions
-                            hapi sugar for --dangerously-skip-permissions
-  hapi auth status        Show direct-connect status
-  hapi doctor             Run diagnostics
+  zs                    Start session (will prompt for token if not set)
+  zs auth login         Configure CLI_API_TOKEN interactively
+  zs --yolo             Start with bypassing permissions
+                            zs sugar for --dangerously-skip-permissions
+  zs auth status        Show direct-connect status
+  zs doctor             Run diagnostics
 
-${chalk.bold('hapi supports ALL Claude options!')}
-  Use any claude flag with hapi as you would with claude. Our favorite:
+${chalk.bold('zs supports ALL Claude options!')}
+  Use any claude flag with zs as you would with claude. Our favorite:
 
-  hapi --resume
+  zs --resume
 
 ${chalk.gray('─'.repeat(60))}
 ${chalk.bold.cyan('Claude Code Options (from `claude --help`):')}
@@ -119,10 +118,10 @@ ${chalk.bold.cyan('Claude Code Options (from `claude --help`):')}
         await maybeAutoStartServer()
         await authAndSetupMachineIfNeeded()
 
-        logger.debug('Ensuring hapi background service is running & matches our version...')
+        logger.debug('Ensuring zs background service is running & matches our version...')
 
         if (!(await isRunnerRunningCurrentlyInstalledHappyVersion())) {
-            logger.debug('Starting hapi background service...')
+            logger.debug('Starting zs background service...')
 
             const runnerProcess = spawnHappyCLI(['runner', 'start-sync'], {
                 detached: true,
@@ -149,13 +148,13 @@ ${chalk.bold.cyan('Claude Code Options (from `claude --help`):')}
                 messageLower.includes('enotfound') ||
                 messageLower.includes('network error')
             ) {
-                console.error(chalk.yellow('Unable to connect to HAPI hub'))
+                console.error(chalk.yellow('Unable to connect to zhushen hub'))
                 console.error(chalk.gray(`  Hub URL: ${configuration.apiUrl}`))
                 console.error(chalk.gray('  Please check your network connection or hub status'))
             } else if (httpStatus === 403 && responseErrorText === 'Machine access denied') {
                 console.error(chalk.red('Machine access denied.'))
                 console.error(chalk.gray('  This machineId is already registered under a different namespace.'))
-                console.error(chalk.gray('  Fix: run `hapi auth logout`, or set a separate HAPI_HOME per namespace.'))
+                console.error(chalk.gray('  Fix: run `zs auth logout`, or set a separate ZS_HOME per namespace.'))
             } else if (httpStatus === 403 && responseErrorText === 'Session access denied') {
                 console.error(chalk.red('Session access denied.'))
                 console.error(chalk.gray('  This session belongs to a different namespace.'))
@@ -167,7 +166,7 @@ ${chalk.bold.cyan('Claude Code Options (from `claude --help`):')}
                 messageLower.includes('forbidden')
             ) {
                 console.error(chalk.red('Authentication error:'), message)
-                console.error(chalk.gray('  Run: hapi auth login'))
+                console.error(chalk.gray('  Run: zs auth login'))
             } else {
                 console.error(chalk.red('Error:'), message)
             }

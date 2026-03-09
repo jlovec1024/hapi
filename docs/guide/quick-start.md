@@ -2,20 +2,20 @@
 
 <Steps>
 
-## 安装 HAPI
+## 安装主神
 
 ::: code-group
 
 ```bash [npm]
-npm install -g @jlovec/hapi --registry=https://registry.npmjs.org
+npm install -g @jlovec/zhushen --registry=https://registry.npmjs.org
 ```
 
 ```bash [Homebrew]
-brew install jlovec1024/tap/hapi
+brew install jlovec1024/tap/zhushen
 ```
 
 ```bash [npx (一次性使用)]
-npx @jlovec/hapi
+npx @jlovec/zhushen
 ```
 
 :::
@@ -27,12 +27,11 @@ npx @jlovec/hapi
 ## 启动 Hub
 
 ```bash
-hapi hub --relay
+zs hub --relay
 ```
 
-首次运行时，HAPI 会生成一个访问令牌（access token）并保存到 `~/.hapi/settings.json`。
+首次运行时，主神会生成一个访问令牌（access token）并保存到 `~/.zhushen/settings.json`。
 
-`hapi server` 仍然作为别名受支持。
 
 终端会显示一个 URL 和二维码，用于远程访问。
 
@@ -44,7 +43,7 @@ hapi hub --relay
 hapi
 ```
 
-这将启动由 HAPI 包装的 Claude Code 会话，会话会自动显示在 Web 界面中。
+这将启动由 主神包装的 Claude Code 会话，会话会自动显示在 Web 界面中。
 
 ## 打开界面
 

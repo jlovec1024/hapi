@@ -22,9 +22,9 @@ RUN bun run build:web
 
 EXPOSE 3006
 
-ENV HAPI_LISTEN_HOST=0.0.0.0
-ENV HAPI_LISTEN_PORT=3006
-ENV HAPI_HOME=/data/hapi
+ENV ZS_LISTEN_HOST=0.0.0.0
+ENV ZS_LISTEN_PORT=3006
+ENV ZS_HOME=/data/zhushen
 
 # Run hub directly from source (same as local dev behavior)
 CMD ["bun", "run", "--cwd", "hub", "src/index.ts"]

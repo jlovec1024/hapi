@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'HAPI',
+  title: 'Zhushen',
   description: 'Control your AI agents from anywhere',
   base: '/docs/',
 
@@ -23,7 +23,7 @@ export default defineConfig({
       { text: 'PWA', link: '/guide/pwa' },
       { text: 'How it Works', link: '/guide/how-it-works' },
       { text: 'Cursor Agent', link: '/guide/cursor' },
-      { text: 'Why HAPI', link: '/guide/why-hapi' },
+      { text: 'Why Zhushen', link: '/guide/why-hapi' },
       { text: 'FAQ', link: '/guide/faq' }
     ],
 
