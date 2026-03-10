@@ -268,6 +268,7 @@ export function SessionChat(props: {
                         onModelModeChange={handleModelModeChange}
                         onSwitchToRemote={handleSwitchToRemote}
                         onTerminal={props.session.active ? handleViewTerminal : undefined}
+                        sessionId={props.session.id}
                         autocompleteSuggestions={props.autocompleteSuggestions}
                         onSlashEntry={props.onSlashEntry}
                         isFetchingSlashCommands={props.isFetchingSlashCommands}

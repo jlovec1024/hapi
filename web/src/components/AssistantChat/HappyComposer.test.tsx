@@ -188,4 +188,16 @@ describe('HappyComposer keyboard behavior', () => {
         expect(mockComposerSend).not.toHaveBeenCalled()
         expect(mockComposerSetText).toHaveBeenCalledWith('/help ')
     })
+
+    it('restores draft when switching back to previous session', () => {
+        const { rerender } = render(<HappyComposer sessionId="session-a" />)
+        const input = screen.getByTestId('composer-input')
+
+        fireEvent.change(input, { target: { value: '123', selectionStart: 3, selectionEnd: 3 } })
+
+        rerender(<HappyComposer sessionId="session-b" />)
+        rerender(<HappyComposer sessionId="session-a" />)
+
+        expect(mockComposerSetText).toHaveBeenCalledWith('123')
+    })
 })

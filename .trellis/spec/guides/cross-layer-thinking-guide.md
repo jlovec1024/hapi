@@ -113,6 +113,21 @@ Typical failure pattern:
 
 ---
 
+## Session-Switch Draft Persistence Checklist (Composer ↔ Session Identity)
+
+When chat composer text should survive switching between sessions:
+- [ ] Is draft state keyed by `session.id` rather than a single global composer value?
+- [ ] On session switch, do we hydrate input from the target session draft before rendering interactive input?
+- [ ] Does send success clear only the active session draft key?
+- [ ] Are drafts isolated between sessions (A draft never appears in B)?
+- [ ] Is there an integration test for: `type in A -> switch B -> switch A -> draft restored`?
+
+Typical failure pattern:
+- Composer relies on one shared `composer.text` state with no per-session scoping.
+- Navigating away and back remounts/syncs with empty state, causing unsent input loss.
+
+---
+
 ## PR Automation Thinking Checklist
 
 When running automated post-coding PR workflow:

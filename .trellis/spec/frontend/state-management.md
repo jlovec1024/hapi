@@ -272,6 +272,36 @@ const sortedSessions = useMemo(() => {
 - ❌ Putting UI state in URL (only shareable state belongs there)
 - ❌ Using global state when local state would work
 - ❌ Not providing default values for optional query data (`?? []`)
+- ❌ Treating composer draft text as global/thread state when product expectation is **session-scoped draft persistence**
+
+---
+
+## Session-Scoped Draft Contract (Chat Composer)
+
+When chat input should survive session switches, follow this contract:
+
+### Required Behavior
+
+- Draft text is scoped by `session.id` (or equivalent stable session identity).
+- Switching away from session A and returning to session A restores its previous draft.
+- Switching to session B must not show session A's draft.
+- Send success clears only the active session draft.
+- Unsent draft must not be lost on in-app route/session tab switches.
+
+### Implementation Pattern
+
+- Keep a session-keyed draft store (`Map<sessionId, draft>` / module store / persistence layer).
+- On active session change:
+  - hydrate composer input from `draftStore.get(session.id) ?? ''`
+  - persist edits to the same session key on each change/debounce.
+- Never rely on a single unscoped `composer.text` value for multi-session UX.
+
+### Test Cases (minimum)
+
+- `A -> type "123" -> switch B -> switch A` => input is `123`.
+- `A has "foo", B has "bar"` => switching sessions shows correct isolated draft.
+- `A send message` => A draft clears; B draft remains unchanged.
+- Route remount/re-entry still restores draft from session-scoped store.
 
 ---
 

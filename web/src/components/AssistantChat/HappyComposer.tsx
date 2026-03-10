@@ -35,6 +35,8 @@ export interface TextInputState {
 
 const defaultSuggestionHandler = async (): Promise<Suggestion[]> => []
 
+const sessionDrafts = new Map<string, string>()
+
 export function HappyComposer(props: {
     disabled?: boolean
     permissionMode?: PermissionMode
@@ -50,6 +52,7 @@ export function HappyComposer(props: {
     onModelModeChange?: (mode: ModelMode) => void
     onSwitchToRemote?: () => void
     onTerminal?: () => void
+    sessionId?: string
     autocompletePrefixes?: string[]
     autocompleteSuggestions?: (query: string) => Promise<Suggestion[]>
     onSlashEntry?: () => void
@@ -71,6 +74,7 @@ export function HappyComposer(props: {
         onModelModeChange,
         onSwitchToRemote,
         onTerminal,
+        sessionId,
         autocompletePrefixes = ['@', '/', '$'],
         autocompleteSuggestions = defaultSuggestionHandler,
         onSlashEntry,
@@ -116,16 +120,42 @@ export function HappyComposer(props: {
     const prevControlledByUser = useRef(controlledByUser)
     const prevActiveWordRef = useRef<string | null>(null)
     const prevIsFetchingSlashCommandsRef = useRef(isFetchingSlashCommands)
+    const prevSessionIdRef = useRef<string | undefined>(sessionId)
+
+    const sessionKey = sessionId ?? 'default'
 
     useEffect(() => {
+        const prevKey = prevSessionIdRef.current ?? 'default'
+        if (prevKey === sessionKey) {
+            return
+        }
+
+        sessionDrafts.set(prevKey, inputState.text)
+
+        const storedDraft = sessionDrafts.get(sessionKey)
+        const nextText = storedDraft ?? composerText
+        const nextPos = nextText.length
+
         setInputState((prev) => {
-            if (prev.text === composerText) return prev
-            // When syncing from composerText, update selection to end of text
-            // This ensures activeWord detection works correctly
-            const newPos = composerText.length
-            return { text: composerText, selection: { start: newPos, end: newPos } }
+            if (prev.text === nextText && prev.selection.start === nextPos && prev.selection.end === nextPos) {
+                return prev
+            }
+            return {
+                text: nextText,
+                selection: { start: nextPos, end: nextPos }
+            }
         })
-    }, [composerText])
+
+        if (nextText !== composerText) {
+            api.composer().setText(nextText)
+        }
+
+        prevSessionIdRef.current = sessionId
+    }, [api, composerText, inputState.text, sessionId, sessionKey])
+
+    useEffect(() => {
+        sessionDrafts.set(sessionKey, inputState.text)
+    }, [sessionKey, inputState.text])
 
     // Track one-time "continue" hint after switching from local to remote.
     useEffect(() => {
@@ -407,8 +437,9 @@ export function HappyComposer(props: {
     const showAbortButton = true
 
     const handleSend = useCallback(() => {
+        sessionDrafts.delete(sessionKey)
         api.composer().send()
-    }, [api])
+    }, [api, sessionKey])
 
     const overlays = useMemo(() => {
         if (showSettings && (showPermissionSettings || showModelSettings)) {
