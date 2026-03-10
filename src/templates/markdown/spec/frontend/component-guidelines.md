@@ -346,6 +346,79 @@ const { t } = useTranslation()
 
 ---
 
+## Scenario: Row Navigation vs Action Buttons (Touch + Pointer)
+
+### 1. Scope / Trigger
+- Trigger: A selectable list row has nested action buttons (rename/archive/delete/more).
+- Scope: Frontend interaction layer (`web/src/components/*`) with shared press/click hooks.
+
+### 2. Signatures
+
+```typescript
+// Row-level navigation
+onSelect: (sessionId: string) => void
+
+// Nested action buttons
+onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
+```
+
+```typescript
+// Guard handlers attached to action area / action buttons
+const preventRowSelectHandlers = {
+  onPointerDownCapture: handleActionPointerDownCapture,
+  onMouseDownCapture: handleActionPointerDownCapture,
+  onTouchStartCapture: handleActionPointerDownCapture,
+  onTouchEndCapture: handleActionPointerDownCapture,
+}
+```
+
+### 3. Contracts
+- Action button click must **never** trigger row navigation.
+- Row body click must still trigger row navigation.
+- On touch devices, guard logic must cover both Touch Events and Pointer/Mouse Events.
+- If long-press hook is used on row, nested action area must set a guard flag in capture phase.
+
+### 4. Validation & Error Matrix
+- Desktop mouse click on action button -> only action dialog/menu opens.
+- Mobile tap on action button -> only action dialog/menu opens.
+- Tap on row non-action area -> navigation to detail page.
+- Long press on row non-action area -> row context menu opens.
+- Long press/tap on action area -> must not open row context menu or navigate.
+
+### 5. Good / Base / Bad Cases
+- Good: action button uses `e.stopPropagation()` and capture handlers for pointer/mouse/touch.
+- Base: row navigation works from non-action area only.
+- Bad: only using `onClick` stopPropagation on button while row listens to `onTouchStart/onTouchEnd`; mobile tap still navigates.
+
+### 6. Tests Required
+- Component interaction tests should cover:
+  1. action button tap/click does not call `onSelect`,
+  2. row body tap/click calls `onSelect`,
+  3. touch event path does not bypass row/action separation.
+
+### 7. Wrong vs Correct
+
+```tsx
+// Wrong: only stop click bubbling, but touch path still reaches row handlers
+<button onClick={(e) => { e.stopPropagation(); setDeleteOpen(true) }} />
+```
+
+```tsx
+// Correct: stop click bubbling + capture guards for touch/pointer/mouse
+<button
+  onClick={(e) => {
+    e.stopPropagation()
+    setDeleteOpen(true)
+  }}
+  onPointerDownCapture={handleActionPointerDownCapture}
+  onMouseDownCapture={handleActionPointerDownCapture}
+  onTouchStartCapture={handleActionPointerDownCapture}
+  onTouchEndCapture={handleActionPointerDownCapture}
+/>
+```
+
+---
+
 ## Local Sub-Components
 
 For sub-components only used within one file, define them in the same file above the main export:

@@ -185,7 +185,10 @@ function SessionItem(props: {
     }
 
     const preventRowSelectHandlers = {
-        onPointerDownCapture: handleActionPointerDownCapture
+        onPointerDownCapture: handleActionPointerDownCapture,
+        onMouseDownCapture: handleActionPointerDownCapture,
+        onTouchStartCapture: handleActionPointerDownCapture,
+        onTouchEndCapture: handleActionPointerDownCapture
     }
 
     const longPressHandlers = useLongPress({
