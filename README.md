@@ -63,7 +63,7 @@ cp -r ~/.hapi/* ~/.zhushen/
 
 ## Docker (Hub + CLI)
 
-使用 Docker 将 hub 和 CLI 作为独立服务运行。
+使用 Docker 将 hub 和 CLI 作为独立服务运行。CLI 镜像预装了常用开发/运维工具，并支持运行时切换 Go/Node.js 版本。
 
 ```bash
 cp .env.example .env
@@ -77,6 +77,17 @@ docker compose up -d hub cli-runner
 - `CLI_API_TOKEN`: hub 和 CLI 共用的密钥
 - `ZS_API_URL`: CLI 连接 hub 的 URL (compose 网络内为 `http://hub:3006`)
 - `CLAUDE_CONFIG_DIR`: 挂载到容器的 Claude Code 认证/会话配置的宿主机绝对路径（必填）
+- `ZS_GO_VERSION`: 运行时 Go 版本（默认 `1.24.3`，由 goenv 管理）
+- `ZS_NODE_VERSION`: 运行时 Node.js 主版本号（默认 `22`，由 nvm 管理）
+- `ZCF_API_KEY`: 运行时注入 Claude API Key（仅在设置时触发覆盖）
+- `ZCF_API_URL`: 运行时注入 Claude API URL（仅在设置时触发覆盖）
+- `ZCF_API_MODEL`: 运行时覆盖主模型
+- `ZCF_API_HAIKU_MODEL`: 运行时覆盖 Haiku 模型
+- `ZCF_API_SONNET_MODEL`: 运行时覆盖 Sonnet 模型
+- `ZCF_API_OPUS_MODEL`: 运行时覆盖 Opus 模型
+- `ZCF_DEFAULT_OUTPUT_STYLE`: 运行时覆盖默认输出样式
+- `ZCF_ALL_LANG`: 运行时统一覆盖语言参数
+- `ZCF_AI_OUTPUT_LANG`: 运行时覆盖 AI 输出语言
 
 ### CLI 模式
 
@@ -93,10 +104,13 @@ docker compose --profile interactive run --rm cli
 docker compose --profile interactive run --rm cli --help
 ```
 
+详细使用方法请参阅 [CLI Docker 独立使用指南](docs/guide/docker-cli.md)。
+
 ## 文档
 
 - [快速开始](docs/guide/quick-start.md)
 - [安装与部署](docs/guide/installation.md)
+- [CLI Docker 使用](docs/guide/docker-cli.md)
 - [工作原理](docs/guide/how-it-works.md)
 - [应用](docs/guide/pwa.md)
 - [Cursor Agent](docs/guide/cursor.md)

@@ -2,9 +2,53 @@
 
 FROM oven/bun:1.3.5
 
+# ---- Core tool versions (pinned) ---------------------------
+ARG NODE_DEFAULT=22
+ARG GO_DEFAULT=1.24.3
+ARG GO_122=1.22.12
+ARG GO_124=1.24.3
+ARG PNPM_VERSION=10.11.0
+ARG NVM_VERSION=v0.40.3
+ARG CLAUDE_PRIMARY_MODEL=claude-sonnet-4-6
+ARG CLAUDE_HAIKU_MODEL=claude-haiku-4-5-20251001
+ARG CLAUDE_SONNET_MODEL=claude-sonnet-4-6
+ARG CLAUDE_OPUS_MODEL=claude-opus-4-6
+
 WORKDIR /app
 
-# Install workspace dependencies first for better caching
+# ---- System packages ----------------------------------------
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bash \
+        curl \
+        dstat \
+        git \
+        ca-certificates \
+        xz-utils \
+        build-essential \
+        zlib1g-dev \
+        libssl-dev \
+        libreadline-dev \
+        libbz2-dev \
+        libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---- Runtime version managers -------------------------------
+# Node.js manager: nvm
+ENV NVM_DIR=/usr/local/nvm
+ENV PNPM_HOME=/usr/local/pnpm
+ENV PATH="${PNPM_HOME}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bun-node-fallback-bin"
+RUN mkdir -p "${NVM_DIR}" "${PNPM_HOME}" \
+    && curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash \
+    && bash -lc "set -e; source ${NVM_DIR}/nvm.sh; nvm install 20; nvm install ${NODE_DEFAULT}; nvm alias default ${NODE_DEFAULT}; nvm use default >/dev/null; npm install -g pnpm@${PNPM_VERSION} yarn; ln -sf \"\$(command -v node)\" /usr/local/bin/node; ln -sf \"\$(command -v npm)\" /usr/local/bin/npm; ln -sf \"\$(command -v npx)\" /usr/local/bin/npx; ln -sf \"\$(command -v pnpm)\" /usr/local/bin/pnpm; ln -sf \"\$(command -v yarn)\" /usr/local/bin/yarn"
+
+# Go manager: goenv
+ENV GOENV_ROOT=/usr/local/goenv
+ENV PATH="${GOENV_ROOT}/bin:${GOENV_ROOT}/shims:${PATH}"
+RUN git clone https://github.com/go-nv/goenv.git "${GOENV_ROOT}" \
+    && bash -lc "set -e; export GOENV_ROOT=${GOENV_ROOT}; export PATH=${GOENV_ROOT}/bin:${GOENV_ROOT}/shims:$PATH; eval \"\$(goenv init -)\"; goenv install -s ${GO_122} || (echo \"Retry goenv install ${GO_122} (2/2)\" >&2; sleep 2; goenv install -s ${GO_122}); goenv install -s ${GO_124} || (echo \"Retry goenv install ${GO_124} (2/2)\" >&2; sleep 2; goenv install -s ${GO_124}); goenv global ${GO_DEFAULT}"
+
+# ---- Install workspace dependencies (layer cache) -----------
 COPY package.json bun.lock ./
 COPY cli/package.json ./cli/package.json
 COPY hub/package.json ./hub/package.json
@@ -17,16 +61,34 @@ RUN bun install --frozen-lockfile
 
 COPY . .
 
-# Claude Code binary required by zhushen CLI runtime
-RUN bun add -g @anthropic-ai/claude-code
+# ---- Global CLI tools ----------------------------------------
+RUN pnpm install -g mcp-swagger-server @mindfoldhq/trellis ux zcf
 
-# Ensure zs CLI is available on PATH for runner spawns
+# ---- zcf default initialization (build-time) -----------------
+RUN mkdir -p /usr/local/share/claude-default \
+    && HOME=/tmp/zcf-home zcf init --skip-prompt --config-action new --all-lang zh-CN --ai-output-lang zh-CN --code-type claude-code --api-type skip --api-model "${CLAUDE_PRIMARY_MODEL}" --api-haiku-model "${CLAUDE_HAIKU_MODEL}" --api-sonnet-model "${CLAUDE_SONNET_MODEL}" --api-opus-model "${CLAUDE_OPUS_MODEL}" --output-styles all --default-output-style nekomata-engineer --workflows all --mcp-services Playwright,serena --install-cometix-line false \
+    && mkdir -p /tmp/zcf-home/.claude/commands/zcf /tmp/zcf-home/.claude/agents/zcf \
+    && find /tmp/zcf-home/.claude/commands/zcf -maxdepth 1 -type f ! -name 'init-project.md' -delete \
+    && find /tmp/zcf-home/.claude/agents/zcf -mindepth 1 -maxdepth 1 ! -name 'common' -exec rm -rf {} + \
+    && node -e "const fs=require('fs');const p='/tmp/zcf-home/.claude/settings.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.permissions&&Array.isArray(j.permissions.allow)){j.permissions.allow=j.permissions.allow.filter(x=>!x.startsWith('mcp__')||x==='mcp__Playwright'||x==='mcp__serena');}fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');" \
+    && cp -a /tmp/zcf-home/.claude/. /usr/local/share/claude-default/ \
+    && rm -rf /tmp/zcf-home
+# ---- zs CLI wrapper ------------------------------------------
 RUN printf '#!/usr/bin/env sh\nexec bun run --cwd /app/cli src/index.ts "$@"\n' > /usr/local/bin/zs \
     && chmod +x /usr/local/bin/zs
 
+# ---- Runtime entrypoint for version selection ----------------
+COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# ---- Default environment -------------------------------------
 ENV ZS_HOME=/data/zhushen
 ENV ZS_API_URL=http://hub:3006
 ENV ZS_CLAUDE_PATH=/usr/local/bin/claude
+ENV ZS_GO_VERSION=1.24.3
+ENV ZS_NODE_VERSION=22
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # Foreground runner mode for containerized long-running service
 CMD ["bun", "run", "--cwd", "cli", "src/index.ts", "runner", "start-sync"]

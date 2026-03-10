@@ -837,6 +837,99 @@ zs --help
 #    only change repo deps when direct graph proves incompatibility.
 ```
 
+## Scenario: Docker CLI zcf Hybrid Config Contract (Build Defaults + Runtime Override)
+
+### 1. Scope / Trigger
+- Trigger: Docker CLI image switched to zcf-driven Claude config with runtime env override support.
+- Why code-spec depth is required:
+  - Infra integration changed (`Dockerfile.cli` build phase + `docker/entrypoint.sh` runtime phase).
+  - New executable env contract (`ZCF_*`, `CLAUDE_CONFIG_DIR`) controls mounted config behavior.
+  - Runtime override semantics must be testable to avoid accidental config loss or silent non-override.
+
+### 2. Signatures
+- Build-time signature (`Dockerfile.cli`):
+  - Global install: `pnpm install -g ... zcf`
+  - Default generation:
+    - `HOME=/tmp/zcf-home zcf init --skip-prompt --config-action new ... --default-output-style nekomata-engineer --workflows all --mcp-services Playwright,serena`
+  - Default export path: `/usr/local/share/claude-default`
+- Runtime signature (`docker/entrypoint.sh`):
+  - Bootstrap when mounted config dir is empty:
+    - copy `/usr/local/share/claude-default/.` -> `${CLAUDE_CONFIG_DIR}`
+  - Runtime override command:
+    - `HOME=/root zcf init --skip-prompt --config-action merge --code-type claude-code --install-cometix-line false --workflows skip --mcp-services skip --output-styles skip --api-type <skip|api_key> ...`
+  - Post-merge explicit override:
+    - write `${CLAUDE_CONFIG_DIR}/settings.json` for explicitly provided `ZCF_*` keys.
+
+### 3. Contracts
+- Path/env contract:
+  - `CLAUDE_CONFIG_DIR` (optional, default `/root/.claude`)
+  - image defaults path fixed at `/usr/local/share/claude-default`
+- Runtime override trigger contract (any non-empty value triggers override):
+  - `ZCF_API_KEY`
+  - `ZCF_API_URL`
+  - `ZCF_API_MODEL`
+  - `ZCF_API_HAIKU_MODEL`
+  - `ZCF_API_SONNET_MODEL`
+  - `ZCF_API_OPUS_MODEL`
+  - `ZCF_DEFAULT_OUTPUT_STYLE`
+  - `ZCF_ALL_LANG`
+  - `ZCF_AI_OUTPUT_LANG`
+- API key/security contract:
+  - `ZCF_API_KEY` runtime-only; MUST NOT be injected via Docker build args/layers.
+- Mount behavior contract:
+  - Empty mount dir -> bootstrap defaults.
+  - Non-empty mount dir + no `ZCF_*` trigger -> keep mounted files unchanged.
+  - Non-empty mount dir + `ZCF_*` trigger -> run zcf merge then force-set explicitly provided fields.
+
+### 4. Validation & Error Matrix
+- Missing `${CLAUDE_CONFIG_DIR}/settings.json` after merge -> skip explicit JSON patch (no hard crash beyond zcf phase).
+- Model/API URL provided without `ZCF_API_KEY` -> warn and keep `api-type=skip`.
+- Mounted directory non-empty, no trigger vars -> no zcf init invocation.
+- Empty mount + default dir exists -> must log bootstrap message and copy defaults once.
+- Build pipeline includes API key material -> policy violation (block release).
+
+### 5. Good/Base/Bad Cases
+- Good:
+  - Mounted non-empty `.claude`, set `ZCF_DEFAULT_OUTPUT_STYLE=engineer-professional`.
+  - Result: `settings.json.outputStyle == engineer-professional`.
+- Base:
+  - Mounted non-empty `.claude`, no `ZCF_*` env.
+  - Result: existing settings preserved.
+- Bad:
+  - Assume `--config-action merge` always overrides existing fields.
+  - Symptom: runtime env appears ignored (e.g., outputStyle remains old value).
+
+### 6. Tests Required (with assertion points)
+- Build checks:
+  - `docker build --check -f Dockerfile.cli .` passes.
+  - `docker build -t zhushen-cli:zcf -f Dockerfile.cli .` passes.
+- Compose checks:
+  - `docker compose config --quiet` passes with required `.env` presence.
+- Runtime behavior matrix:
+  - Case A (empty mount, no vars): assert bootstrap happened and default `outputStyle == nekomata-engineer`.
+  - Case B (non-empty mount, no vars): assert original `outputStyle` unchanged.
+  - Case C (non-empty mount, with `ZCF_DEFAULT_OUTPUT_STYLE`): assert overridden `outputStyle` equals env value.
+- Security checks:
+  - `docker history --format '{{.CreatedBy}}' zhushen-cli:zcf` contains no API key literal.
+
+### 7. Wrong vs Correct
+#### Wrong
+```sh
+# Expect merge mode to overwrite existing keys automatically
+docker run --rm -e ZCF_DEFAULT_OUTPUT_STYLE=engineer-professional -v "$PWD/.claude:/root/.claude" zhushen-cli:zcf
+# outputStyle may stay old if no explicit post-merge patch exists
+```
+
+#### Correct
+```sh
+# Keep merge for non-destructive behavior, then explicitly patch provided keys
+# in ${CLAUDE_CONFIG_DIR}/settings.json for deterministic runtime override.
+docker run --rm -e ZCF_DEFAULT_OUTPUT_STYLE=engineer-professional -v "$PWD/.claude:/root/.claude" zhushen-cli:zcf
+# assert settings.json.outputStyle == engineer-professional
+```
+
+---
+
 ### Before Submitting
 
 - [ ] `bun run typecheck` passes (no TypeScript errors)
