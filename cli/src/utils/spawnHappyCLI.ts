@@ -30,6 +30,9 @@ import { join } from 'node:path';
 import { isBunCompiled, projectPath } from '@/projectPath';
 import { logger } from '@/ui/logger';
 import { existsSync } from 'node:fs';
+import spawnCross from 'cross-spawn';
+
+const SESSION_CWD_ENV_KEY = 'ZS_CLI_WORKING_DIRECTORY';
 
 /**
  * Resolve the TypeScript entrypoint for development mode.
@@ -48,12 +51,30 @@ function resolveEntrypoint(projectRoot: string): string {
   throw new Error('No CLI entrypoint found (expected src/index.ts)');
 }
 
+function resolveBunExecutable(): string {
+  if (typeof (process.versions as Record<string, string | undefined>).bun === 'string') {
+    return process.execPath;
+  }
+
+  const bunFromEnv = process.env.BUN_BIN;
+  if (bunFromEnv && existsSync(bunFromEnv)) {
+    return bunFromEnv;
+  }
+
+  const bunFromPath = spawnCross.sync('bun', ['--version'], { stdio: 'ignore' });
+  if (!bunFromPath.error && bunFromPath.status === 0) {
+    return 'bun';
+  }
+
+  throw new Error('Bun runtime is required to spawn the TypeScript CLI entrypoint');
+}
+
 export interface HappyCliCommand {
   command: string;
   args: string[];
 }
 
-export function getHappyCliCommand(args: string[], workingDir?: string): HappyCliCommand {
+export function getHappyCliCommand(args: string[]): HappyCliCommand {
   // Compiled binary mode: just use the executable directly
   if (isBunCompiled()) {
     return {
@@ -62,52 +83,50 @@ export function getHappyCliCommand(args: string[], workingDir?: string): HappyCl
     };
   }
 
-  // Development mode: spawn with TypeScript entrypoint
+  // Development mode: spawn with TypeScript entrypoint via Bun.
   const projectRoot = projectPath();
   const entrypoint = resolveEntrypoint(projectRoot);
-  const isBunRuntime = Boolean((process.versions as Record<string, string | undefined>).bun);
+  const bunExecutable = resolveBunExecutable();
 
-  if (isBunRuntime) {
-    // Bun can run TypeScript directly. Prefer caller-provided cwd for session correctness.
-    // Fall back to project root so tsconfig path aliases still resolve in dev mode.
-    const bunCwd = workingDir ?? projectRoot;
-    return {
-      command: process.execPath,
-      args: ['--cwd', bunCwd, entrypoint, ...args]
-    };
-  }
-
-  // Node.js fallback: preserve execArgv (for compatibility)
   return {
-    command: process.execPath,
-    args: [...process.execArgv, entrypoint, ...args]
+    command: bunExecutable,
+    args: [entrypoint, ...args]
   };
 }
 
-export function spawnHappyCLI(args: string[], options: SpawnOptions = {}): ChildProcess {
+export function getSpawnedCliWorkingDirectory(): string {
+  return process.env[SESSION_CWD_ENV_KEY] || process.cwd();
+}
 
-  let directory: string | URL | undefined;
-  if ('cwd' in options) {
-    directory = options.cwd
-  } else {
-    directory = process.cwd()
-  }
+export function spawnHappyCLI(args: string[], options: SpawnOptions = {}): ChildProcess {
+  const requestedCwd = typeof options.cwd === 'string' ? options.cwd : undefined;
+  const projectRoot = projectPath();
+  const executionCwd = isBunCompiled() ? requestedCwd ?? process.cwd() : projectRoot;
+
   // Note: We're executing the current runtime with the calculated entrypoint path below,
   // bypassing the 'zs' wrapper that would normally be found in the shell's PATH.
   // However, we log it as 'zs' here because other engineers are typically looking
   // for when "zs" was started and don't care about the underlying node process
   // details and flags we use to achieve the same result.
   const fullCommand = `zs ${args.join(' ')}`;
-  logger.debug(`[SPAWN ZS CLI] Spawning: ${fullCommand} in ${directory}`);
-  
-  const desiredCwd = typeof options.cwd === 'string' ? options.cwd : undefined;
-  const { command: spawnCommand, args: spawnArgs } = getHappyCliCommand(args, desiredCwd);
+  logger.debug(`[SPAWN ZS CLI] Spawning: ${fullCommand} in ${requestedCwd ?? process.cwd()}`);
+
+  const { command: spawnCommand, args: spawnArgs } = getHappyCliCommand(args);
 
   // On Windows, detached processes allocate a new console window by default.
   // windowsHide: true suppresses this to prevent cmd windows from accumulating.
-  const finalOptions: SpawnOptions = { ...options };
+  const finalOptions: SpawnOptions = {
+    ...options,
+    cwd: executionCwd,
+    env: {
+      ...process.env,
+      ...options.env,
+      ...(requestedCwd ? { [SESSION_CWD_ENV_KEY]: requestedCwd } : {})
+    }
+  };
   if (process.platform === 'win32' && options.detached) {
     finalOptions.windowsHide = true;
   }
   return spawn(spawnCommand, spawnArgs, finalOptions);
 }
+

@@ -45,15 +45,22 @@ describe('spawnHappyCLI windowsHide behavior', () => {
     if (!originalPlatformDescriptor?.configurable) {
       throw new Error('process.platform is not configurable in this runtime');
     }
+    if (!originalVersionsDescriptor?.configurable) {
+      throw new Error('process.versions is not configurable in this runtime');
+    }
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setVersions({ ...process.versions, bun: '1.3.5' });
   });
 
   afterAll(() => {
     if (originalPlatformDescriptor) {
       Object.defineProperty(process, 'platform', originalPlatformDescriptor);
+    }
+    if (originalVersionsDescriptor) {
+      Object.defineProperty(process, 'versions', originalVersionsDescriptor);
     }
   });
 
@@ -117,7 +124,7 @@ describe('spawnHappyCLI cwd propagation for bun runtime', () => {
     }
   });
 
-  it('uses caller provided cwd for bun --cwd when options.cwd is set', async () => {
+  it('keeps bun execution rooted at the project while forwarding requested cwd via env', async () => {
     setVersions({ ...process.versions, bun: '1.3.5' });
     const { spawnHappyCLI } = await import('./spawnHappyCLI');
 
@@ -126,9 +133,10 @@ describe('spawnHappyCLI cwd propagation for bun runtime', () => {
       stdio: 'ignore'
     });
 
-    const { args } = getSpawnCommandArgsOrThrow();
-    const cwdFlagIndex = args.indexOf('--cwd');
-    expect(cwdFlagIndex).toBeGreaterThanOrEqual(0);
-    expect(args[cwdFlagIndex + 1]).toBe('/tmp/session-dir');
+    const { args, options } = getSpawnCommandArgsOrThrow();
+    expect(args.includes('--cwd')).toBe(false);
+    expect(options.cwd).toBeDefined();
+    expect(options.cwd).not.toBe('/tmp/session-dir');
+    expect(options.env?.ZS_CLI_WORKING_DIRECTORY).toBe('/tmp/session-dir');
   });
 });

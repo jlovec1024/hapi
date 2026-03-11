@@ -747,15 +747,12 @@ export async function startRunner(): Promise<void> {
 
         clearInterval(restartOnStaleVersionAndHeartbeat);
 
-        // Spawn new runner through the CLI
-        // We do not need to clean ourselves up - we will be killed by
-        // the CLI start command.
-        // 1. It will first check if runner is running (yes in this case)
-        // 2. If the version is stale (it will read runner.state.json file and check startedWithCliVersion) & compare it to its own version
-        // 3. Next it will start a new runner with the latest version with runner-sync :D
-        // Done!
+        // Spawn the new runner directly in sync mode. Using `runner start` here is too racy
+        // because that wrapper only waits a short time for takeover, while the outdated runner
+        // intentionally stays alive briefly before exiting. `start-sync` can stop the stale runner
+        // itself and acquire the lock once cleanup completes.
         try {
-          spawnHappyCLI(['runner', 'start'], {
+          spawnHappyCLI(['runner', 'start-sync'], {
             detached: true,
             stdio: 'ignore'
           });

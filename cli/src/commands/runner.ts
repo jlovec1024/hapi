@@ -2,6 +2,7 @@ import chalk from 'chalk'
 import { startRunner } from '@/runner/run'
 import {
     checkIfRunnerRunningAndCleanupStaleState,
+    isRunnerRunningCurrentlyInstalledHappyVersion,
     listRunnerSessions,
     stopRunner,
     stopRunnerSession
@@ -10,13 +11,15 @@ import { getLatestRunnerLog } from '@/ui/logger'
 import { spawnHappyCLI } from '@/utils/spawnHappyCLI'
 import { runDoctorCommand } from '@/ui/doctor'
 import { initializeToken } from '@/ui/tokenInit'
+import { readRunnerState } from '@/persistence'
+import { isProcessAlive } from '@/utils/process'
 import type { CommandDefinition } from './types'
 
 /**
  * Spawn a detached runner process and poll until it is confirmed running.
- * Returns true if the runner started successfully, false otherwise.
+ * When previousPid is provided, waits until a different runner PID has taken over.
  */
-async function startRunnerDetached(): Promise<boolean> {
+async function startRunnerDetached(previousPid?: number): Promise<boolean> {
     const child = spawnHappyCLI(['runner', 'start-sync'], {
         detached: true,
         stdio: 'ignore',
@@ -25,8 +28,18 @@ async function startRunnerDetached(): Promise<boolean> {
     child.unref()
 
     for (let i = 0; i < 50; i++) {
-        if (await checkIfRunnerRunningAndCleanupStaleState()) {
-            return true
+        const runningCurrentVersion = await isRunnerRunningCurrentlyInstalledHappyVersion()
+        if (runningCurrentVersion) {
+            if (previousPid === undefined) {
+                return true
+            }
+
+            const nextState = await readRunnerState()
+            if (nextState && nextState.pid !== previousPid) {
+                return true
+            }
+        } else {
+            await checkIfRunnerRunningAndCleanupStaleState()
         }
         await new Promise(resolve => setTimeout(resolve, 100))
     }
@@ -95,11 +108,16 @@ export const runnerCommand: CommandDefinition = {
         }
 
         if (runnerSubcommand === 'restart') {
-            // Stop the runner first (tolerates runner not running)
-            await stopRunner()
+            const previousPid = (await readRunnerState())?.pid
+            const stopped = await stopRunner()
 
-            // Start a fresh runner
-            const started = await startRunnerDetached()
+            if (!stopped || (previousPid !== undefined && isProcessAlive(previousPid))) {
+                console.error('Failed to stop existing runner')
+                process.exit(1)
+            }
+
+            // Start a fresh runner and ensure it is not the old process
+            const started = await startRunnerDetached(previousPid)
 
             if (started) {
                 console.log('Runner restarted successfully')

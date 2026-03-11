@@ -10,6 +10,7 @@ import { createModeChangeHandler, createRunnerLifecycle, setControlledByUser } f
 import { isPermissionModeAllowedForFlavor } from '@zs/protocol';
 import { PermissionModeSchema } from '@zs/protocol/schemas';
 import { formatMessageWithAttachments } from '@/utils/attachmentFormatter';
+import { getSpawnedCliWorkingDirectory } from '@/utils/spawnHappyCLI';
 
 const formatFailureReason = (message: string): string => {
     const maxLength = 200;
@@ -26,7 +27,7 @@ export async function runCursor(opts: {
     resumeSessionId?: string;
     model?: string;
 }): Promise<void> {
-    const workingDirectory = process.cwd();
+    const workingDirectory = getSpawnedCliWorkingDirectory();
     const startedBy = opts.startedBy ?? 'terminal';
 
     logger.debug(`[cursor] Starting with options: startedBy=${startedBy}`);
