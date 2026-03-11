@@ -46,12 +46,22 @@ function resolveEnvNumber(name: string, fallback: number): number {
 }
 
 function resolveShell(): string {
+    // Prefer explicit shell from environment
     if (process.env.SHELL) {
         return process.env.SHELL
     }
+
+    // Platform-specific defaults
+    if (process.platform === 'win32') {
+        // Windows: use COMSPEC or fall back to cmd.exe
+        return process.env.COMSPEC || 'cmd.exe'
+    }
+
     if (process.platform === 'darwin') {
         return '/bin/zsh'
     }
+
+    // Default to bash on Unix-like systems
     return '/bin/bash'
 }
 
@@ -94,11 +104,6 @@ export class TerminalManager {
     }
 
     create(terminalId: string, cols: number, rows: number): void {
-        if (process.platform === 'win32') {
-            this.emitError(terminalId, 'Terminal is not supported on Windows.')
-            return
-        }
-
         const existing = this.terminals.get(terminalId)
         if (existing) {
             existing.cols = cols
@@ -165,7 +170,13 @@ export class TerminalManager {
                 } catch (error) {
                     logger.debug('[TERMINAL] Failed to kill process after missing terminal', { error })
                 }
-                this.emitError(terminalId, 'Failed to attach terminal.')
+                logger.warn('[TERMINAL] Failed to attach terminal', {
+                    shell,
+                    sessionPath,
+                    platform: process.platform,
+                    terminalId
+                })
+                this.emitError(terminalId, `Failed to attach terminal. Shell: ${shell}`)
                 return
             }
 
@@ -182,8 +193,16 @@ export class TerminalManager {
             this.markActivity(runtime)
             this.onReady({ sessionId: this.sessionId, terminalId })
         } catch (error) {
-            logger.debug('[TERMINAL] Failed to spawn terminal', { error })
-            this.emitError(terminalId, 'Failed to spawn terminal.')
+            logger.warn('[TERMINAL] Failed to spawn terminal', {
+                shell,
+                sessionPath,
+                platform: process.platform,
+                error
+            })
+            this.emitError(
+                terminalId,
+                `Failed to spawn terminal using shell: ${shell}. Error: ${error instanceof Error ? error.message : String(error)}`
+            )
         }
     }
 
