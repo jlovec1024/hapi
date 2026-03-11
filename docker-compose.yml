@@ -53,7 +53,11 @@ services:
       zs-hub:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "tr '\\000' ' ' </proc/1/cmdline | grep -q 'runner start-sync' || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "state_file='/data/runner.state.json'; [ -f \"$$state_file\" ] || exit 1; port=$$(node -e \"const fs=require('fs'); const state=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); if (!state.httpPort) process.exit(1); process.stdout.write(String(state.httpPort));\" \"$$state_file\") || exit 1; node -e \"fetch('http://127.0.0.1:' + process.argv[1] + '/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1));\" \"$$port\""
+        ]
       interval: 10s
       timeout: 5s
       retries: 6
