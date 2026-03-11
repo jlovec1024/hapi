@@ -54,6 +54,10 @@ These guides help you **ask the right questions before coding**.
 - [ ] Adding usage examples or help text
 - [ ] Working with file paths or commands
 - [ ] **Migrating from shell scripts to Python**
+- [ ] **Using environment variables** (SHELL, HOME, USER, etc.)
+- [ ] **Spawning processes or shell commands**
+- [ ] **Hard-coding file paths** (/bin/bash, /tmp, etc.)
+- [ ] **Using platform-specific CLI tools** (ps, kill, pgrep, etc.)
 
 → Read [Cross-Platform Thinking Guide](./cross-platform-thinking-guide.md)
 
