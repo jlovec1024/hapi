@@ -233,6 +233,27 @@ Recommended fast verification:
 
 ---
 
+## Runner Availability Contract Checklist (State File ↔ Process Liveness ↔ Control Port)
+
+When a CLI or background daemon reports availability through persisted state plus runtime probes:
+- [ ] Does the availability API distinguish at least `missing`, `stale`, `degraded`, and `running` states instead of returning a bare boolean?
+- [ ] If PID liveness and control-port reachability are checked together, are they exposed as separate outcomes rather than collapsed into one false branch?
+- [ ] Do caller paths (`start`, `status`, `doctor`, upgrade logic) explicitly decide how to handle `degraded` without treating it as "not running"?
+- [ ] Is stale-state cleanup restricted to cases where the owning PID is confirmed dead, rather than any temporary probe failure?
+- [ ] Is there an integration test covering "PID alive + control port temporarily unavailable" and asserting state/lock preservation plus correct caller behavior?
+
+Typical failure pattern:
+- A helper like `checkIfRunnerRunningAndCleanupStaleState()` returns `false` for both "no runner exists" and "runner process is alive but control endpoint timed out".
+- Callers interpret `false` as "there is no runner", causing follow-up actions like restart, stop, doctor output, or version checks to take the wrong branch.
+
+Recommended fast verification:
+1. Trace every caller of the availability helper and list what branch they take on each return value.
+2. Verify the helper returns a typed status/result object instead of a boolean when more than two runtime states exist.
+3. Add an integration test that simulates control-port timeout while PID remains alive.
+4. Confirm `start`, `status`, and version-check code paths do not escalate a temporary degraded state into cleanup or restart.
+
+---
+
 ## Docker Build Lockfile Immutability Checklist (GitHub Actions + Bun Workspace)
 
 When Docker image builds use `bun install --frozen-lockfile` in CI:

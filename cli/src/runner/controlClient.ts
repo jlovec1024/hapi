@@ -128,24 +128,33 @@ export async function stopRunnerHttp(): Promise<void> {
  * 
  * That seems like an overkill and yet another process to manage - lets not do this :D
  * 
- * TODO: This function should return a state object with
- * clear state - if it is running / or errored out or something else.
- * Not just a boolean.
- * 
- * We can destructure the response on the caller for richer output.
- * For instance when running `zs runner status` we can show more information.
+export type RunnerAvailabilityStatus = 'missing' | 'stale' | 'degraded' | 'running';
+
+export interface RunnerAvailability {
+  status: RunnerAvailabilityStatus;
+  state: RunnerLocallyPersistedState | null;
+}
+
+/**
+ * Check runner availability using both persisted state and control-port reachability.
+ *
+ * Status semantics:
+ * - missing: no persisted state exists
+ * - stale: persisted state existed but PID is dead, so stale metadata was cleaned up
+ * - degraded: PID is alive but control port is temporarily unreachable or unhealthy
+ * - running: PID is alive and control port is healthy
  */
-export async function checkIfRunnerRunningAndCleanupStaleState(): Promise<boolean> {
+export async function getRunnerAvailability(): Promise<RunnerAvailability> {
   const state = await readRunnerState();
   if (!state) {
-    return false;
+    return { status: 'missing', state: null };
   }
 
   // Check if the runner process is still alive
   if (!isProcessAlive(state.pid)) {
     logger.debug('[RUNNER RUN] Runner PID not running, cleaning up stale state and lock');
     await cleanupRunnerState(true);
-    return false;
+    return { status: 'stale', state };
   }
 
   // PID reuse is common in containers (especially PID 1). Verify the control port is
@@ -160,20 +169,24 @@ export async function checkIfRunnerRunningAndCleanupStaleState(): Promise<boolea
     });
 
     if (response.ok) {
-      return true;
+      return { status: 'running', state };
     }
 
-    logger.debug(`[RUNNER RUN] Runner state exists but control port is not healthy (HTTP ${response.status}), treating as degraded but not removing state`);
+    logger.debug(`[RUNNER RUN] Runner state exists but control port is not healthy (HTTP ${response.status}), treating as degraded`);
   } catch (error) {
-    logger.debug('[RUNNER RUN] Runner state exists but control port is unreachable, treating as degraded but not removing state', error);
+    logger.debug('[RUNNER RUN] Runner state exists but control port is unreachable, treating as degraded', error);
   }
 
-  // Control port failure does not mean the runner is dead or state is stale.
-  // The runner process is still alive (PID check passed), so we should not remove state.
-  // Removing state here would cause `zs runner start/stop/status` to incorrectly report
-  // "not running" until the next heartbeat rewrites the state file.
-  // Return false to indicate control port is not reachable, but preserve state for accuracy.
-  return false;
+  return { status: 'degraded', state };
+}
+
+/**
+ * @deprecated Prefer getRunnerAvailability() so callers can distinguish
+ * degraded, stale, and missing runner states explicitly.
+ */
+export async function checkIfRunnerRunningAndCleanupStaleState(): Promise<boolean> {
+  const availability = await getRunnerAvailability();
+  return availability.status === 'running';
 }
 
 /**
@@ -185,18 +198,18 @@ export async function checkIfRunnerRunningAndCleanupStaleState(): Promise<boolea
  */
 export async function isRunnerRunningCurrentlyInstalledHappyVersion(): Promise<boolean> {
   logger.debug('[RUNNER CONTROL] Checking if runner is running same version');
-  const runningRunner = await checkIfRunnerRunningAndCleanupStaleState();
-  if (!runningRunner) {
-    logger.debug('[RUNNER CONTROL] No runner running, returning false');
+  const availability = await getRunnerAvailability();
+  if (availability.status !== 'running' && availability.status !== 'degraded') {
+    logger.debug(`[RUNNER CONTROL] Runner is not available (status: ${availability.status}), returning false`);
     return false;
   }
 
-  const state = await readRunnerState();
+  const state = availability.state ?? await readRunnerState();
   if (!state) {
     logger.debug('[RUNNER CONTROL] No runner state found, returning false');
     return false;
   }
-  
+
   try {
     const currentCliMtimeMs = getInstalledCliMtimeMs();
     if (typeof currentCliMtimeMs === 'number' && typeof state.startedWithCliMtimeMs === 'number') {
@@ -207,11 +220,11 @@ export async function isRunnerRunningCurrentlyInstalledHappyVersion(): Promise<b
     const currentCliVersion = packageJson.version;
     logger.debug(`[RUNNER CONTROL] Current CLI version: ${currentCliVersion}, Runner started with version: ${state.startedWithCliVersion}`);
     return currentCliVersion === state.startedWithCliVersion;
-    
+
     // PREVIOUS IMPLEMENTATION - Keeping this commented in case we need it
-    // Kirill does not understand how the upgrade of npm packages happen and whether 
+    // Kirill does not understand how the upgrade of npm packages happen and whether
     // we will get a new path or not when zs is upgraded globally.
-    // If reading package.json doesn't work correctly after npm upgrades, 
+    // If reading package.json doesn't work correctly after npm upgrades,
     // we can revert to spawning a process (but should add timeout and cleanup!)
     /*
     const { spawnHappyCLI } = await import('@/utils/spawnHappyCLI');

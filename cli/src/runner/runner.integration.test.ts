@@ -29,7 +29,7 @@ import {
   stopRunnerHttp,
   notifyRunnerSessionStarted,
   stopRunner,
-  checkIfRunnerRunningAndCleanupStaleState
+  getRunnerAvailability
 } from '@/runner/controlClient';
 import { readRunnerState, clearRunnerState, clearRunnerLock } from '@/persistence';
 import { Metadata } from '@/api/types';
@@ -395,8 +395,10 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     try {
       writeFileSync(configuration.runnerStateFile, JSON.stringify(unreachableState, null, 2));
 
-      const result = await checkIfRunnerRunningAndCleanupStaleState();
-      expect(result).toBe(false);
+      const availability = await getRunnerAvailability();
+      expect(availability.status).toBe('degraded');
+      expect(availability.state).toBeDefined();
+      expect(availability.state!.pid).toBe(initialState!.pid);
       expect(existsSync(configuration.runnerStateFile)).toBe(true);
 
       const persistedState = await readRunnerState();

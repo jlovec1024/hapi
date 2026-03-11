@@ -1,7 +1,7 @@
 import chalk from 'chalk'
 import { startRunner } from '@/runner/run'
 import {
-    checkIfRunnerRunningAndCleanupStaleState,
+    getRunnerAvailability,
     listRunnerSessions,
     stopRunner,
     stopRunnerSession
@@ -59,16 +59,24 @@ export const runnerCommand: CommandDefinition = {
             child.unref()
 
             let started = false
+            let degraded = false
             for (let i = 0; i < 50; i++) {
-                if (await checkIfRunnerRunningAndCleanupStaleState()) {
+                const availability = await getRunnerAvailability()
+                if (availability.status === 'running') {
                     started = true
                     break
+                }
+                if (availability.status === 'degraded') {
+                    degraded = true
                 }
                 await new Promise(resolve => setTimeout(resolve, 100))
             }
 
             if (started) {
                 console.log('Runner started successfully')
+            } else if (degraded) {
+                console.log('Runner process started but control port is not healthy yet')
+                process.exit(0)
             } else {
                 console.error('Failed to start runner')
                 process.exit(1)

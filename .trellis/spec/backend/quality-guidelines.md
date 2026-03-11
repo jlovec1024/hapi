@@ -158,6 +158,16 @@ For Docker / runner images that execute Bun-based CLIs:
 - For Compose services with `restart: unless-stopped`, verify that the main process is designed to stay in the foreground; otherwise a successful exit will become a restart loop.
 - Add an executable validation that checks not only `docker compose up`, but also that the service remains `Up` and reaches `healthy` after initial bootstrap.
 
+## Runner Availability Result Contracts
+
+For runtime helpers that combine persisted metadata with live probes:
+
+- Do not compress multi-outcome runtime state into `boolean` when callers must distinguish `missing`, `stale`, `degraded`, and `running`.
+- Prefer explicit result objects or discriminated unions for availability helpers used by multiple commands.
+- Only delete persisted state/lock metadata when the owning process is confirmed dead; transport or probe failures must not imply stale ownership.
+- When a degraded state is possible, document caller behavior explicitly: `start` may accept degraded startup, `doctor` should surface degraded health, and version-check logic should still consider the runner present.
+- Any helper signature change at this contract boundary requires auditing all callers in CLI commands, doctor/debug UI, and self-update/restart flows.
+
 ---
 
 ### ✅ Always Use
