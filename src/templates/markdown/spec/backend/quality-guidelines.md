@@ -693,6 +693,104 @@ gh pr create --base main --head <fork>:contrib/<topic>
 
 ---
 
+## Scenario: Docker Workflow Scope Contract (PR Validation vs Mainline Publish)
+
+### 1. Scope / Trigger
+- Trigger: GitHub Actions workflow both validates Docker images on PR and publishes images on `main` / tag pushes.
+- Why code-spec depth is required:
+  - PR checks and release publishing have different goals, costs, and failure surfaces.
+  - If workflow scope is implicit, contributors may unintentionally run expensive multi-arch image builds on every PR even when no publish artifact is needed.
+  - The contract spans workflow triggers, Buildx platform matrix, package permissions, and registry push policy.
+
+### 2. Signatures
+- Workflow file:
+  - `.github/workflows/docker-images.yml`
+- Trigger signatures:
+  - `pull_request` = validation only
+  - `push` to `main` / `tag` = publish path
+- Build signatures:
+  - PR validation SHOULD prefer the cheapest build that still proves Dockerfile correctness.
+  - Publish path MAY use multi-arch build (`linux/amd64,linux/arm64`) and registry push.
+- Push signature:
+  - `push: ${{ github.event_name != 'pull_request' }}`
+
+### 3. Contracts
+- Responsibility contract:
+  - PR workflow MUST answer a concrete validation question (for example: “Dockerfile still builds”).
+  - If the PR path does not produce a user-visible artifact, it MUST avoid release-grade cost by default.
+- Cost boundary contract:
+  - Multi-arch Buildx + QEMU SHOULD be reserved for `main` / tag publish path unless PR specifically needs cross-arch verification.
+- Publish boundary contract:
+  - Registry login and image push MUST NOT happen on `pull_request`.
+- Trigger precision contract:
+  - Docker workflows SHOULD use path filters or separate jobs so PRs only run image validation when Docker-related inputs changed.
+- Escalation contract:
+  - If arm64 compatibility is a real product requirement before merge, document that explicitly and keep a dedicated PR verification job instead of piggybacking on publish workflow semantics.
+
+### 4. Validation & Error Matrix
+- PR runs Docker workflow, `push=false`, but still performs full multi-arch Buildx/QEMU build -> likely process smell; validation exists, but cost is mis-scoped.
+- PR runs single-arch local-equivalent build and catches Dockerfile regression -> expected validation path.
+- `main` / tag push skips multi-arch publish -> release contract gap; users may receive stale or missing images.
+- PR path logs in to GHCR or requests package write unnecessarily -> permission boundary violation.
+
+### 5. Good/Base/Bad Cases
+- Good:
+  - PR only verifies required image buildability with the minimum platform scope; `main` / tags perform multi-arch publish.
+- Base:
+  - PR uses the same Dockerfile but builds `linux/amd64` only with `load: false` / `push: false`; release path adds login and multi-arch push.
+- Bad:
+  - Every PR pays full QEMU + multi-arch build cost even though the result is never pushed or consumed.
+
+### 6. Tests Required (with assertion points)
+- Workflow assertions:
+  - `pull_request` path does not push images.
+  - PR path does not require `packages: write` unless technically unavoidable.
+  - PR validation job uses documented minimal platform scope.
+  - `main` / tag path still performs the intended publish flow.
+- Review assertions:
+  - For any Docker workflow change, reviewers must ask: “Is this job validating, publishing, or both?”
+  - If both, reviewers must verify that cost/permission boundaries are explicit in YAML.
+
+### 7. Wrong vs Correct
+#### Wrong
+```yaml
+jobs:
+  build:
+    steps:
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+```
+
+#### Correct
+```yaml
+jobs:
+  pr-validate:
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64
+          push: false
+
+  publish:
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+```
+
+---
+
 ## Scenario: Docker Build Lockfile Freeze Contract (Bun Workspace CI)
 
 ### 1. Scope / Trigger

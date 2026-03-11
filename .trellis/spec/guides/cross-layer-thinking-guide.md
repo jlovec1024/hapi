@@ -229,6 +229,30 @@ Recommended fast verification:
 
 ---
 
+## Docker Workflow Scope Checklist (PR 校验 vs 发布)
+
+当 GitHub Actions 同时承担 Docker 校验与镜像发布职责时：
+- [ ] PR 触发的 Docker job 是否有明确校验目标（例如仅验证 Dockerfile 可构建）？
+- [ ] 如果 PR 不产出用户可见制品，是否避免了发布级成本（QEMU、多架构 Buildx、registry login）？
+- [ ] 多架构构建是否只保留在 `main` / tag 发布路径，或已有明确文档说明为什么 PR 必须验证多架构？
+- [ ] `packages: write` 是否只授予真正需要推送镜像的 job / 事件？
+- [ ] path filter 是否足够精确，避免与 Docker 无关的 PR 触发镜像流程？
+- [ ] 评审时是否明确区分了“验证失败”与“流程成本设计错误”？
+
+典型坏味道：
+- PR 中 `push=false`，但仍完整执行 QEMU + `linux/amd64,linux/arm64` 构建。
+- 表面上没有“发布”，实际上 PR 仍在消耗接近发布级别的 CI 成本。
+
+推荐快速判断：
+1. 先看 workflow 的事件边界：`pull_request` 是校验还是发布复用？
+2. 再看 Buildx 参数：PR 是否真的需要多架构。
+3. 最后看权限与登录：PR 是否不必要地申请 `packages: write` / GHCR 登录。
+
+Reference executable contract:
+- `backend/quality-guidelines.md` -> `Scenario: Docker Workflow Scope Contract (PR Validation vs Mainline Publish)`
+
+---
+
 ## Global Package Manager Context Checklist (Dependency Warning Triage)
 
 When analyzing `pnpm install -g` or other global install warnings:
