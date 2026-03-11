@@ -1,17 +1,14 @@
 import { useAssistantState } from '@assistant-ui/react'
 import { getEventPresentation } from '@/chat/presentation'
-import type { HappyChatMessageMetadata } from '@/lib/assistant-runtime'
+import { getHappyChatMetadata, getMessageTextContent } from '@/lib/assistant-runtime'
 
 export function HappySystemMessage() {
     const role = useAssistantState(({ message }) => message.role)
-    const text = useAssistantState(({ message }) => {
-        if (message.role !== 'system') return ''
-        return message.content[0]?.type === 'text' ? message.content[0].text : ''
-    })
+    const text = useAssistantState(({ message }) => message.role === 'system' ? getMessageTextContent(message) : '')
     const icon = useAssistantState(({ message }) => {
         if (message.role !== 'system') return null
-        const custom = message.metadata.custom as Partial<HappyChatMessageMetadata> | undefined
-        const event = custom?.kind === 'event' ? custom.event : undefined
+        const metadata = getHappyChatMetadata(message)
+        const event = metadata?.kind === 'event' ? metadata.event : undefined
         return event ? getEventPresentation(event).icon : null
     })
 

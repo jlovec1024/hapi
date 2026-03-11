@@ -18,6 +18,19 @@ export type HappyChatMessageMetadata = {
     attachments?: AttachmentMetadata[]
 }
 
+type RuntimeMessageLike = {
+    content: readonly { type: string; text?: string }[]
+    metadata?: { custom?: unknown }
+}
+
+export function getHappyChatMetadata(message: RuntimeMessageLike): Partial<HappyChatMessageMetadata> | undefined {
+    return message.metadata?.custom as Partial<HappyChatMessageMetadata> | undefined
+}
+
+export function getMessageTextContent(message: RuntimeMessageLike): string {
+    return message.content.find((part) => part.type === 'text')?.text ?? ''
+}
+
 function toThreadMessageLike(block: ChatBlock): ThreadMessageLike {
     if (block.kind === 'user-text') {
         const messageId = `user:${block.id}`

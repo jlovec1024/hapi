@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { AssistantRuntimeProvider } from '@assistant-ui/react'
 import type { ApiClient } from '@/api/client'
@@ -17,6 +17,50 @@ import { TeamPanel } from '@/components/TeamPanel'
 import { usePlatform } from '@/hooks/usePlatform'
 import { useSessionActions } from '@/hooks/mutations/useSessionActions'
 import { useGitStatusFiles } from '@/hooks/queries/useGitStatusFiles'
+
+type NormalizedCacheEntry = {
+    source: DecryptedMessage
+    normalized: NormalizedMessage | null
+}
+
+function normalizeMessagesWithCache(
+    messages: DecryptedMessage[],
+    cache: Map<string, NormalizedCacheEntry>
+): NormalizedMessage[] {
+    const normalized: NormalizedMessage[] = []
+    const seen = new Set<string>()
+
+    for (const message of messages) {
+        seen.add(message.id)
+        const cached = cache.get(message.id)
+        if (cached && cached.source === message) {
+            if (cached.normalized) normalized.push(cached.normalized)
+            continue
+        }
+
+        const next = normalizeDecryptedMessage(message)
+        cache.set(message.id, { source: message, normalized: next })
+        if (next) normalized.push(next)
+    }
+
+    for (const id of cache.keys()) {
+        if (!seen.has(id)) {
+            cache.delete(id)
+        }
+    }
+
+    return normalized
+}
+
+function getGitStatusForHeader(
+    gitStatus: GitStatusFiles | null,
+    lastGitStatusRef: MutableRefObject<GitStatusFiles | null>
+): GitStatusFiles | null {
+    if (gitStatus) {
+        lastGitStatusRef.current = gitStatus
+    }
+    return gitStatus ?? lastGitStatusRef.current
+}
 
 export function SessionChat(props: {
     api: ApiClient
@@ -43,7 +87,8 @@ export function SessionChat(props: {
     const { haptic } = usePlatform()
     const navigate = useNavigate()
     const sessionInactive = !props.session.active
-    const normalizedCacheRef = useRef<Map<string, { source: DecryptedMessage; normalized: NormalizedMessage | null }>>(new Map())
+    const normalizedCacheRef = useRef<Map<string, NormalizedCacheEntry>>(new Map())
+
     const blocksByIdRef = useRef<Map<string, ChatBlock>>(new Map())
     const [forceScrollToken, setForceScrollToken] = useState(0)
     const agentFlavor = props.session.metadata?.flavor ?? null
@@ -67,10 +112,6 @@ export function SessionChat(props: {
         lastGitStatusRef.current = null
     }, [props.session.id])
 
-    if (gitStatus) {
-        lastGitStatusRef.current = gitStatus
-    }
-
     useEffect(() => {
         if (!hasPath || !props.session.active) {
             return
@@ -78,8 +119,7 @@ export function SessionChat(props: {
         void refetchGitStatus()
     }, [hasPath, props.session.active, props.session.id, refetchGitStatus])
 
-    const gitStatusForHeader = gitStatus ?? lastGitStatusRef.current
-
+    const gitStatusForHeader = getGitStatusForHeader(gitStatus, lastGitStatusRef)
 
     // Track session id to clear caches when it changes
     const prevSessionIdRef = useRef<string | null>(null)
@@ -97,27 +137,8 @@ export function SessionChat(props: {
         }
         prevSessionIdRef.current = props.session.id
 
-        const cache = normalizedCacheRef.current
-        const normalized: NormalizedMessage[] = []
-        const seen = new Set<string>()
-        for (const message of props.messages) {
-            seen.add(message.id)
-            const cached = cache.get(message.id)
-            if (cached && cached.source === message) {
-                if (cached.normalized) normalized.push(cached.normalized)
-                continue
-            }
-            const next = normalizeDecryptedMessage(message)
-            cache.set(message.id, { source: message, normalized: next })
-            if (next) normalized.push(next)
-        }
-        for (const id of cache.keys()) {
-            if (!seen.has(id)) {
-                cache.delete(id)
-            }
-        }
-        return normalized
-    }, [props.messages])
+        return normalizeMessagesWithCache(props.messages, normalizedCacheRef.current)
+    }, [props.messages, props.session.id])
 
     const reduced = useMemo(
         () => reduceChatBlocks(normalizedMessages, props.session.agentState),

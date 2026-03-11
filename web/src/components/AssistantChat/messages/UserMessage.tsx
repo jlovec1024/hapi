@@ -1,7 +1,7 @@
 import { MessagePrimitive, useAssistantState } from '@assistant-ui/react'
 import { LazyRainbowText } from '@/components/LazyRainbowText'
 import { useHappyChatContext } from '@/components/AssistantChat/context'
-import type { HappyChatMessageMetadata } from '@/lib/assistant-runtime'
+import { getHappyChatMetadata, getMessageTextContent } from '@/lib/assistant-runtime'
 import { MessageStatusIndicator } from '@/components/AssistantChat/messages/MessageStatusIndicator'
 import { MessageAttachments } from '@/components/AssistantChat/messages/MessageAttachments'
 import { CliOutputBlock } from '@/components/CliOutputBlock'
@@ -9,33 +9,23 @@ import { CliOutputBlock } from '@/components/CliOutputBlock'
 export function HappyUserMessage() {
     const ctx = useHappyChatContext()
     const role = useAssistantState(({ message }) => message.role)
-    const text = useAssistantState(({ message }) => {
-        if (message.role !== 'user') return ''
-        return message.content.find((part) => part.type === 'text')?.text ?? ''
-    })
+    const text = useAssistantState(({ message }) => message.role === 'user' ? getMessageTextContent(message) : '')
     const status = useAssistantState(({ message }) => {
         if (message.role !== 'user') return undefined
-        const custom = message.metadata.custom as Partial<HappyChatMessageMetadata> | undefined
-        return custom?.status
+        return getHappyChatMetadata(message)?.status
     })
     const localId = useAssistantState(({ message }) => {
         if (message.role !== 'user') return null
-        const custom = message.metadata.custom as Partial<HappyChatMessageMetadata> | undefined
-        return custom?.localId ?? null
+        return getHappyChatMetadata(message)?.localId ?? null
     })
     const attachments = useAssistantState(({ message }) => {
         if (message.role !== 'user') return undefined
-        const custom = message.metadata.custom as Partial<HappyChatMessageMetadata> | undefined
-        return custom?.attachments
+        return getHappyChatMetadata(message)?.attachments
     })
-    const isCliOutput = useAssistantState(({ message }) => {
-        const custom = message.metadata.custom as Partial<HappyChatMessageMetadata> | undefined
-        return custom?.kind === 'cli-output'
-    })
+    const isCliOutput = useAssistantState(({ message }) => getHappyChatMetadata(message)?.kind === 'cli-output')
     const cliText = useAssistantState(({ message }) => {
-        const custom = message.metadata.custom as Partial<HappyChatMessageMetadata> | undefined
-        if (custom?.kind !== 'cli-output') return ''
-        return message.content.find((part) => part.type === 'text')?.text ?? ''
+        if (getHappyChatMetadata(message)?.kind !== 'cli-output') return ''
+        return getMessageTextContent(message)
     })
 
     if (role !== 'user') return null

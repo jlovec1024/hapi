@@ -1,7 +1,7 @@
 import type { ChatBlock, ToolCallBlock, ToolPermission } from '@/chat/types'
 import type { TracedMessage } from '@/chat/tracer'
 import { createCliOutputBlock, isCliOutputText, mergeCliOutputBlocks } from '@/chat/reducerCliOutput'
-import { parseMessageAsEvent } from '@/chat/reducerEvents'
+import { classifySummaryAsEvent, classifyTitleChangeAsEvent, createAgentEventBlock, parseMessageAsEvent } from '@/chat/reducerEvents'
 import { ensureToolBlock, extractTitleFromChangeTitleInput, isChangeTitleToolName, type PermissionEntry } from '@/chat/reducerTools'
 
 export function reduceTimeline(
@@ -24,25 +24,13 @@ export function reduceTimeline(
                 hasReadyEvent = true
                 continue
             }
-            blocks.push({
-                kind: 'agent-event',
-                id: msg.id,
-                createdAt: msg.createdAt,
-                event: msg.content,
-                meta: msg.meta
-            })
+            blocks.push(createAgentEventBlock(msg.id, msg.createdAt, msg.content, msg.meta))
             continue
         }
 
         const event = parseMessageAsEvent(msg)
         if (event) {
-            blocks.push({
-                kind: 'agent-event',
-                id: msg.id,
-                createdAt: msg.createdAt,
-                event,
-                meta: msg.meta
-            })
+            blocks.push(createAgentEventBlock(msg.id, msg.createdAt, event, msg.meta))
             continue
         }
 
@@ -111,13 +99,12 @@ export function reduceTimeline(
                 }
 
                 if (c.type === 'summary') {
-                    blocks.push({
-                        kind: 'agent-event',
-                        id: `${msg.id}:${idx}`,
-                        createdAt: msg.createdAt,
-                        event: { type: 'message', message: c.summary },
-                        meta: msg.meta
-                    })
+                    blocks.push(createAgentEventBlock(
+                        `${msg.id}:${idx}`,
+                        msg.createdAt,
+                        classifySummaryAsEvent(c.summary),
+                        msg.meta
+                    ))
                     continue
                 }
 
@@ -126,13 +113,12 @@ export function reduceTimeline(
                         const title = context.titleChangesByToolUseId.get(c.id) ?? extractTitleFromChangeTitleInput(c.input)
                         if (title && !context.emittedTitleChangeToolUseIds.has(c.id)) {
                             context.emittedTitleChangeToolUseIds.add(c.id)
-                            blocks.push({
-                                kind: 'agent-event',
-                                id: `${msg.id}:${idx}`,
-                                createdAt: msg.createdAt,
-                                event: { type: 'title-changed', title },
-                                meta: msg.meta
-                            })
+                            blocks.push(createAgentEventBlock(
+                                `${msg.id}:${idx}`,
+                                msg.createdAt,
+                                classifyTitleChangeAsEvent(title),
+                                msg.meta
+                            ))
                         }
                         continue
                     }
@@ -171,13 +157,12 @@ export function reduceTimeline(
                     if (title) {
                         if (!context.emittedTitleChangeToolUseIds.has(c.tool_use_id)) {
                             context.emittedTitleChangeToolUseIds.add(c.tool_use_id)
-                            blocks.push({
-                                kind: 'agent-event',
-                                id: `${msg.id}:${idx}`,
-                                createdAt: msg.createdAt,
-                                event: { type: 'title-changed', title },
-                                meta: msg.meta
-                            })
+                            blocks.push(createAgentEventBlock(
+                                `${msg.id}:${idx}`,
+                                msg.createdAt,
+                                classifyTitleChangeAsEvent(title),
+                                msg.meta
+                            ))
                         }
                         continue
                     }

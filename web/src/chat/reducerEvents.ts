@@ -1,5 +1,25 @@
 import type { AgentEvent, AgentEventBlock, ChatBlock, NormalizedMessage } from '@/chat/types'
 
+// ---------------------------------------------------------------------------
+// Single factory for agent-event blocks.
+// All event block creation in the reducer layer MUST go through this function
+// to keep the "system event" entry point unified.
+// ---------------------------------------------------------------------------
+
+export function createAgentEventBlock(
+    id: string,
+    createdAt: number,
+    event: AgentEvent,
+    meta?: unknown
+): AgentEventBlock {
+    return { kind: 'agent-event', id, createdAt, event, meta }
+}
+
+// ---------------------------------------------------------------------------
+// Event classifiers – determine whether a piece of content should become an
+// agent-event block instead of its default representation.
+// ---------------------------------------------------------------------------
+
 function parseClaudeUsageLimit(text: string): number | null {
     const match = text.match(/^Claude AI usage limit reached\|(\d+)$/)
     if (!match) return null
@@ -8,6 +28,9 @@ function parseClaudeUsageLimit(text: string): number | null {
     return timestamp
 }
 
+/**
+ * Detect agent text messages that are actually events (e.g. usage-limit).
+ */
 export function parseMessageAsEvent(msg: NormalizedMessage): AgentEvent | null {
     if (msg.isSidechain) return null
     if (msg.role !== 'agent') return null
@@ -22,6 +45,20 @@ export function parseMessageAsEvent(msg: NormalizedMessage): AgentEvent | null {
     }
 
     return null
+}
+
+/**
+ * Convert a summary content part into an AgentEvent.
+ */
+export function classifySummaryAsEvent(summary: string): AgentEvent {
+    return { type: 'message', message: summary }
+}
+
+/**
+ * Build a title-changed AgentEvent from a resolved title string.
+ */
+export function classifyTitleChangeAsEvent(title: string): AgentEvent {
+    return { type: 'title-changed', title }
 }
 
 export function dedupeAgentEvents(blocks: ChatBlock[]): ChatBlock[] {
