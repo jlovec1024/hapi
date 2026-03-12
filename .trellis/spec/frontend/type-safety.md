@@ -9,7 +9,7 @@
 HAPI Web 使用**严格模式的 TypeScript**，并具备全面的类型覆盖。类型集中在 `types/` 目录中，并通过路径别名导入。项目强调：
 
 - **严格 TypeScript**（`strict: true`、`noImplicitAny: true`、`strictNullChecks: true`）
-- **共享协议类型**，来自 `@hapi/protocol` workspace 包
+- **共享协议类型**，来自 `@zs/protocol` workspace 包
 - **仅类型导入**，以便更好地 tree-shaking
 - **前端无运行时验证**（验证在后端进行）
 - **显式 null 处理**（无隐式 undefined）
@@ -29,7 +29,7 @@ export type {
     AttachmentMetadata,
     Session,
     SessionSummary,
-} from '@hapi/protocol/types'
+} from '@zs/protocol/types'
 
 // 前端特定扩展
 export type DecryptedMessage = ProtocolDecryptedMessage & {
