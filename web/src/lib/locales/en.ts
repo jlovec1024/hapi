@@ -174,6 +174,17 @@ export default {
   'terminal.paste.fallbackTitle': 'Paste input',
   'terminal.paste.fallbackDescription': 'Clipboard read is unavailable. Paste your text below.',
   'terminal.paste.placeholder': 'Paste terminal input here…',
+  'terminal.quickInput.longPressLabel': '{key} (long press: {alternate})',
+  'terminal.toast.restartedTitle': 'Terminal restarted',
+  'terminal.toast.restartedBody': 'Previous terminal expired. A new terminal has been created.',
+  'terminal.sessionInactive': 'Session is inactive. Terminal is unavailable.',
+  'terminal.reconnecting': 'Reconnecting terminal…',
+  'terminal.error.missingCredentials': 'Missing terminal credentials.',
+  'terminal.error.exited': 'Terminal exited.',
+  'terminal.error.connection': 'Connection error',
+  'terminal.error.disconnected': 'Disconnected: {reason}',
+  'terminal.exitStatus': 'Terminal exited{code}{suffix}.',
+  'terminal.action.reset': 'Reset terminal',
 
   // Code block
   'code.copy': 'Copy',

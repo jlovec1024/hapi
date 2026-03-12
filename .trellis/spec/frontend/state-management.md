@@ -305,7 +305,134 @@ const sortedSessions = useMemo(() => {
 
 ---
 
-## 状态流示例
+## Terminal Session Resume Contract
+
+### 1. 范围 / 触发条件
+
+- 触发条件：终端页在同一浏览器标签页内离开后再进入，要求在 Hub idle timeout 之前恢复原终端会话。
+- 为什么需要 code-spec 深度：
+  - 这是跨层状态流：Web session store -> terminal socket hook -> Hub terminal registry -> CLI terminal process。
+  - 如果 session identity、terminal identity 或 disconnect 语义不清晰，就会出现“重进页面后终端被重置”的回归。
+
+### 2. 签名
+
+- 前端 session 级 store：
+
+```typescript
+export type TerminalSessionState = {
+    terminalId: string
+    outputBuffer: string
+    hasEverConnected: boolean
+}
+
+export function getTerminalSessionState(sessionId: string): TerminalSessionState
+export function resetTerminalSessionState(sessionId: string): TerminalSessionState
+export function clearTerminalSessionBuffer(sessionId: string): TerminalSessionState
+export function appendTerminalSessionOutput(sessionId: string, chunk: string): TerminalSessionState
+export function markTerminalSessionConnected(sessionId: string): TerminalSessionState
+```
+
+- 终端 socket hook：
+
+```typescript
+useTerminalSocket(options: {
+    baseUrl: string
+    token: string
+    sessionId: string
+    terminalId: string
+    onTerminalNotFound?: () => void
+}): {
+    state:
+        | { status: 'idle' }
+        | { status: 'connecting' }
+        | { status: 'connected' }
+        | { status: 'reconnecting'; reason: string }
+        | { status: 'error'; error: string }
+    connect: (cols: number, rows: number) => void
+    write: (data: string) => void
+    resize: (cols: number, rows: number) => void
+    disconnect: () => void
+    onOutput: (handler: (data: string) => void) => void
+    onExit: (handler: (code: number | null, signal: string | null) => void) => void
+}
+```
+
+### 3. 契约
+
+- session 级身份契约：
+  - `terminalId` 必须按 `sessionId` 作用域缓存。
+  - 同一标签页内从 terminal route 离开再回来时，只要 Hub 端 terminal 尚未超时，必须继续使用原 `terminalId`。
+  - 切换到其他 session 时，不得复用前一个 session 的 `terminalId` 或输出缓冲。
+
+- 输出缓冲契约：
+  - `outputBuffer` 属于 session 级 store，而不是组件局部 state。
+  - 组件重新挂载后，必须先 replay 已缓存 `outputBuffer`，再接收新的 socket output。
+  - buffer 需要有最大长度限制，避免无界增长。
+
+- 过期恢复契约：
+  - 当 hook 收到 `terminal:error` 且消息为 `Terminal not found.` 时，必须进入 `reconnecting` 状态。
+  - `onTerminalNotFound` 必须执行：重置当前 session 对应的 terminal store、清空终端 UI、断开旧 socket、生成新 terminalId 并重新连接。
+  - 新终端创建成功后，应显示 toast，说明旧终端已过期并已自动创建新终端。
+
+- 文本契约：
+  - 所有用户可见终端状态文本必须来自 i18n key，而不是 hook/页面内硬编码字符串。
+
+### 4. 校验与错误矩阵
+
+- `sessionId` 改变 -> 必须先重置页面级连接状态并切换到目标 session 的 `TerminalSessionState`。
+- 同一 session 重进页面且 registry 中 terminal 仍存在 -> 必须复用旧 `terminalId` 并恢复 buffer。
+- 同一 session 重进页面但 terminal 已在 Hub 端超时删除 -> 必须 reset store、生成新 `terminalId`、重新建立连接。
+- hook 收到普通 `terminal:error`（非 `Terminal not found.`）-> 显示 error 状态，但不得悄悄重建 terminal。
+- `token/sessionId/terminalId` 任一缺失 -> hook 进入 error 状态并显示本地化错误文案。
+- terminal process exit -> 页面显示退出状态；只有显式重连/reset 后才创建新 terminal。
+
+### 5. Good / Base / Bad Cases
+
+- Good：
+  - 用户进入 terminal 页，离开后 10 秒内返回；页面复用原 `terminalId`，已输出内容被回放，CLI 不会收到第二次 `terminal:open`。
+- Base：
+  - 用户第一次进入 terminal 页；创建新 terminal，后续输出持续追加到 session store。
+- Bad：
+  - 用户只是切到其他页面再回来，就生成新的 `terminalId`，原输出丢失，CLI 又创建了一个新终端实例。
+
+### 6. Tests Required
+
+- Unit（store）：
+  - 断言 `getTerminalSessionState(sessionId)` 为每个 session 返回稳定独立状态。
+  - 断言 `resetTerminalSessionState(sessionId)` 会更换 `terminalId`，并清空 buffer/连接标记。
+  - 断言 `appendTerminalSessionOutput` 会保留末尾 buffer 并应用最大长度限制。
+- Hook / route integration：
+  - 断言 terminal 页重新挂载后会 replay 之前 session 的 buffer。
+  - 断言收到 `Terminal not found.` 后会触发 reset + reconnect。
+  - 断言 reset 成功后显示重启 toast。
+- Component：
+  - 断言 terminal 页面按钮/状态 banner 文案来自 i18n key。
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+const terminalId = crypto.randomUUID()
+
+useEffect(() => {
+    connect(cols, rows)
+}, [])
+```
+
+#### Correct
+
+```typescript
+const [terminalStateSnapshot, setTerminalStateSnapshot] = useState(() => getTerminalSessionState(sessionId))
+const terminalId = terminalStateSnapshot.terminalId
+
+const handleTerminalNotFound = useCallback(() => {
+    const nextState = resetTerminalSessionState(sessionId)
+    setTerminalStateSnapshot(nextState)
+    terminalRef.current?.reset()
+    disconnectRef.current()
+}, [sessionId])
+```
 
 **发送一条消息**：
 

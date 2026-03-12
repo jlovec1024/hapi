@@ -2,6 +2,7 @@ import { useContext } from 'react'
 import { I18nContext } from './i18n-context'
 
 export type { Locale, I18nContextValue } from './i18n-context'
+export { getStoredLocale, getTranslation } from './i18n-context'
 
 export function useTranslation() {
   const context = useContext(I18nContext)

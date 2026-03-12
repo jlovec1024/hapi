@@ -23,11 +23,23 @@ function interpolate(str: string, params?: Record<string, string | number>): str
   })
 }
 
+export function getTranslation(locale: Locale, key: string, params?: Record<string, string | number>): string {
+  const dict = locales[locale] ?? locales.en
+  const value = dict[key]
+  const fallback = locales.en[key] ?? key
+  return interpolate(value ?? fallback, params)
+}
+
+export function getStoredLocale(): Locale {
+  if (typeof window === 'undefined') {
+    return 'zh-CN'
+  }
+  const saved = localStorage.getItem('zs-lang')
+  return saved === 'en' || saved === 'zh-CN' ? saved : 'zh-CN'
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
-    const saved = localStorage.getItem('zs-lang')
-    return (saved === 'en' || saved === 'zh-CN') ? saved : 'zh-CN'
-  })
+  const [locale, setLocaleState] = useState<Locale>(() => getStoredLocale())
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale)
@@ -36,10 +48,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const t = useCallback((key: string, params?: Record<string, string | number>): string => {
-    const dict = locales[locale] ?? locales.en
-    const value = dict[key]
-    const fallback = locales.en[key] ?? key
-    return interpolate(value ?? fallback, params)
+    return getTranslation(locale, key, params)
   }, [locale])
 
   useEffect(() => {

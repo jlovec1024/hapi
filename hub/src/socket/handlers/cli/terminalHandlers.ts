@@ -46,7 +46,11 @@ export function registerTerminalHandlers(socket: CliSocketWithData, deps: Termin
             emitAccessError('session', payload.sessionId, sessionAccess.reason)
             return
         }
-        const terminalSocket = terminalNamespace.sockets.get(entry.socketId)
+        const terminalSocketId = entry.socketId
+        if (!terminalSocketId) {
+            return
+        }
+        const terminalSocket = terminalNamespace.sockets.get(terminalSocketId)
         if (!terminalSocket) {
             return
         }
@@ -81,7 +85,11 @@ export function registerTerminalHandlers(socket: CliSocketWithData, deps: Termin
             return
         }
         terminalRegistry.remove(parsed.data.terminalId)
-        const terminalSocket = terminalNamespace.sockets.get(entry.socketId)
+        const terminalSocketId = entry.socketId
+        if (!terminalSocketId) {
+            return
+        }
+        const terminalSocket = terminalNamespace.sockets.get(terminalSocketId)
         if (!terminalSocket) {
             return
         }
@@ -93,14 +101,26 @@ export function registerTerminalHandlers(socket: CliSocketWithData, deps: Termin
         if (!parsed.success) {
             return
         }
+
         forwardTerminalEvent('terminal:error', parsed.data)
+
+        if (
+            parsed.data.message === 'Terminal not found.'
+            || parsed.data.message === 'Terminal closed due to inactivity.'
+        ) {
+            terminalRegistry.remove(parsed.data.terminalId)
+        }
     })
 }
 
 export function cleanupTerminalHandlers(socket: CliSocketWithData, deps: { terminalRegistry: TerminalRegistry; terminalNamespace: SocketNamespace }): void {
     const removed = deps.terminalRegistry.removeByCliSocket(socket.id)
     for (const entry of removed) {
-        const terminalSocket = deps.terminalNamespace.sockets.get(entry.socketId)
+        const terminalSocketId = entry.socketId
+        if (!terminalSocketId) {
+            continue
+        }
+        const terminalSocket = deps.terminalNamespace.sockets.get(terminalSocketId)
         terminalSocket?.emit('terminal:error', {
             terminalId: entry.terminalId,
             message: 'CLI disconnected.'

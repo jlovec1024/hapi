@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { io, type Socket } from 'socket.io-client'
+import { getStoredLocale, getTranslation } from '@/lib/use-translation'
 
 type TerminalConnectionState =
     | { status: 'idle' }
     | { status: 'connecting' }
     | { status: 'connected' }
+    | { status: 'reconnecting'; reason: string }
     | { status: 'error'; error: string }
 
 type UseTerminalSocketOptions = {
@@ -12,6 +14,7 @@ type UseTerminalSocketOptions = {
     token: string
     sessionId: string
     terminalId: string
+    onTerminalNotFound?: () => void
 }
 
 type TerminalReadyPayload = {
@@ -39,6 +42,7 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): {
     connect: (cols: number, rows: number) => void
     write: (data: string) => void
     resize: (cols: number, rows: number) => void
+    close: (terminalId?: string) => void
     disconnect: () => void
     onOutput: (handler: (data: string) => void) => void
     onExit: (handler: (code: number | null, signal: string | null) => void) => void
@@ -51,13 +55,22 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): {
     const terminalIdRef = useRef(options.terminalId)
     const tokenRef = useRef(options.token)
     const baseUrlRef = useRef(options.baseUrl)
+    const terminalNotFoundHandlerRef = useRef<(() => void) | null>(options.onTerminalNotFound ?? null)
     const lastSizeRef = useRef<{ cols: number; rows: number } | null>(null)
+    const translateRef = useRef<(key: string, params?: Record<string, string | number>) => string>(() => '')
+
+    useEffect(() => {
+        translateRef.current = (key: string, params?: Record<string, string | number>) => {
+            return getTranslation(getStoredLocale(), key, params)
+        }
+    }, [])
 
     useEffect(() => {
         sessionIdRef.current = options.sessionId
         terminalIdRef.current = options.terminalId
         baseUrlRef.current = options.baseUrl
-    }, [options.sessionId, options.terminalId, options.baseUrl])
+        terminalNotFoundHandlerRef.current = options.onTerminalNotFound ?? null
+    }, [options.sessionId, options.terminalId, options.baseUrl, options.onTerminalNotFound])
 
     useEffect(() => {
         tokenRef.current = options.token
@@ -78,11 +91,6 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): {
         }
         socket.auth = { token: options.token }
         if (socket.connected) {
-            console.log('[Terminal] stage=socket.reconnect outcome=retry', {
-                cause: 'token_changed',
-                sessionId: sessionIdRef.current,
-                terminalId: terminalIdRef.current
-            })
             socket.disconnect()
             socket.connect()
         }
@@ -94,12 +102,14 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): {
         outcome: 'start' | 'success' | 'error' | 'duplicate' | 'retry',
         details: Record<string, unknown>
     ) => {
-        const message = `[Terminal] stage=${stage} outcome=${outcome}`
         if (level === 'error') {
+            const message = `[Terminal] stage=${stage} outcome=${outcome}`
             console.error(message, details)
-            return
         }
-        console.log(message, details)
+    }, [])
+
+    const t = useCallback((key: string, params?: Record<string, string | number>) => {
+        return translateRef.current(key, params)
     }, [])
 
     const isCurrentTerminal = useCallback((terminalId: string) => terminalId === terminalIdRef.current, [])
@@ -146,7 +156,7 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): {
         })
 
         if (!token || !sessionId || !terminalId) {
-            setErrorState('Missing terminal credentials.', 'missing_terminal_credentials')
+            setErrorState(t('terminal.error.missingCredentials'), 'missing_terminal_credentials')
             return
         }
 
@@ -229,7 +239,7 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): {
                 cause: 'terminal_process_exit'
             })
             exitHandlerRef.current(payload.code, payload.signal)
-            setErrorState('Terminal exited.', 'terminal_exited')
+            setErrorState(t('terminal.error.exited'), 'terminal_exited')
         })
 
         socket.on('terminal:error', (payload: TerminalErrorPayload) => {
@@ -242,11 +252,16 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): {
                 message: payload.message,
                 cause: 'terminal_runtime_error'
             })
+            if (payload.message === 'Terminal not found.') {
+                setState({ status: 'reconnecting', reason: payload.message })
+                terminalNotFoundHandlerRef.current?.()
+                return
+            }
             setErrorState(payload.message)
         })
 
         socket.on('connect_error', (error) => {
-            const message = error instanceof Error ? error.message : 'Connection error'
+            const message = error instanceof Error ? error.message : t('terminal.error.connection')
             logTerminalEvent('error', 'terminal.socket.connect', 'error', {
                 sessionId: sessionIdRef.current,
                 terminalId: terminalIdRef.current,
@@ -272,11 +287,11 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): {
                 reason,
                 cause: 'unexpected_disconnect'
             })
-            setErrorState(`Disconnected: ${reason}`)
+            setErrorState(t('terminal.error.disconnected', { reason }))
         })
 
         socket.connect()
-    }, [emitCreate, setErrorState, isCurrentTerminal, logTerminalEvent])
+    }, [emitCreate, setErrorState, isCurrentTerminal, logTerminalEvent, t])
 
     const write = useCallback((data: string) => {
         const socket = socketRef.current
@@ -307,6 +322,18 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): {
         socket.emit('terminal:resize', { terminalId: terminalIdRef.current, cols, rows })
     }, [logTerminalEvent])
 
+    const close = useCallback((terminalId = terminalIdRef.current) => {
+        const socket = socketRef.current
+        if (!socket || !socket.connected) {
+            return
+        }
+        logTerminalEvent('log', 'terminal.close.request', 'success', {
+            sessionId: sessionIdRef.current,
+            terminalId
+        })
+        socket.emit('terminal:close', { terminalId })
+    }, [logTerminalEvent])
+
     const disconnect = useCallback(() => {
         const socket = socketRef.current
         if (!socket) {
@@ -335,6 +362,7 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): {
         connect,
         write,
         resize,
+        close,
         disconnect,
         onOutput,
         onExit

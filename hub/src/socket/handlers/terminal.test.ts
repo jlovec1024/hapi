@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'bun:test'
 import { registerTerminalHandlers } from './terminal'
+import { registerTerminalHandlers as registerCliTerminalHandlers } from './cli/terminalHandlers'
 import { TerminalRegistry } from '../terminalRegistry'
 import type { SocketServer, SocketWithData } from '../socketTypes'
+import type { StoredSession } from '../../store'
 
 type EmittedEvent = {
     event: string
@@ -178,8 +180,8 @@ describe('terminal socket handlers', () => {
         expect(terminalRegistry.get('terminal-1')).toBeNull()
     })
 
-    it('cleans up and notifies CLI on terminal socket disconnect', () => {
-        const { terminalSocket, cliNamespace, terminalRegistry } = createHarness()
+    it('detaches terminal on socket disconnect and allows later reattach', () => {
+        const { io, terminalSocket, cliNamespace, terminalRegistry } = createHarness()
         const cliSocket = new FakeSocket('cli-socket-1')
         connectCliSocket(cliNamespace, cliSocket, 'session-1')
 
@@ -192,12 +194,35 @@ describe('terminal socket handlers', () => {
 
         terminalSocket.trigger('disconnect')
 
-        const closeEvent = lastEmit(cliSocket, 'terminal:close')
-        expect(closeEvent?.data).toEqual({
-            sessionId: 'session-1',
-            terminalId: 'terminal-1'
+        expect(lastEmit(cliSocket, 'terminal:close')).toBeUndefined()
+        expect(terminalRegistry.get('terminal-1')?.socketId).toBeNull()
+
+        const secondTerminalSocket = new FakeSocket('terminal-socket-2')
+        secondTerminalSocket.data.namespace = 'default'
+        registerTerminalHandlers(secondTerminalSocket as unknown as SocketWithData, {
+            io: io as unknown as SocketServer,
+            getSession: () => ({ active: true, namespace: 'default' }),
+            terminalRegistry,
+            maxTerminalsPerSocket: 4,
+            maxTerminalsPerSession: 4
         })
-        expect(terminalRegistry.get('terminal-1')).toBeNull()
+
+        secondTerminalSocket.trigger('terminal:create', {
+            sessionId: 'session-1',
+            terminalId: 'terminal-1',
+            cols: 100,
+            rows: 30
+        })
+
+        const readyEvent = lastEmit(secondTerminalSocket, 'terminal:ready')
+        expect(readyEvent?.data).toEqual({ terminalId: 'terminal-1' })
+        expect(lastEmit(cliSocket, 'terminal:open')?.data).toEqual({
+            sessionId: 'session-1',
+            terminalId: 'terminal-1',
+            cols: 90,
+            rows: 24
+        })
+        expect(terminalRegistry.get('terminal-1')?.socketId).toBe('terminal-socket-2')
     })
 
 
@@ -221,12 +246,12 @@ describe('terminal socket handlers', () => {
         })
 
         const openEvents = cliSocket.emitted.filter((entry) => entry.event === 'terminal:open')
-        expect(openEvents.length).toBe(2)
-        expect(openEvents[1]?.data).toEqual({
+        expect(openEvents.length).toBe(1)
+        expect(openEvents[0]?.data).toEqual({
             sessionId: 'session-1',
             terminalId: 'terminal-1',
-            cols: 100,
-            rows: 30
+            cols: 80,
+            rows: 24
         })
 
         const duplicateIdError = terminalSocket.emitted.find(
@@ -238,7 +263,7 @@ describe('terminal socket handlers', () => {
         expect(terminalRegistry.get('terminal-1')).not.toBeNull()
     })
 
-    it('rebinds stale terminal id when previous cli socket is gone', () => {
+    it('reattaches existing terminal id even when previous cli socket is gone', () => {
         const { terminalSocket, cliNamespace, terminalRegistry } = createHarness()
         const firstCliSocket = new FakeSocket('cli-socket-1')
         connectCliSocket(cliNamespace, firstCliSocket, 'session-1')
@@ -263,12 +288,7 @@ describe('terminal socket handlers', () => {
         })
 
         const reopenedEvent = lastEmit(secondCliSocket, 'terminal:open')
-        expect(reopenedEvent?.data).toEqual({
-            sessionId: 'session-1',
-            terminalId: 'terminal-1',
-            cols: 90,
-            rows: 28
-        })
+        expect(reopenedEvent).toBeUndefined()
 
         const duplicateIdError = terminalSocket.emitted.find(
             (entry) =>
@@ -276,7 +296,51 @@ describe('terminal socket handlers', () => {
                 && (entry.data as { message?: string })?.message === 'Terminal ID is already in use.'
         )
         expect(duplicateIdError).toBeUndefined()
-        expect(terminalRegistry.get('terminal-1')?.cliSocketId).toBe('cli-socket-2')
+        expect(terminalRegistry.get('terminal-1')?.cliSocketId).toBe('cli-socket-1')
+    })
+
+
+    it('removes stale detached terminal when cli reports terminal not found', () => {
+        const { io, terminalSocket, cliNamespace, terminalRegistry } = createHarness()
+        const cliSocket = new FakeSocket('cli-socket-1')
+        connectCliSocket(cliNamespace, cliSocket, 'session-1')
+
+        terminalSocket.trigger('terminal:create', {
+            sessionId: 'session-1',
+            terminalId: 'terminal-1',
+            cols: 90,
+            rows: 24
+        })
+
+        terminalSocket.trigger('disconnect')
+        expect(terminalRegistry.get('terminal-1')?.socketId).toBeNull()
+
+        const cliHandlerSocket = new FakeSocket('cli-socket-1')
+        cliHandlerSocket.data.namespace = 'default'
+        const terminalNamespace = io.of('/terminal')
+        const detachedTerminalSocket = new FakeSocket('terminal-socket-2')
+        terminalNamespace.sockets.set(detachedTerminalSocket.id, detachedTerminalSocket)
+        terminalRegistry.rebindSocket('terminal-1', detachedTerminalSocket.id)
+
+        registerCliTerminalHandlers(cliHandlerSocket as never, {
+            terminalRegistry,
+            terminalNamespace: terminalNamespace as never,
+            resolveSessionAccess: () => ({ ok: true, value: {} as StoredSession }),
+            emitAccessError: () => {}
+        })
+
+        cliHandlerSocket.trigger('terminal:error', {
+            sessionId: 'session-1',
+            terminalId: 'terminal-1',
+            message: 'Terminal not found.'
+        })
+
+        expect(terminalRegistry.get('terminal-1')).toBeNull()
+        expect(lastEmit(detachedTerminalSocket, 'terminal:error')?.data).toEqual({
+            sessionId: 'session-1',
+            terminalId: 'terminal-1',
+            message: 'Terminal not found.'
+        })
     })
 
     it('enforces per-socket terminal limits', () => {

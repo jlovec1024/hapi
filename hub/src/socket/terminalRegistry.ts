@@ -1,7 +1,7 @@
 export type TerminalRegistryEntry = {
     terminalId: string
     sessionId: string
-    socketId: string
+    socketId: string | null
     cliSocketId: string
     idleTimer: ReturnType<typeof setTimeout> | null
 }
@@ -24,7 +24,7 @@ export class TerminalRegistry {
         this.onIdle = options.onIdle
     }
 
-    register(terminalId: string, sessionId: string, socketId: string, cliSocketId: string): TerminalRegistryEntry | null {
+    register(terminalId: string, sessionId: string, socketId: string | null, cliSocketId: string): TerminalRegistryEntry | null {
         if (this.terminals.has(terminalId)) {
             return null
         }
@@ -58,6 +58,25 @@ export class TerminalRegistry {
         return this.terminals.get(terminalId) ?? null
     }
 
+    rebindSocket(terminalId: string, socketId: string | null): TerminalRegistryEntry | null {
+        const entry = this.terminals.get(terminalId)
+        if (!entry) {
+            return null
+        }
+        if (entry.socketId === socketId) {
+            return entry
+        }
+        if (entry.socketId) {
+            this.removeFromIndex(this.terminalsBySocket, entry.socketId, terminalId)
+        }
+        entry.socketId = socketId
+        if (socketId) {
+            this.addToIndex(this.terminalsBySocket, socketId, terminalId)
+        }
+        this.scheduleIdle(entry)
+        return entry
+    }
+
     remove(terminalId: string): TerminalRegistryEntry | null {
         const entry = this.terminals.get(terminalId)
         if (!entry) {
@@ -75,12 +94,19 @@ export class TerminalRegistry {
         return entry
     }
 
-    removeBySocket(socketId: string): TerminalRegistryEntry[] {
+    detachSocket(socketId: string): TerminalRegistryEntry[] {
         const ids = this.terminalsBySocket.get(socketId)
         if (!ids || ids.size === 0) {
             return []
         }
-        return Array.from(ids).map((terminalId) => this.remove(terminalId)).filter(Boolean) as TerminalRegistryEntry[]
+        const entries: TerminalRegistryEntry[] = []
+        for (const terminalId of Array.from(ids)) {
+            const entry = this.rebindSocket(terminalId, null)
+            if (entry) {
+                entries.push(entry)
+            }
+        }
+        return entries
     }
 
     removeByCliSocket(socketId: string): TerminalRegistryEntry[] {
@@ -118,7 +144,10 @@ export class TerminalRegistry {
         }, this.idleTimeoutMs)
     }
 
-    private addToIndex(index: Map<string, Set<string>>, key: string, terminalId: string): void {
+    private addToIndex(index: Map<string, Set<string>>, key: string | null, terminalId: string): void {
+        if (!key) {
+            return
+        }
         const set = index.get(key)
         if (set) {
             set.add(terminalId)
@@ -127,7 +156,10 @@ export class TerminalRegistry {
         }
     }
 
-    private removeFromIndex(index: Map<string, Set<string>>, key: string, terminalId: string): void {
+    private removeFromIndex(index: Map<string, Set<string>>, key: string | null, terminalId: string): void {
+        if (!key) {
+            return
+        }
         const set = index.get(key)
         if (!set) {
             return

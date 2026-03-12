@@ -33,7 +33,7 @@ import { useTranslation } from '@/lib/use-translation'
 import { fetchLatestMessages, seedMessageWindowFromSession } from '@/lib/message-window-store'
 import FilesPage from '@/routes/sessions/files'
 import FilePage from '@/routes/sessions/file'
-import TerminalPage from '@/routes/sessions/terminal'
+import { TerminalPage } from '@/routes/sessions/terminal'
 import SettingsPage from '@/routes/settings'
 
 function BackIcon(props: { className?: string }) {

@@ -176,6 +176,17 @@ export default {
   'terminal.paste.fallbackTitle': '粘贴输入',
   'terminal.paste.fallbackDescription': '无法读取剪贴板，请在下方粘贴文本。',
   'terminal.paste.placeholder': '在此粘贴终端输入…',
+  'terminal.quickInput.longPressLabel': '{key}（长按：{alternate}）',
+  'terminal.toast.restartedTitle': '终端已重启',
+  'terminal.toast.restartedBody': '之前的终端已过期，已自动创建新的终端。',
+  'terminal.sessionInactive': '会话未激活，终端当前不可用。',
+  'terminal.reconnecting': '正在重新连接终端…',
+  'terminal.error.missingCredentials': '缺少终端连接凭证。',
+  'terminal.error.exited': '终端已退出。',
+  'terminal.error.connection': '连接错误',
+  'terminal.error.disconnected': '连接已断开：{reason}',
+  'terminal.exitStatus': '终端已退出{code}{suffix}。',
+  'terminal.action.reset': '重置终端',
 
   // Code block
   'code.copy': '复制',

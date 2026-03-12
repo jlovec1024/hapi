@@ -2,13 +2,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 import { I18nProvider } from '@/lib/i18n-context'
-import TerminalPage from './terminal'
+import { ToastProvider } from '@/lib/toast-context'
+import { TerminalPage } from './terminal'
 
 const writeMock = vi.fn()
+const connectMock = vi.fn()
+const disconnectMock = vi.fn()
+const closeMock = vi.fn()
 
 let hasSelectionMock = false
 let selectionTextMock = ''
 let keyHandler: ((event: KeyboardEvent) => boolean) | null = null
+
+type TerminalSocketState =
+    | { status: 'idle' }
+    | { status: 'connecting' }
+    | { status: 'connected' }
+    | { status: 'reconnecting'; reason: string }
+    | { status: 'error'; error: string }
+
+let terminalSocketStateMock: TerminalSocketState = { status: 'connected' }
+let onTerminalNotFoundHandler: (() => void) | undefined
 
 vi.mock('@tanstack/react-router', () => ({
     useParams: () => ({ sessionId: 'session-1' })
@@ -37,15 +51,19 @@ vi.mock('@/hooks/queries/useSession', () => ({
 }))
 
 vi.mock('@/hooks/useTerminalSocket', () => ({
-    useTerminalSocket: () => ({
-        state: { status: 'connected' as const },
-        connect: vi.fn(),
-        write: writeMock,
-        resize: vi.fn(),
-        disconnect: vi.fn(),
-        onOutput: vi.fn(),
-        onExit: vi.fn()
-    })
+    useTerminalSocket: (options: { onTerminalNotFound?: () => void }) => {
+        onTerminalNotFoundHandler = options.onTerminalNotFound
+        return {
+            state: terminalSocketStateMock,
+            connect: connectMock,
+            write: writeMock,
+            resize: vi.fn(),
+            close: closeMock,
+            disconnect: disconnectMock,
+            onOutput: vi.fn(),
+            onExit: vi.fn()
+        }
+    }
 }))
 
 vi.mock('@/hooks/useLongPress', () => ({
@@ -61,6 +79,7 @@ type TerminalMountMock = {
     getSelection: () => string
     write: () => void
     focus: () => void
+    reset: () => void
 }
 
 vi.mock('@/components/Terminal/TerminalView', () => ({
@@ -75,6 +94,7 @@ vi.mock('@/components/Terminal/TerminalView', () => ({
                 getSelection: () => selectionTextMock,
                 write: vi.fn(),
                 focus: vi.fn(),
+                reset: vi.fn(),
             }
             onMount?.(terminal)
         }, [onMount])
@@ -85,7 +105,9 @@ vi.mock('@/components/Terminal/TerminalView', () => ({
 function renderWithProviders() {
     return render(
         <I18nProvider>
-            <TerminalPage />
+            <ToastProvider>
+                <TerminalPage />
+            </ToastProvider>
         </I18nProvider>
     )
 }
@@ -96,6 +118,8 @@ describe('TerminalPage paste behavior', () => {
         hasSelectionMock = false
         selectionTextMock = ''
         keyHandler = null
+        terminalSocketStateMock = { status: 'connected' }
+        onTerminalNotFoundHandler = undefined
         localStorage.clear()
         localStorage.setItem('zs-lang', 'en')
     })
@@ -186,5 +210,27 @@ describe('TerminalPage paste behavior', () => {
 
         expect(handled).toBe(true)
         expect(writeText).not.toHaveBeenCalled()
+    })
+
+    it('closes previous terminal before reset creates a new one', () => {
+        renderWithProviders()
+        closeMock.mockClear()
+        disconnectMock.mockClear()
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'Reset terminal' })[0])
+
+        expect(closeMock).toHaveBeenCalledTimes(1)
+        expect(disconnectMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('closes previous terminal when terminal not found triggers recreation', () => {
+        renderWithProviders()
+        closeMock.mockClear()
+        disconnectMock.mockClear()
+
+        onTerminalNotFoundHandler?.()
+
+        expect(closeMock).toHaveBeenCalledTimes(1)
+        expect(disconnectMock).toHaveBeenCalledTimes(1)
     })
 })

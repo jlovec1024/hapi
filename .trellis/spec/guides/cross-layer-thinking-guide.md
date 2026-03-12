@@ -245,6 +245,28 @@ Source → Transform → Store → Retrieve → Transform → Display
 
 ---
 
+## Terminal Session Resume 检查清单（Web ↔ Hub ↔ CLI Terminal Lifecycle）
+
+当终端页面离开后再进入，需要在 idle timeout 前恢复同一终端会话时：
+- [ ] 前端是否按 `sessionId` 维护 session 级 `terminalId` 状态，而不是每次页面进入都生成新 ID？
+- [ ] Hub 侧 socket disconnect 时是否仅 `detach`（设 `socketId = null`），而不是立即从 registry 删除？
+- [ ] 同 session 同 terminalId 重新连接时，Hub 是否执行 `reattach` 并返回 `terminal:ready`，而不是再次向 CLI 发送 `terminal:open`？
+- [ ] 若 terminal 已过期/不存在，前端是否自动 `reset` 并创建新终端，同时显示 toast 提示用户？
+- [ ] 是否有集成测试覆盖：`页面进入 -> 离开 -> 再进入（idle timeout 前）-> 恢复同一 terminalId`？
+- [ ] 是否有测试覆盖：`terminal 已过期 -> 前端收到 not-found -> 自动 reset + toast + 重连`？
+
+典型失败模式：
+- 每次页面进入都生成新 `terminalId`，导致旧终端泄漏且无法恢复输出缓冲。
+- Hub disconnect 时直接删除 terminal registry entry，导致短暂断线后无法 reattach。
+- 重连时重复发送 `terminal:open` 到 CLI，导致 CLI 侧终端实例重复创建。
+- terminal 过期后前端无提示，用户不知道为什么终端重置了。
+
+参考可执行契约：
+- `frontend/state-management.md` → `Terminal Session Resume Contract`
+- `backend/error-handling.md` → `Terminal Socket Lifecycle Contract`
+
+---
+
 ## Session-Switch Draft Persistence 检查清单（Composer ↔ Session Identity）
 
 当聊天输入框文本需要在不同会话间切换后仍然保留时：

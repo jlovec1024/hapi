@@ -1,13 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import { useParams } from '@tanstack/react-router'
 import type { Terminal } from '@xterm/xterm'
 import { useAppContext } from '@/lib/app-context'
 import { safeCopyToClipboard } from '@/lib/clipboard'
+import { cn } from '@/lib/utils'
 import { useSession } from '@/hooks/queries/useSession'
 import { useTerminalSocket } from '@/hooks/useTerminalSocket'
 import { useLongPress } from '@/hooks/useLongPress'
 import { useTranslation } from '@/lib/use-translation'
+import { useToast } from '@/lib/toast-context'
+import {
+    appendTerminalSessionOutput,
+    getTerminalSessionState,
+    markTerminalSessionConnected,
+    resetTerminalSessionState
+} from '@/lib/terminal-session-store'
 import { TerminalView } from '@/components/Terminal/TerminalView'
 import { LoadingState } from '@/components/LoadingState'
 import { Button } from '@/components/ui/button'
@@ -95,6 +103,7 @@ function QuickKeyButton(props: {
     onPress: (sequence: string) => void
     onToggleModifier: (modifier: 'ctrl' | 'alt') => void
 }) {
+    const { t } = useTranslation()
     const { input, disabled, isActive, onPress, onToggleModifier } = props
     const modifier = input.modifier
     const popupSequence = input.popup?.sequence
@@ -133,44 +142,60 @@ function QuickKeyButton(props: {
             onPointerDown={handlePointerDown}
             disabled={disabled}
             aria-pressed={modifier ? isActive : undefined}
-            className={`flex-1 border-l border-[var(--app-border)] px-2 py-1.5 text-xs font-medium text-[var(--app-fg)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-button)] focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent first:border-l-0 active:bg-[var(--app-subtle-bg)] sm:px-3 sm:text-sm ${
+            className={cn(
+                'flex-1 border-l border-[var(--app-border)] px-2 py-1.5 text-xs font-medium text-[var(--app-fg)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-button)] focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent first:border-l-0 active:bg-[var(--app-subtle-bg)] sm:px-3 sm:text-sm',
                 isActive ? 'bg-[var(--app-link)] text-[var(--app-bg)]' : 'hover:bg-[var(--app-subtle-bg)]'
-            }`}
-            aria-label={input.description}
-            title={popupDescription ? `${input.description} (long press: ${popupDescription})` : input.description}
+            )}
+            aria-label={popupDescription ? t('terminal.quickInput.longPressLabel', { key: input.description, alternate: popupDescription }) : input.description}
+            title={popupDescription ? t('terminal.quickInput.longPressLabel', { key: input.description, alternate: popupDescription }) : input.description}
         >
             {input.label}
         </button>
     )
 }
 
-export default function TerminalPage() {
+export function TerminalPage() {
     const { t } = useTranslation()
+    const { addToast } = useToast()
     const { sessionId } = useParams({ from: '/sessions/$sessionId/terminal' })
     const { api, token, baseUrl } = useAppContext()
     const { session } = useSession(api, sessionId)
-    const terminalId = useMemo(() => {
-        if (typeof crypto?.randomUUID === 'function') {
-            return crypto.randomUUID()
-        }
-        return `${Date.now()}-${Math.random().toString(16).slice(2)}`
-    }, [sessionId])
+    const [terminalStateSnapshot, setTerminalStateSnapshot] = useState(() => getTerminalSessionState(sessionId))
+    const terminalId = terminalStateSnapshot.terminalId
     const terminalRef = useRef<Terminal | null>(null)
     const inputDisposableRef = useRef<{ dispose: () => void } | null>(null)
     const connectOnceRef = useRef(false)
+    const closeRef = useRef<(terminalId?: string) => void>(() => {})
+    const disconnectRef = useRef<() => void>(() => {})
     const lastSizeRef = useRef<{ cols: number; rows: number } | null>(null)
     const modifierStateRef = useRef<ModifierState>({ ctrl: false, alt: false })
+    const replayedBufferRef = useRef<string | null>(null)
+    const pendingReconnectToastRef = useRef(false)
     const [exitInfo, setExitInfo] = useState<{ code: number | null; signal: string | null } | null>(null)
     const [ctrlActive, setCtrlActive] = useState(false)
     const [altActive, setAltActive] = useState(false)
     const [pasteDialogOpen, setPasteDialogOpen] = useState(false)
     const [manualPasteText, setManualPasteText] = useState('')
 
+    const handleTerminalNotFound = useCallback(() => {
+        pendingReconnectToastRef.current = true
+        const previousTerminalId = terminalId
+        closeRef.current(previousTerminalId)
+        disconnectRef.current()
+        const nextState = resetTerminalSessionState(sessionId)
+        setTerminalStateSnapshot(nextState)
+        setExitInfo(null)
+        connectOnceRef.current = false
+        replayedBufferRef.current = null
+        terminalRef.current?.reset()
+    }, [sessionId, terminalId])
+
     const {
         state: terminalState,
         connect,
         write,
         resize,
+        close,
         disconnect,
         onOutput,
         onExit,
@@ -178,14 +203,48 @@ export default function TerminalPage() {
         token,
         sessionId,
         terminalId,
-        baseUrl
+        baseUrl,
+        onTerminalNotFound: handleTerminalNotFound
     })
 
     useEffect(() => {
+        closeRef.current = close
+        disconnectRef.current = disconnect
+    }, [close, disconnect])
+
+    useEffect(() => {
+        setTerminalStateSnapshot(getTerminalSessionState(sessionId))
+        setExitInfo(null)
+        connectOnceRef.current = false
+        replayedBufferRef.current = null
+    }, [sessionId])
+
+    const replayStoredBuffer = useCallback((terminal: Terminal | null) => {
+        if (!terminal) {
+            return
+        }
+        if (replayedBufferRef.current === terminalId) {
+            return
+        }
+        terminal.reset()
+        if (terminalStateSnapshot.outputBuffer) {
+            terminal.write(terminalStateSnapshot.outputBuffer)
+        }
+        replayedBufferRef.current = terminalId
+    }, [terminalId, terminalStateSnapshot.outputBuffer])
+
+    useEffect(() => {
+        replayedBufferRef.current = null
+        replayStoredBuffer(terminalRef.current)
+    }, [terminalId, replayStoredBuffer])
+
+    useEffect(() => {
         onOutput((data) => {
+            const nextState = appendTerminalSessionOutput(sessionId, data)
+            setTerminalStateSnapshot(nextState)
             terminalRef.current?.write(data)
         })
-    }, [onOutput])
+    }, [onOutput, sessionId])
 
     useEffect(() => {
         onExit((code, signal) => {
@@ -198,6 +257,24 @@ export default function TerminalPage() {
     useEffect(() => {
         modifierStateRef.current = { ctrl: ctrlActive, alt: altActive }
     }, [ctrlActive, altActive])
+
+    useEffect(() => {
+        if (terminalState.status !== 'connected') {
+            return
+        }
+        const nextState = markTerminalSessionConnected(sessionId)
+        setTerminalStateSnapshot(nextState)
+        replayStoredBuffer(terminalRef.current)
+        if (pendingReconnectToastRef.current) {
+            addToast({
+                title: t('terminal.toast.restartedTitle'),
+                body: t('terminal.toast.restartedBody'),
+                sessionId,
+                url: ''
+            })
+            pendingReconnectToastRef.current = false
+        }
+    }, [addToast, replayStoredBuffer, sessionId, terminalState.status])
 
     const resetModifiers = useCallback(() => {
         setCtrlActive(false)
@@ -251,8 +328,9 @@ export default function TerminalPage() {
                 const modifierState = modifierStateRef.current
                 dispatchSequence(data, modifierState)
             })
+            replayStoredBuffer(terminal)
         },
-        [dispatchSequence, handleTerminalCopyShortcut]
+        [dispatchSequence, handleTerminalCopyShortcut, replayStoredBuffer]
     )
 
     const handleResize = useCallback(
@@ -284,7 +362,7 @@ export default function TerminalPage() {
         }
         connectOnceRef.current = true
         connect(size.cols, size.rows)
-    }, [session?.active, connect])
+    }, [session?.active, connect, terminalId])
 
     useEffect(() => {
         connectOnceRef.current = false
@@ -312,12 +390,17 @@ export default function TerminalPage() {
             connectOnceRef.current = false
             return
         }
-        if (terminalState.status === 'connecting' || terminalState.status === 'connected') {
+        if (
+            terminalState.status === 'connecting'
+            || terminalState.status === 'connected'
+            || terminalState.status === 'reconnecting'
+        ) {
             setExitInfo(null)
         }
     }, [terminalState.status])
 
     const quickInputDisabled = !session?.active || terminalState.status !== 'connected'
+
     const writePlainInput = useCallback((text: string) => {
         if (!text || quickInputDisabled) {
             return false
@@ -389,22 +472,36 @@ export default function TerminalPage() {
         [quickInputDisabled]
     )
 
+    const handleResetTerminal = useCallback(() => {
+        const previousTerminalId = terminalId
+        close(previousTerminalId)
+        disconnect()
+        const nextState = resetTerminalSessionState(sessionId)
+        pendingReconnectToastRef.current = false
+        setTerminalStateSnapshot(nextState)
+        setExitInfo(null)
+        connectOnceRef.current = false
+        replayedBufferRef.current = null
+        terminalRef.current?.reset()
+    }, [close, disconnect, sessionId, terminalId])
+
     if (!session) {
         return (
             <div className="flex h-full items-center justify-center">
-                <LoadingState label="Loading session…" className="text-sm" />
+                <LoadingState label={t('loading.session')} className="text-sm" />
             </div>
         )
     }
 
     const errorMessage = terminalState.status === 'error' ? terminalState.error : null
+    const reconnectingMessage = terminalState.status === 'reconnecting' ? terminalState.reason : null
 
     return (
         <div className="flex h-full flex-col">
             {session.active ? null : (
                 <div className="px-3 pt-3">
                     <div className="mx-auto w-full max-w-content rounded-md bg-[var(--app-subtle-bg)] p-3 text-sm text-[var(--app-hint)]">
-                        Session is inactive. Terminal is unavailable.
+                        {t('terminal.sessionInactive')}
                     </div>
                 </div>
             )}
@@ -417,11 +514,21 @@ export default function TerminalPage() {
                 </div>
             ) : null}
 
+            {reconnectingMessage ? (
+                <div className="mx-auto w-full max-w-content px-3 pt-3">
+                    <div className="rounded-md border border-[var(--app-border)] bg-[var(--app-subtle-bg)] p-3 text-xs text-[var(--app-hint)]">
+                        {t('terminal.reconnecting')}
+                    </div>
+                </div>
+            ) : null}
+
             {exitInfo ? (
                 <div className="mx-auto w-full max-w-content px-3 pt-3">
                     <div className="rounded-md border border-[var(--app-border)] bg-[var(--app-subtle-bg)] p-3 text-xs text-[var(--app-hint)]">
-                        Terminal exited{exitInfo.code !== null ? ` with code ${exitInfo.code}` : ''}
-                        {exitInfo.signal ? ` (${exitInfo.signal})` : ''}.
+                        {t('terminal.exitStatus', {
+                            code: exitInfo.code !== null ? String(exitInfo.code) : '',
+                            suffix: exitInfo.signal ? ` (${exitInfo.signal})` : ''
+                        })}
                     </div>
                 </div>
             ) : null}
@@ -435,16 +542,26 @@ export default function TerminalPage() {
             <div className="border-t border-[var(--app-border)] bg-[var(--app-bg)] pb-[env(safe-area-inset-bottom)]">
                 <div className="mx-auto w-full max-w-content px-3">
                     <div className="flex flex-col gap-2 py-2">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                void handlePasteAction()
-                            }}
-                            disabled={quickInputDisabled}
-                            className="w-full rounded-md border border-[var(--app-border)] bg-[var(--app-secondary-bg)] px-3 py-2 text-sm font-medium text-[var(--app-fg)] transition-colors hover:bg-[var(--app-subtle-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-button)] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            {t('button.paste')}
-                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    void handlePasteAction()
+                                }}
+                                disabled={quickInputDisabled}
+                                className="w-full rounded-md border border-[var(--app-border)] bg-[var(--app-secondary-bg)] px-3 py-2 text-sm font-medium text-[var(--app-fg)] transition-colors hover:bg-[var(--app-subtle-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-button)] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {t('button.paste')}
+                            </button>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={handleResetTerminal}
+                                disabled={!session.active}
+                            >
+                                {t('terminal.action.reset')}
+                            </Button>
+                        </div>
                         {QUICK_INPUT_ROWS.map((row, rowIndex) => (
                             <div
                                 key={`terminal-quick-row-${rowIndex}`}

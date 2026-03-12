@@ -163,9 +163,150 @@ socket.on('session:create', async (data, callback) => {
 })
 ```
 
+
 ---
 
-## 数据库错误处理
+## Scenario: Terminal Socket Lifecycle Contract (detach / reattach / expire)
+
+### 1. Scope / Trigger
+
+- 触发条件：修改 terminal socket 生命周期，包括 Web 断开、重新进入 terminal 页、Hub idle timeout 清理、CLI 终端复用。
+- 为什么需要 code-spec 深度：
+  - 这是 Web socket / Hub registry / CLI terminal process 之间的跨层契约。
+  - 如果 disconnect、reattach、expire 行为未显式定义，就会导致重复 `terminal:open`、终端重置或“not found”闪断。
+
+### 2. Signatures
+
+- Hub terminal registry：
+
+```typescript
+register(terminalId: string, sessionId: string, socketId: string | null, cliSocketId: string): TerminalRegistryEntry | null
+rebindSocket(terminalId: string, socketId: string | null): TerminalRegistryEntry | null
+detachSocket(socketId: string): TerminalRegistryEntry[]
+removeByCliSocket(socketId: string): TerminalRegistryEntry[]
+```
+
+- Web -> Hub terminal events：
+
+```typescript
+socket.emit('terminal:create', {
+    sessionId: string,
+    terminalId: string,
+    cols: number,
+    rows: number,
+})
+
+socket.emit('terminal:write', {
+    terminalId: string,
+    data: string,
+})
+
+socket.emit('terminal:resize', {
+    terminalId: string,
+    cols: number,
+    rows: number,
+})
+```
+
+- Hub -> Web terminal events：
+
+```typescript
+socket.emit('terminal:ready', { terminalId: string })
+socket.emit('terminal:error', { terminalId: string, message: string })
+socket.emit('terminal:exit', { terminalId: string, code: number | null, signal: string | null })
+```
+
+- Hub -> CLI terminal events：
+
+```typescript
+cliSocket.emit('terminal:open', {
+    sessionId: string,
+    terminalId: string,
+    cols: number,
+    rows: number,
+})
+
+cliSocket.emit('terminal:close', {
+    sessionId: string,
+    terminalId: string,
+})
+```
+
+### 3. Contracts
+
+- disconnect 契约：
+  - Web terminal socket 断开时，Hub 必须调用 `terminalRegistry.detachSocket(socket.id)`。
+  - detach 的语义是把 entry 的 `socketId` 设为 `null`，保留 `terminalId/sessionId/cliSocketId`，等待后续 reattach。
+  - detach 不是删除；只有 idle timeout、显式 close、CLI socket 消失时才真正 remove。
+
+- reattach 契约：
+  - 当 `terminal:create` 带着已存在的 `terminalId` 再次到达，且 `sessionId` 相同，同时 registry 中该 entry 的 `socketId === null` 或等于当前 socket 时，Hub 必须 reattach。
+  - reattach 成功后，Hub 只向 Web 发 `terminal:ready`，不得再次向 CLI 发 `terminal:open`。
+
+- conflict 契约：
+  - 如果已存在的 `terminalId` 属于其他 session，必须返回 `terminal:error`，message 为 `Terminal ID is already in use by another session.`。
+  - 如果 `terminalId` 属于同 session，但仍被其他活跃 socket 绑定，必须返回 `terminal:error`，message 为 `Terminal ID is already in use by another socket.`。
+
+- expire 契约：
+  - entry 到达 idle timeout 后，Hub 应回调 `onIdle`，然后 remove 对应 terminal。
+  - 前端随后若再用旧 `terminalId` 重连，应收到 `Terminal not found.` 并走新建终端流程。
+
+### 4. Validation & Error Matrix
+
+- `terminal:create` payload schema 校验失败 -> 静默忽略，不抛异常。
+- session 不存在 / inactive / namespace 不匹配 -> `terminal:error('Session is inactive or unavailable.')`。
+- 没有可用 CLI socket -> `terminal:error('CLI is not connected for this session.')`。
+- 同 `terminalId` + 同 session + `socketId === null` -> reattach，发送 `terminal:ready`，不发送 `terminal:open`。
+- 同 `terminalId` + 同 session + `socketId === current socket.id` -> 允许幂等重入，发送 `terminal:ready`。
+- 同 `terminalId` + 不同 session -> `terminal:error('Terminal ID is already in use by another session.')`。
+- 同 `terminalId` + 同 session + 其他活跃 socket -> `terminal:error('Terminal ID is already in use by another socket.')`。
+- CLI socket 失效 -> remove entry；如需要告知 Web，则发送 `terminal:error('CLI disconnected.')`。
+
+### 5. Good / Base / Bad Cases
+
+- Good：
+  - Web 页离开导致 socket 断开，Hub 仅 detach；用户在 idle timeout 前返回时，Hub reattach 并回 `terminal:ready`，CLI 不收到第二次 `terminal:open`。
+- Base：
+  - 新 terminalId 首次创建时，Hub register 成功，并向 CLI 发送一次 `terminal:open`。
+- Bad：
+  - Web 只是短暂离开页面，Hub 却立即 remove entry；用户返回时只能收到 `Terminal not found.`，终端被无谓重置。
+
+### 6. Tests Required
+
+- Unit（registry）：
+  - 断言 `detachSocket(socketId)` 不会删除 entry，只会把 `socketId` 置空。
+  - 断言 idle timeout 到达后 entry 被 remove。
+- Handler tests：
+  - 断言同 socket / 同 session / 同 terminalId 幂等创建时，不会发送 duplicate-id error。
+  - 断言 stale socket detach 后，同 terminalId 重入只返回 `terminal:ready`，且 CLI 不再收到 `terminal:open`。
+  - 断言 session conflict / socket conflict 时返回正确错误 message。
+- Integration：
+  - 断言 Web reconnect before timeout 能恢复同一 terminalId。
+  - 断言 Web reconnect after timeout 会收到 not found 并由前端新建 terminal。
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+socket.on('disconnect', () => {
+    terminalRegistry.removeBySocket(socket.id)
+})
+```
+
+#### Correct
+
+```typescript
+socket.on('disconnect', () => {
+    terminalRegistry.detachSocket(socket.id)
+})
+
+if (existing && existing.sessionId === sessionId && existing.socketId === null) {
+    terminalRegistry.rebindSocket(terminalId, socket.id)
+    socket.emit('terminal:ready', { terminalId })
+    return
+}
+```
 
 ### 使用结果类型
 
