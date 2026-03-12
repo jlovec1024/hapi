@@ -1,9 +1,9 @@
-import { describe, expect, it, mock } from 'bun:test'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const warnMock = mock(() => {})
-const debugMock = mock(() => {})
+const warnMock = vi.fn()
+const debugMock = vi.fn()
 
-mock.module('@/ui/logger', () => ({
+vi.mock('@/ui/logger', () => ({
     logger: {
         warn: warnMock,
         debug: debugMock
@@ -11,45 +11,52 @@ mock.module('@/ui/logger', () => ({
 }))
 
 describe('TerminalManager', () => {
+    afterEach(() => {
+        warnMock.mockReset()
+        debugMock.mockReset()
+    })
+
     it('returns explicit unsupported error on Windows before spawning terminal', async () => {
         const originalPlatform = process.platform
-        const onError = mock(() => {})
-        const onReady = mock(() => {})
-        const onOutput = mock(() => {})
-        const onExit = mock(() => {})
+        const onError = vi.fn()
+        const onReady = vi.fn()
+        const onOutput = vi.fn()
+        const onExit = vi.fn()
 
         Object.defineProperty(process, 'platform', {
             value: 'win32',
             configurable: true
         })
 
-        const { TerminalManager } = await import('./TerminalManager')
+        try {
+            const { TerminalManager } = await import('./TerminalManager')
 
-        const manager = new TerminalManager({
-            sessionId: 'session-1',
-            getSessionPath: () => '/tmp/project',
-            onReady,
-            onOutput,
-            onExit,
-            onError
-        })
+            const manager = new TerminalManager({
+                sessionId: 'session-1',
+                getSessionPath: () => '/tmp/project',
+                onReady,
+                onOutput,
+                onExit,
+                onError
+            })
 
-        manager.create('terminal-1', 80, 24)
+            manager.create('terminal-1', 80, 24)
 
-        expect(onReady).not.toHaveBeenCalled()
-        expect(onOutput).not.toHaveBeenCalled()
-        expect(onExit).not.toHaveBeenCalled()
-        expect(onError).toHaveBeenCalledTimes(1)
-        expect(onError.mock.calls[0]?.[0]).toEqual({
-            sessionId: 'session-1',
-            terminalId: 'terminal-1',
-            message: 'Interactive terminal is not supported on Windows runners yet. Current implementation depends on Bun terminal support, which is unavailable on this platform.'
-        })
-        expect(warnMock).toHaveBeenCalledTimes(1)
-
-        Object.defineProperty(process, 'platform', {
-            value: originalPlatform,
-            configurable: true
-        })
+            expect(onReady).not.toHaveBeenCalled()
+            expect(onOutput).not.toHaveBeenCalled()
+            expect(onExit).not.toHaveBeenCalled()
+            expect(onError).toHaveBeenCalledTimes(1)
+            expect(onError).toHaveBeenCalledWith({
+                sessionId: 'session-1',
+                terminalId: 'terminal-1',
+                message: 'Interactive terminal is not supported on Windows runners yet. Current implementation depends on Bun terminal support, which is unavailable on this platform.'
+            })
+            expect(warnMock).toHaveBeenCalledTimes(1)
+        } finally {
+            Object.defineProperty(process, 'platform', {
+                value: originalPlatform,
+                configurable: true
+            })
+        }
     })
 })

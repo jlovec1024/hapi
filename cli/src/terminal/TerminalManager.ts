@@ -156,17 +156,6 @@ export class TerminalManager {
             return
         }
 
-        if (typeof Bun === 'undefined' || typeof Bun.spawn !== 'function') {
-            this.logTerminal({
-                stage: 'terminal.create',
-                outcome: 'error',
-                terminalId,
-                cause: 'bun_terminal_unavailable'
-            })
-            this.emitError(terminalId, 'Terminal is unavailable in this runtime.')
-            return
-        }
-
         const sessionPath = this.getSessionPath() ?? process.cwd()
         const shell = resolveShell()
         const decoder = new TextDecoder()
@@ -203,6 +192,17 @@ export class TerminalManager {
                 reason: terminalSupportIssue
             })
             this.emitError(terminalId, terminalSupportIssue)
+            return
+        }
+
+        if (typeof Bun === 'undefined' || typeof Bun.spawn !== 'function') {
+            this.logTerminal({
+                stage: 'terminal.create',
+                outcome: 'error',
+                terminalId,
+                cause: 'bun_terminal_unavailable'
+            })
+            this.emitError(terminalId, 'Terminal is unavailable in this runtime.')
             return
         }
 
