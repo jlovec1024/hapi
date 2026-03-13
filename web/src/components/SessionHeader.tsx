@@ -171,12 +171,8 @@ export function SessionHeader({
                     <div className="min-w-0 flex-1">
                         <div className="truncate font-semibold">{title}</div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[var(--app-hint)]">
-                            <span className="inline-flex items-center gap-1">
-                                <span aria-hidden="true">❖</span>
-                                {session.metadata?.flavor?.trim() || 'unknown'}
-                            </span>
                             <span>
-                                {t('session.item.modelMode')}: {session.modelMode || 'default'}
+                                {session.metadata?.flavor?.trim() || 'unknown'}
                             </span>
                             {worktreeBranch ? <span>{t('session.item.worktree')}: {worktreeBranch}</span> : null}
                             <HostBadge
