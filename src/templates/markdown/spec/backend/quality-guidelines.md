@@ -159,8 +159,10 @@ For Docker / runner images that execute Bun-based CLIs:
 - If a CLI subcommand can print messages like `already running` and then `process.exit(0)`, do not wire it directly as a long-running Compose service command.
 - For Compose services with `restart: unless-stopped`, verify that the main process is designed to stay in the foreground; otherwise a successful exit will become a restart loop.
 - Add an executable validation that checks not only `docker compose up`, but also that the service remains `Up` and reaches `healthy` after initial bootstrap.
-
----
+- For workflows that publish multi-architecture images (for example `linux/amd64,linux/arm64`), do not treat a successful local single-arch build as sufficient evidence; explicitly validate that the slowest target architecture can finish inside the CI builder / QEMU environment.
+- When an image has extra build-only stages (for example frontend `vite build`, static site packaging, or heavy asset compilation), treat that stage as an independent release-path risk instead of assuming another image in the same matrix proves the workflow is healthy.
+- If a multi-arch publish hangs on only one image while sibling matrix jobs finish, suspect that image's architecture-specific build path first rather than GHCR login or generic workflow wiring.
+- Add observability to long-running multi-arch steps (for example per-arch split builds, explicit progress output, or a pre-publish single-arch smoke result) so a job stuck at `Build and push` can be distinguished from one that is merely slow.
 
 ## Runner Availability Result Contracts
 

@@ -147,23 +147,13 @@ jobs:
         if: always()
         run: docker compose down -v
 
-  publish:
+  publish-runner:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     needs: compose-smoke
     permissions:
       contents: read
       packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: hub
-            dockerfile: Dockerfile.hub
-            image: ghcr.io/${{ github.repository_owner }}/zs-hub
-          - name: runner
-            dockerfile: Dockerfile.runner
-            image: ghcr.io/${{ github.repository_owner }}/zs-runner
 
     steps:
       - name: Checkout
@@ -196,19 +186,140 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ matrix.image }}
+          images: ghcr.io/${{ github.repository_owner }}/zs-runner
           tags: |
             type=sha,prefix=
             type=raw,value=main,enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=tag
 
-      - name: Build and push (${{ matrix.name }})
+      - name: Build and push runner
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
+          file: Dockerfile.runner
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  publish-hub-arch:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs: compose-smoke
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+          - arch: arm64
+            platform: linux/arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.10'
+
+      - name: Lockfile precheck (frozen)
+        run: |
+          bun install --frozen-lockfile
+          git diff --exit-code bun.lock
+
+      - name: Set up QEMU
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/zs-hub
+          tags: |
+            type=sha,prefix=
+            type=raw,value=main,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+
+      - name: Prepare arch tags
+        id: arch-tags
+        env:
+          BASE_TAGS: ${{ steps.meta.outputs.tags }}
+          ARCH_SUFFIX: ${{ matrix.arch }}
+        run: |
+          printf 'tags<<EOF\n' >> "$GITHUB_OUTPUT"
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            printf '%s\n' "${tag}-${ARCH_SUFFIX}" >> "$GITHUB_OUTPUT"
+          done <<< "$BASE_TAGS"
+          printf 'EOF\n' >> "$GITHUB_OUTPUT"
+
+      - name: Build and push hub (${{ matrix.platform }})
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.hub
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ${{ steps.arch-tags.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  publish-hub-manifest:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs: publish-hub-arch
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/zs-hub
+          tags: |
+            type=sha,prefix=
+            type=raw,value=main,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+
+      - name: Merge hub multi-arch manifest
+        env:
+          BASE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            docker buildx imagetools create \
+              --tag "$tag" \
+              "${tag}-amd64" \
+              "${tag}-arm64"
+            docker buildx imagetools inspect "$tag"
+          done <<< "$BASE_TAGS"

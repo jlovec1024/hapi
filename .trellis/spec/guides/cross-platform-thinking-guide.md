@@ -370,6 +370,43 @@ if (terminalSupportIssue) {
 - 错误日志必须同时带上 `platform`、`shell`、`capability/cause`
 - websocket 重连日志要做节流，避免同一错误每秒刷屏掩盖真正根因
 
+### 案例 4: 多架构 Docker 发布卡在单镜像
+
+**问题**: GitHub Actions 中 `publish (hub, Dockerfile.hub)` 长时间停留在 `Build and push`，而同一工作流里的 runner 镜像已经完成，导致 `zs-hub` 镜像长期未成功发布。
+
+**现象**:
+- PR 校验只验证 `linux/amd64`，可以快速通过。
+- `compose-smoke` 也只在本机候选镜像上做单架构冒烟。
+- 真正发布时才执行 `platforms: linux/amd64,linux/arm64` 的 buildx push。
+- `Dockerfile.hub` 比 `Dockerfile.runner` 多一个 `web-build` 阶段，会执行 `bun run build:web` / `vite build`。
+- workflow 运行中，runner 发布在约 9 分钟内完成，但 hub 发布 job 在 30+ 分钟后仍停在 `Build and push`。
+
+**根因**: 团队把“单架构本地构建成功”误当成“多架构发布没风险”。实际上 `Dockerfile.hub` 拥有额外的前端构建阶段，且该阶段只在真正的多架构发布路径上被完整放大；一旦某个目标架构（高概率是 `linux/arm64` + QEMU）特别慢或卡住，整个 matrix 项就会看起来像“GHCR 没推上去”。
+
+**错误思路**:
+```yaml
+# ❌ 只看最终 publish 步骤，缺少按架构可观测性
+- uses: docker/build-push-action@v6
+  with:
+    file: Dockerfile.hub
+    platforms: linux/amd64,linux/arm64
+    push: true
+```
+
+**正确思路**:
+```text
+# ✅ 把“单架构验证”与“多架构发布”视为不同契约
+1. 先确认哪个镜像、哪个架构慢
+2. 检查该镜像是否有额外构建阶段（如 vite build）
+3. 为多架构阶段增加可观测性，而不是只盯着 registry
+```
+
+**预防**:
+- 对多架构镜像单独评估最慢路径，不要只复用 `linux/amd64` 校验结论。
+- 当某个镜像拥有独有构建阶段时，把它当作独立风险项记录进 spec。
+- 为 publish job 增加“按架构拆分 / 进度输出 / 超时阈值”的可观测性，避免长时间 `in_progress` 无法定位。
+- 在发布前优先检查 `Dockerfile.*` 差异，而不是看到另一个镜像成功就默认 workflow 没问题。
+
 ## 何时使用这个指南
 
 ### 触发条件
