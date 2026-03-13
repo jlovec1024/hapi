@@ -6,6 +6,8 @@ import type {
     TerminalReadyPayload
 } from '@zs/protocol'
 import type { TerminalSession } from './types'
+import type * as BunPty from 'bun-pty'
+import path from 'path'
 
 type TerminalLogDetails = {
     stage: string
@@ -16,8 +18,9 @@ type TerminalLogDetails = {
 }
 
 type TerminalRuntime = TerminalSession & {
-    proc: Bun.Subprocess
-    terminal: Bun.Terminal
+    pty: BunPty.IPty
+    dataDisposable: BunPty.IDisposable
+    exitDisposable: BunPty.IDisposable
     idleTimer: ReturnType<typeof setTimeout> | null
 }
 
@@ -32,6 +35,18 @@ type TerminalManagerOptions = {
     maxTerminals?: number
 }
 
+type BunPtySpawn = (
+    file: string,
+    args: string[],
+    options: {
+        name: string
+        cols?: number
+        rows?: number
+        cwd?: string
+        env?: Record<string, string>
+    }
+) => BunPty.IPty
+
 const DEFAULT_IDLE_TIMEOUT_MS = 15 * 60_000
 const DEFAULT_MAX_TERMINALS = 4
 const SENSITIVE_ENV_KEYS = new Set([
@@ -44,6 +59,19 @@ const SENSITIVE_ENV_KEYS = new Set([
     'GOOGLE_API_KEY'
 ])
 
+let bunPtySpawn: BunPtySpawn | null = null
+
+if (typeof Bun !== 'undefined') {
+    try {
+        const bunPty = await import('bun-pty')
+        bunPtySpawn = bunPty.spawn as BunPtySpawn
+    } catch (error) {
+        logger.debug('[TERMINAL] Failed to load bun-pty module', {
+            error: error instanceof Error ? error.message : String(error)
+        })
+    }
+}
+
 function resolveEnvNumber(name: string, fallback: number): number {
     const raw = process.env[name]
     if (!raw) {
@@ -54,14 +82,11 @@ function resolveEnvNumber(name: string, fallback: number): number {
 }
 
 function resolveShell(): string {
-    // Prefer explicit shell from environment
     if (process.env.SHELL) {
         return process.env.SHELL
     }
 
-    // Platform-specific defaults
     if (process.platform === 'win32') {
-        // Windows: use COMSPEC or fall back to cmd.exe
         return process.env.COMSPEC || 'cmd.exe'
     }
 
@@ -69,30 +94,32 @@ function resolveShell(): string {
         return '/bin/zsh'
     }
 
-    // Default to bash on Unix-like systems
     return '/bin/bash'
 }
 
 function getTerminalSupportIssue(): string | null {
-    if (process.platform === 'win32') {
-        return 'Interactive terminal is not supported on Windows runners yet. Current implementation depends on Bun terminal support, which is unavailable on this platform.'
-    }
-
     return null
 }
 
-function buildFilteredEnv(): NodeJS.ProcessEnv {
-    const env: NodeJS.ProcessEnv = {}
+function buildFilteredEnv(): Record<string, string> {
+    const env: Record<string, string> = {}
     for (const [key, value] of Object.entries(process.env)) {
-        if (!value) {
-            continue
-        }
-        if (SENSITIVE_ENV_KEYS.has(key)) {
-            continue
-        }
+        if (!value) continue
+        if (SENSITIVE_ENV_KEYS.has(key)) continue
         env[key] = value
     }
     return env
+}
+
+function extractErrorCode(error: unknown): string | undefined {
+    if (typeof error !== 'object' || error === null) {
+        return undefined
+    }
+    if (!('code' in error)) {
+        return undefined
+    }
+    const code = (error as { code?: unknown }).code
+    return typeof code === 'string' ? code : undefined
 }
 
 export class TerminalManager {
@@ -105,7 +132,7 @@ export class TerminalManager {
     private readonly idleTimeoutMs: number
     private readonly maxTerminals: number
     private readonly terminals: Map<string, TerminalRuntime> = new Map()
-    private readonly filteredEnv: NodeJS.ProcessEnv
+    private readonly filteredEnv: Record<string, string>
 
     constructor(options: TerminalManagerOptions) {
         this.sessionId = options.sessionId
@@ -137,7 +164,7 @@ export class TerminalManager {
             })
             existing.cols = cols
             existing.rows = rows
-            existing.terminal.resize(cols, rows)
+            existing.pty.resize(cols, rows)
             this.markActivity(existing)
             this.onReady({ sessionId: this.sessionId, terminalId })
             return
@@ -157,8 +184,8 @@ export class TerminalManager {
         }
 
         const sessionPath = this.getSessionPath() ?? process.cwd()
+        const normalizedCwd = path.resolve(sessionPath)
         const shell = resolveShell()
-        const decoder = new TextDecoder()
         const terminalSupportIssue = getTerminalSupportIssue()
 
         this.logTerminal({
@@ -168,7 +195,7 @@ export class TerminalManager {
             cols,
             rows,
             shell,
-            sessionPath,
+            cwd: normalizedCwd,
             platform: process.platform,
             terminalSupportIssue
         })
@@ -176,157 +203,123 @@ export class TerminalManager {
         if (terminalSupportIssue) {
             logger.warn('[TERMINAL] Terminal unavailable on current platform', {
                 shell,
-                sessionPath,
+                cwd: normalizedCwd,
                 platform: process.platform,
-                terminalId,
-                reason: terminalSupportIssue
-            })
-            this.logTerminal({
-                stage: 'terminal.capability',
-                outcome: 'error',
-                terminalId,
-                cause: 'platform_terminal_unsupported',
-                shell,
-                sessionPath,
-                platform: process.platform,
-                reason: terminalSupportIssue
+                terminalSupportIssue
             })
             this.emitError(terminalId, terminalSupportIssue)
             return
         }
 
-        if (typeof Bun === 'undefined' || typeof Bun.spawn !== 'function') {
+        if (!bunPtySpawn) {
             this.logTerminal({
                 stage: 'terminal.create',
                 outcome: 'error',
                 terminalId,
-                cause: 'bun_terminal_unavailable'
+                cause: 'bun_pty_unavailable',
+                platform: process.platform
             })
             this.emitError(terminalId, 'Terminal is unavailable in this runtime.')
             return
         }
 
         try {
-            const proc = Bun.spawn([shell], {
-                cwd: sessionPath,
-                env: this.filteredEnv,
-                terminal: {
-                    cols,
-                    rows,
-                    data: (terminal, data) => {
-                        const text = decoder.decode(data, { stream: true })
-                        if (text) {
-                            this.onOutput({ sessionId: this.sessionId, terminalId, data: text })
-                        }
-                        const active = this.terminals.get(terminalId)
-                        if (active) {
-                            this.markActivity(active)
-                        }
-                    },
-                    exit: (terminal, exitCode) => {
-                        if (exitCode === 1) {
-                            this.logTerminal({
-                                stage: 'terminal.stream.exit',
-                                outcome: 'error',
-                                terminalId,
-                                cause: 'terminal_stream_closed_unexpectedly',
-                                exitCode
-                            })
-                            this.emitError(terminalId, 'Terminal stream closed unexpectedly.')
-                        }
-                    }
-                },
-                onExit: (subprocess, exitCode) => {
-                    const signal = subprocess.signalCode ?? null
-                    this.logTerminal({
-                        stage: 'terminal.process.exit',
-                        outcome: 'error',
-                        terminalId,
-                        cause: 'terminal_process_exit',
-                        code: exitCode ?? null,
-                        signal
-                    })
-                    this.onExit({
-                        sessionId: this.sessionId,
-                        terminalId,
-                        code: exitCode ?? null,
-                        signal
-                    })
-                    this.cleanup(terminalId)
+            const pty = bunPtySpawn(shell, [], {
+                name: 'xterm-256color',
+                cols,
+                rows,
+                cwd: normalizedCwd,
+                env: this.filteredEnv
+            })
+
+            const dataDisposable = pty.onData((data: string) => {
+                this.onOutput({
+                    sessionId: this.sessionId,
+                    terminalId,
+                    data
+                })
+                const active = this.terminals.get(terminalId)
+                if (active) {
+                    this.markActivity(active)
                 }
             })
 
-            const terminal = proc.terminal
-            if (!terminal) {
-                try {
-                    proc.kill()
-                } catch (error) {
-                    logger.debug('[TERMINAL] Failed to kill process after missing terminal', { error })
-                }
-                logger.warn('[TERMINAL] Failed to attach terminal', {
-                    shell,
-                    sessionPath,
-                    platform: process.platform,
-                    terminalId
-                })
+            const exitDisposable = pty.onExit(({ exitCode, signal }: { exitCode: number; signal?: string | number | null }) => {
+                const normalizedSignal = typeof signal === 'string' ? signal : null
                 this.logTerminal({
-                    stage: 'terminal.attach',
-                    outcome: 'error',
+                    stage: 'terminal.process.exit',
+                    outcome: 'success',
                     terminalId,
-                    cause: 'terminal_attach_missing',
-                    shell,
-                    sessionPath,
-                    platform: process.platform
+                    cause: 'terminal_process_exit',
+                    code: exitCode ?? null,
+                    signal: normalizedSignal,
+                    rawSignal: signal ?? null
                 })
-                this.emitError(terminalId, `Failed to attach terminal. Shell: ${shell}`)
-                return
-            }
+                this.onExit({
+                    sessionId: this.sessionId,
+                    terminalId,
+                    code: exitCode ?? null,
+                    signal: normalizedSignal
+                })
+                this.cleanup(terminalId)
+            })
 
             const runtime: TerminalRuntime = {
                 terminalId,
                 cols,
                 rows,
-                proc,
-                terminal,
+                pty,
+                dataDisposable,
+                exitDisposable,
                 idleTimer: null
             }
 
             this.terminals.set(terminalId, runtime)
             this.markActivity(runtime)
+
             this.logTerminal({
                 stage: 'terminal.create',
                 outcome: 'success',
                 terminalId,
-                cols,
-                rows,
+                pid: pty.pid,
                 shell,
-                sessionPath,
-                pid: proc.pid
+                cwd: normalizedCwd,
+                platform: process.platform
             })
+
             this.onReady({ sessionId: this.sessionId, terminalId })
-        } catch (error) {
-            logger.warn('[TERMINAL] Failed to spawn terminal', {
-                shell,
-                sessionPath,
-                platform: process.platform,
-                terminalSupported: terminalSupportIssue === null,
-                error
-            })
+        } catch (error: unknown) {
+            const errorCode = extractErrorCode(error)
+            if (errorCode === 'EPERM' || errorCode === 'EACCES') {
+                const suggestion = process.platform === 'win32'
+                    ? 'Try running with administrator privileges or check antivirus settings'
+                    : 'Check file permissions or try running with sudo'
+
+                logger.warn('[TERMINAL] Terminal creation failed due to permission issue', {
+                    platform: process.platform,
+                    shell,
+                    cwd: normalizedCwd,
+                    errorCode,
+                    suggestion
+                })
+                this.emitError(terminalId, `Permission denied: ${suggestion}`)
+            } else {
+                logger.warn('[TERMINAL] Terminal creation failed', {
+                    platform: process.platform,
+                    shell,
+                    cwd: normalizedCwd,
+                    error: error instanceof Error ? error.message : String(error)
+                })
+                this.emitError(terminalId, 'Failed to create terminal')
+            }
+
             this.logTerminal({
-                stage: 'terminal.spawn',
+                stage: 'terminal.create',
                 outcome: 'error',
                 terminalId,
                 cause: 'terminal_spawn_failed',
-                shell,
-                sessionPath,
-                platform: process.platform,
-                terminalSupported: terminalSupportIssue === null,
                 error: error instanceof Error ? error.message : String(error)
             })
-            this.emitError(
-                terminalId,
-                `Failed to spawn terminal using shell: ${shell}. Platform: ${process.platform}. Error: ${error instanceof Error ? error.message : String(error)}`
-            )
         }
     }
 
@@ -339,10 +332,17 @@ export class TerminalManager {
                 terminalId,
                 cause: 'terminal_not_found'
             })
-            this.emitError(terminalId, 'Terminal not found.')
             return
         }
-        runtime.terminal.write(data)
+
+        this.logTerminal({
+            stage: 'terminal.write',
+            outcome: 'success',
+            terminalId,
+            dataLength: data.length
+        })
+
+        runtime.pty.write(data)
         this.markActivity(runtime)
     }
 
@@ -353,63 +353,72 @@ export class TerminalManager {
                 stage: 'terminal.resize',
                 outcome: 'error',
                 terminalId,
-                cause: 'terminal_not_found',
-                cols,
-                rows
+                cause: 'terminal_not_found'
             })
             return
         }
+
+        this.logTerminal({
+            stage: 'terminal.resize',
+            outcome: 'success',
+            terminalId,
+            cols,
+            rows
+        })
+
         runtime.cols = cols
         runtime.rows = rows
-        runtime.terminal.resize(cols, rows)
+        runtime.pty.resize(cols, rows)
         this.markActivity(runtime)
     }
 
     close(terminalId: string): void {
+        const runtime = this.terminals.get(terminalId)
+        if (!runtime) {
+            this.logTerminal({
+                stage: 'terminal.close',
+                outcome: 'error',
+                terminalId,
+                cause: 'terminal_not_found'
+            })
+            return
+        }
+
         this.logTerminal({
             stage: 'terminal.close',
             outcome: 'success',
             terminalId
         })
+
         this.cleanup(terminalId)
     }
 
     closeAll(): void {
-        this.logTerminal({
-            stage: 'terminal.close_all',
-            outcome: 'success',
-            terminalId: 'all',
-            openTerminalCount: this.terminals.size
-        })
         for (const terminalId of this.terminals.keys()) {
-            this.cleanup(terminalId)
+            this.close(terminalId)
         }
     }
 
     private markActivity(runtime: TerminalRuntime): void {
-        this.scheduleIdleTimer(runtime)
-    }
-
-    private scheduleIdleTimer(runtime: TerminalRuntime): void {
-        if (this.idleTimeoutMs <= 0) {
-            return
-        }
-
-        if (runtime.idleTimer) {
-            clearTimeout(runtime.idleTimer)
-        }
-
+        this.clearIdleTimer(runtime)
         runtime.idleTimer = setTimeout(() => {
             this.logTerminal({
-                stage: 'terminal.idle_timeout',
+                stage: 'terminal.idle',
                 outcome: 'error',
                 terminalId: runtime.terminalId,
-                cause: 'terminal_inactive_timeout',
+                cause: 'terminal_idle_timeout',
                 idleTimeoutMs: this.idleTimeoutMs
             })
             this.emitError(runtime.terminalId, 'Terminal closed due to inactivity.')
             this.cleanup(runtime.terminalId)
         }, this.idleTimeoutMs)
+    }
+
+    private clearIdleTimer(runtime: TerminalRuntime): void {
+        if (runtime.idleTimer) {
+            clearTimeout(runtime.idleTimer)
+            runtime.idleTimer = null
+        }
     }
 
     private cleanup(terminalId: string): void {
@@ -419,22 +428,25 @@ export class TerminalManager {
         }
 
         this.terminals.delete(terminalId)
-        if (runtime.idleTimer) {
-            clearTimeout(runtime.idleTimer)
-        }
 
-        if (!runtime.proc.killed && runtime.proc.exitCode === null) {
-            try {
-                runtime.proc.kill()
-            } catch (error) {
-                logger.debug('[TERMINAL] Failed to kill process', { error })
-            }
+        this.clearIdleTimer(runtime)
+
+        try {
+            runtime.dataDisposable.dispose()
+        } catch (error) {
+            logger.debug('[TERMINAL] Failed to dispose data listener', { error })
         }
 
         try {
-            runtime.terminal.close()
+            runtime.exitDisposable.dispose()
         } catch (error) {
-            logger.debug('[TERMINAL] Failed to close terminal', { error })
+            logger.debug('[TERMINAL] Failed to dispose exit listener', { error })
+        }
+
+        try {
+            runtime.pty.kill()
+        } catch (error) {
+            logger.debug('[TERMINAL] Failed to kill PTY process', { error })
         }
     }
 

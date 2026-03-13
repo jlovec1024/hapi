@@ -16,47 +16,33 @@ describe('TerminalManager', () => {
         debugMock.mockReset()
     })
 
-    it('returns explicit unsupported error on Windows before spawning terminal', async () => {
-        const originalPlatform = process.platform
+    it('returns runtime unavailable error when bun-pty is not loaded in test runtime', async () => {
         const onError = vi.fn()
         const onReady = vi.fn()
         const onOutput = vi.fn()
         const onExit = vi.fn()
 
-        Object.defineProperty(process, 'platform', {
-            value: 'win32',
-            configurable: true
+        const { TerminalManager } = await import('./TerminalManager')
+
+        const manager = new TerminalManager({
+            sessionId: 'session-1',
+            getSessionPath: () => '/tmp/project',
+            onReady,
+            onOutput,
+            onExit,
+            onError
         })
 
-        try {
-            const { TerminalManager } = await import('./TerminalManager')
+        manager.create('terminal-1', 80, 24)
 
-            const manager = new TerminalManager({
-                sessionId: 'session-1',
-                getSessionPath: () => '/tmp/project',
-                onReady,
-                onOutput,
-                onExit,
-                onError
-            })
-
-            manager.create('terminal-1', 80, 24)
-
-            expect(onReady).not.toHaveBeenCalled()
-            expect(onOutput).not.toHaveBeenCalled()
-            expect(onExit).not.toHaveBeenCalled()
-            expect(onError).toHaveBeenCalledTimes(1)
-            expect(onError).toHaveBeenCalledWith({
-                sessionId: 'session-1',
-                terminalId: 'terminal-1',
-                message: 'Interactive terminal is not supported on Windows runners yet. Current implementation depends on Bun terminal support, which is unavailable on this platform.'
-            })
-            expect(warnMock).toHaveBeenCalledTimes(1)
-        } finally {
-            Object.defineProperty(process, 'platform', {
-                value: originalPlatform,
-                configurable: true
-            })
-        }
+        expect(onReady).not.toHaveBeenCalled()
+        expect(onOutput).not.toHaveBeenCalled()
+        expect(onExit).not.toHaveBeenCalled()
+        expect(onError).toHaveBeenCalledTimes(1)
+        expect(onError).toHaveBeenCalledWith({
+            sessionId: 'session-1',
+            terminalId: 'terminal-1',
+            message: 'Terminal is unavailable in this runtime.'
+        })
     })
 })
