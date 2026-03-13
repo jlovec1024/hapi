@@ -419,6 +419,85 @@ const preventRowSelectHandlers = {
 
 ---
 
+## 移动端事件处理
+
+### 触摸事件透传陷阱
+
+**问题**：移动端浏览器在 `touchend` 后会合成 `click` 事件，如果不阻止默认行为，合成的 click 会冒泡到下层元素。
+
+**症状**：
+- 点击列表项进入详情页后，立即又跳转到详情页的某个 tab
+- 点击按钮后，下层的另一个按钮也被触发
+- 用户感觉"点了一次，触发了两个操作"
+
+**根因**：
+```typescript
+// ❌ 错误：只对长按阻止默认行为
+const onTouchEnd = (e) => {
+  if (isLongPress) {
+    e.preventDefault()  // 只在长按时阻止
+  }
+  handleClick()  // 普通点击时，浏览器会合成 click 事件
+}
+```
+
+**事件序列**（移动端）：
+```
+用户点击元素 A
+  ↓
+1. touchstart → 启动计时器
+  ↓
+2. touchend → 触发 onClick，导航到页面 B
+  ↓
+3. 浏览器合成 click 事件（300ms 延迟或立即）
+  ↓
+4. 合成的 click 冒泡到页面 B 的元素 C
+  ↓
+5. 元素 C 的 onClick 触发，执行意外操作
+```
+
+**修复**：
+```typescript
+// ✅ 正确：对所有 touchend 都阻止默认行为
+const onTouchEnd = (e) => {
+  e.preventDefault()  // 阻止合成 click 事件
+  if (isLongPress) {
+    handleLongPress()
+  } else {
+    handleClick()
+  }
+}
+```
+
+### 移动端事件处理检查清单
+
+当组件涉及触摸交互时：
+
+- [ ] 是否在 `onTouchEnd` 中调用了 `e.preventDefault()`？
+- [ ] 是否同时处理了 `onTouchStart`、`onTouchEnd`、`onTouchMove`？
+- [ ] 是否考虑了触摸事件与鼠标事件的共存？
+- [ ] 是否测试了移动端的点击透传场景？
+- [ ] 如果使用了自定义 touch hook，是否阻止了浏览器合成 click？
+
+### 常见场景
+
+**场景 1：列表项点击 + 内嵌按钮**
+- 列表项使用 touch 事件处理导航
+- 内嵌按钮需要阻止事件冒泡
+- 必须在 capture 阶段设置 flag + 在 touchend 中 preventDefault
+
+**场景 2：长按菜单 + 普通点击**
+- 长按打开菜单，普通点击执行操作
+- 必须在 touchend 中 preventDefault，否则会触发两次
+- 必须区分 touchmove（滚动）和静止触摸
+
+**场景 3：可拖拽元素**
+- 拖拽时不应触发点击
+- 必须在 touchmove 中设置 flag
+- 必须在 touchend 中根据 flag 决定是否执行点击
+
+---
+
 ## 本地子组件
 
 对于只在单个文件内使用的子组件，应定义在同文件内，并位于主导出组件之前：
@@ -456,3 +535,5 @@ export function HappyThread(props: HappyThreadProps) {
 - ❌ 使用相对导入而不是 `@/` 别名
 - ❌ 直接修改 props
 - ❌ 在 props 定义中使用 `any`
+- ❌ 移动端 `onTouchEnd` 不调用 `e.preventDefault()`，导致合成 click 透传
+

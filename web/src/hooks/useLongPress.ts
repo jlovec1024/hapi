@@ -78,9 +78,8 @@ export function useLongPress(options: UseLongPressOptions): UseLongPressHandlers
     }, [startTimer])
 
     const onTouchEnd = useCallback<React.TouchEventHandler>((e) => {
-        if (isLongPressRef.current) {
-            e.preventDefault()
-        }
+        // 始终阻止默认行为，防止浏览器合成 click 事件透传到下层元素
+        e.preventDefault()
         handleEnd(!isLongPressRef.current)
     }, [handleEnd])
 

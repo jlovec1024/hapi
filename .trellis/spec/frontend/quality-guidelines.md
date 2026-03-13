@@ -223,6 +223,24 @@ bun run test
 - 简单工具函数
 - 类型定义
 
+### 移动端测试要求
+
+**必须测试的场景**：
+- 触摸事件不会透传到下层元素
+- 列表项点击 + 内嵌按钮的事件隔离
+- 长按菜单 + 普通点击的区分
+- 导航后不会意外触发目标页面的按钮
+
+**测试方法**：
+```typescript
+// 模拟触摸事件序列
+fireEvent.touchStart(element, { touches: [{ clientX: 0, clientY: 0 }] })
+fireEvent.touchEnd(element)
+
+// 验证不会触发意外的 click
+expect(unexpectedHandler).not.toHaveBeenCalled()
+```
+
 ### 测试结构
 
 ```typescript
