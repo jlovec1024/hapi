@@ -370,7 +370,62 @@ if (terminalSupportIssue) {
 - 错误日志必须同时带上 `platform`、`shell`、`capability/cause`
 - websocket 重连日志要做节流，避免同一错误每秒刷屏掩盖真正根因
 
-### 案例 4: 多架构 Docker 发布卡在单镜像
+### 案例 5: Docker 环境可执行文件路径硬编码
+
+**问题**: Docker 容器启动后 Claude Code 会话失败，报错 `Process exited unexpectedly`
+
+**现象**:
+- 日志显示 `[Claude SDK] Using ZS_CLAUDE_PATH: /usr/local/bin/claude`
+- spawn 调用失败，但错误信息不明确
+- 用户无法判断是配置问题还是安装问题
+
+**根因**:
+- `Dockerfile.runner` 中硬编码了 `ENV ZS_CLAUDE_PATH=/usr/local/bin/claude`
+- 代码优先读取该环境变量，绕过了 PATH 查找
+- 一旦路径失效或镜像变更，直接失败
+- 违反"开箱即用"原则，把路径配置暴露给用户
+
+**错误设计**:
+```dockerfile
+# ❌ 硬编码可执行文件路径
+ENV ZS_CLAUDE_PATH=/usr/local/bin/claude
+```
+
+```yaml
+# ❌ 允许用户覆盖路径配置
+environment:
+  ZS_CLAUDE_PATH: /usr/local/bin/claude
+```
+
+**正确设计**:
+```dockerfile
+# ✅ 不设置路径环境变量，依赖 PATH
+# 确保安装时已正确链接到 PATH
+RUN npm install -g @anthropic-ai/claude-code \
+    && ln -sf "$(command -v claude)" /usr/local/bin/claude
+```
+
+```bash
+# ✅ 容器启动时预检
+if ! command -v claude >/dev/null 2>&1; then
+    echo "[entrypoint] ERROR: claude command not found in PATH" >&2
+    echo "[entrypoint] Please ensure Claude Code is installed in the container" >&2
+    exit 1
+fi
+```
+
+**预防原则**:
+- **不在仓库内显性定义可执行文件路径**
+- **不让用户配置可执行文件路径**（除非高级调试场景）
+- **只保证：安装成功 + 在 PATH 可执行**
+- **启动时预检 + 清晰错误提示**
+
+**文档更新**:
+- 移除 compose 示例中的路径配置说明
+- 强调"claude 已预安装，无需配置路径"
+- `ZS_CLAUDE_PATH` 标记为"高级用户选项"
+
+---
 
 **问题**: GitHub Actions 中 `publish (hub, Dockerfile.hub)` 长时间停留在 `Build and push`，而同一工作流里的 runner 镜像已经完成，导致 `zs-hub` 镜像长期未成功发布。
 

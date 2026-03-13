@@ -23,6 +23,13 @@ if ! command -v goenv >/dev/null 2>&1; then
     exit 1
 fi
 
+# Preflight check: Verify claude is available
+if ! command -v claude >/dev/null 2>&1; then
+    echo "[entrypoint] ERROR: claude command not found in PATH" >&2
+    echo "[entrypoint] Please ensure Claude Code is installed in the container" >&2
+    exit 1
+fi
+
 if [ -n "${ZS_NODE_VERSION}" ]; then
     if ! nvm ls "${ZS_NODE_VERSION}" >/dev/null 2>&1; then
         echo "[entrypoint] Node.js ${ZS_NODE_VERSION} not installed, installing with nvm..." >&2

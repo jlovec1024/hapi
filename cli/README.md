@@ -81,7 +81,7 @@
 
 - `ZS_HOME` - 配置/数据目录（默认：`~/.zhushen`）。
 - `ZS_EXPERIMENTAL` - 启用实验功能（`true/1/yes`）。
-- `ZS_CLAUDE_PATH` - 指定 `claude` 可执行文件路径。
+- `ZS_CLAUDE_PATH` - 指定 `claude` 可执行文件路径（高级用户，通常不需要设置）。
 - `ZS_HTTP_MCP_URL` - `zs mcp` 的默认 MCP 目标。
 
 ### Runner

@@ -403,7 +403,25 @@ export function query(config: {
         if (config.options?.abort?.aborted) {
             query.setError(new AbortError('Claude Code process aborted by user'))
         } else {
-            query.setError(new Error(`Failed to spawn Claude Code process: ${error.message}`))
+            // Enhanced error diagnostics
+            const diagnostic = [
+                `Failed to spawn Claude Code process: ${error.message}`,
+                `Command: ${spawnCommand}`,
+                `Source: ${process.env.ZS_CLAUDE_PATH ? 'ZS_CLAUDE_PATH' : 'PATH lookup'}`,
+                `Platform: ${process.platform}`,
+                `CWD: ${cwd || process.cwd()}`,
+            ]
+
+            if (error.message.includes('ENOENT')) {
+                diagnostic.push(
+                    `\nSuggestion: Verify claude is installed and accessible.`,
+                    process.env.ZS_CLAUDE_PATH
+                        ? `Check ZS_CLAUDE_PATH: ${process.env.ZS_CLAUDE_PATH}`
+                        : `Run: npm install -g @anthropic-ai/claude-code`
+                )
+            }
+
+            query.setError(new Error(diagnostic.join('\n')))
         }
     })
 

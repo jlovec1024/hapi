@@ -157,11 +157,15 @@ zs runner logs
 
 ### 找不到 Claude Code
 
-安装 Claude Code 或设置自定义路径：
+安装 Claude Code：
 
 ```bash
 npm install -g @anthropic-ai/claude-code
-# 或
+```
+
+如果 `claude` 未在 PATH 中，可设置自定义路径（高级用户）：
+
+```bash
 export ZS_CLAUDE_PATH=/path/to/claude
 ```
 

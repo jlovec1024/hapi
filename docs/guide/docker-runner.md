@@ -75,9 +75,8 @@ docker run --rm -it \
 
 说明：
 
-- compose demo 中不再暴露 `ZS_CLAUDE_PATH`，避免误改导致运行异常；
 - runner 镜像默认 `ZS_HOME=/data`，compose 中不再配置 `ZS_HOME`；
-- `claude` 在镜像构建时已预安装；
+- `claude` 在镜像构建时已预安装到 PATH，无需配置路径；
 - `zcf` 默认配置改为容器启动时首次初始化（当 `/root/.claude` 为空时触发），首次启动会比后续启动更慢一些；
 - `ZCF_API_KEY` 与 `ZCF_API_URL` 必须保持语义一致：前者是 token，后者是 URL；入口脚本会对明显写反的值发出告警并自动纠正。
 

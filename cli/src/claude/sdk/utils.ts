@@ -3,7 +3,7 @@
  * Provides helper functions for path resolution and logging
  */
 
-import { existsSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import { homedir } from 'node:os'
 import { logger } from '@/ui/logger'
@@ -102,14 +102,49 @@ function findGlobalClaudePath(): string | null {
 export function getDefaultClaudeCodePath(): string {
     // Allow explicit override via env var
     if (process.env.ZS_CLAUDE_PATH) {
-        logger.debug(`[Claude SDK] Using ZS_CLAUDE_PATH: ${process.env.ZS_CLAUDE_PATH}`)
-        return process.env.ZS_CLAUDE_PATH
+        const customPath = process.env.ZS_CLAUDE_PATH
+        logger.debug(`[Claude SDK] Using ZS_CLAUDE_PATH: ${customPath}`)
+
+        // Validate path exists
+        if (!existsSync(customPath)) {
+            throw new Error(
+                `ZS_CLAUDE_PATH points to non-existent file: ${customPath}\n` +
+                `Please check the path or unset ZS_CLAUDE_PATH to use PATH lookup.`
+            )
+        }
+
+        // Validate executable permission (Unix-like systems)
+        if (process.platform !== 'win32') {
+            try {
+                const stats = statSync(customPath)
+                if (!(stats.mode & 0o111)) {
+                    throw new Error(
+                        `ZS_CLAUDE_PATH points to non-executable file: ${customPath}\n` +
+                        `Run: chmod +x ${customPath}`
+                    )
+                }
+            } catch (error) {
+                if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+                    throw new Error(
+                        `ZS_CLAUDE_PATH points to non-existent file: ${customPath}\n` +
+                        `Please check the path or unset ZS_CLAUDE_PATH to use PATH lookup.`
+                    )
+                }
+                throw error
+            }
+        }
+
+        return customPath
     }
 
     // Find global claude
     const globalPath = findGlobalClaudePath()
     if (!globalPath) {
-        throw new Error('Claude Code CLI not found on PATH. Install Claude Code or set ZS_CLAUDE_PATH.')
+        throw new Error(
+            'Claude Code CLI not found on PATH.\n' +
+            'Install: npm install -g @anthropic-ai/claude-code\n' +
+            'Or set ZS_CLAUDE_PATH to specify a custom path.'
+        )
     }
     return globalPath
 }
