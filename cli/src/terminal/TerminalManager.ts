@@ -6,8 +6,11 @@ import type {
     TerminalReadyPayload
 } from '@zs/protocol'
 import type { TerminalSession } from './types'
-import type * as BunPty from 'bun-pty'
 import path from 'path'
+
+// Static import for bun-pty (required for bun build --compile to work)
+// Dynamic import() does not work in compiled executables
+import * as BunPty from 'bun-pty'
 
 type TerminalLogDetails = {
     stage: string
@@ -59,18 +62,7 @@ const SENSITIVE_ENV_KEYS = new Set([
     'GOOGLE_API_KEY'
 ])
 
-let bunPtySpawn: BunPtySpawn | null = null
-
-if (typeof Bun !== 'undefined') {
-    try {
-        const bunPty = await import('bun-pty')
-        bunPtySpawn = bunPty.spawn as BunPtySpawn
-    } catch (error) {
-        logger.debug('[TERMINAL] Failed to load bun-pty module', {
-            error: error instanceof Error ? error.message : String(error)
-        })
-    }
-}
+const bunPtySpawn: BunPtySpawn | null = BunPty.spawn ?? null
 
 function resolveEnvNumber(name: string, fallback: number): number {
     const raw = process.env[name]
