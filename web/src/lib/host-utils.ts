@@ -1,6 +1,7 @@
 export type HostDisplayNameParams = {
     displayName?: string
     host?: string
+    platform?: string
     machineId?: string
     sessionId?: string
 }
@@ -10,20 +11,37 @@ function normalize(value?: string): string | null {
     return trimmed ? trimmed : null
 }
 
+export function getShortMachineId(machineId?: string): string | null {
+    const normalized = normalize(machineId)
+    return normalized ? normalized.slice(0, 8) : null
+}
+
 export function getHostDisplayName(params: HostDisplayNameParams): string | null {
     const displayName = normalize(params.displayName)
-    if (displayName) return displayName
-
     const host = normalize(params.host)
-    if (host) return host
+    const base = displayName ?? host
 
-    const machineId = normalize(params.machineId)
-    if (machineId) return machineId.slice(0, 8)
+    const platform = normalize(params.platform)
+    const shortMachineId = getShortMachineId(params.machineId)
+
+    if (base && platform && shortMachineId) return `${base}(${platform}:${shortMachineId})`
+    if (base && platform) return `${base}(${platform})`
+    if (base && shortMachineId) return `${base}(${shortMachineId})`
+    if (base) return base
+
+    if (shortMachineId) return shortMachineId
 
     const sessionId = normalize(params.sessionId)
     if (sessionId) return sessionId.slice(0, 8)
 
     return null
+}
+
+export function getHostColorKey(params: HostDisplayNameParams): string | null {
+    return normalize(params.host)
+        ?? normalize(params.displayName)
+        ?? normalize(params.machineId)
+        ?? normalize(params.sessionId)
 }
 
 function stableHash(str: string): number {

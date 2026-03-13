@@ -173,12 +173,12 @@ export function SessionHeader({
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[var(--app-hint)]">
                             <HostBadge
                                 host={session.metadata?.host}
+                                platform={session.metadata?.os}
                                 machineId={session.metadata?.machineId}
                                 sessionId={session.id}
-                                showBoth={true}
                             />
                             <span>
-                                {session.metadata?.flavor?.trim() || 'unknown'}
+                                {session.metadata?.flavor?.trim() || t('misc.unknown')}
                             </span>
                             {worktreeBranch ? <span>{t('session.item.worktree')}: {worktreeBranch}</span> : null}
                         </div>

@@ -1,24 +1,22 @@
 import { cn } from '@/lib/utils'
-import { getHostColorStyle, getHostDisplayName } from '@/lib/host-utils'
+import { getHostColorKey, getHostColorStyle, getHostDisplayName } from '@/lib/host-utils'
 import { useTranslation } from '@/lib/use-translation'
 
 type HostBadgeProps = {
     displayName?: string
     host?: string
+    platform?: string
     machineId?: string
     sessionId?: string
     className?: string
-    showBoth?: boolean
 }
 
-export function HostBadge({ displayName, host, machineId, sessionId, className, showBoth = false }: HostBadgeProps) {
+export function HostBadge({ displayName, host, platform, machineId, sessionId, className }: HostBadgeProps) {
     const { t } = useTranslation()
 
-    const shortMachineId = machineId?.slice(0, 8)
-    const label = showBoth && host && shortMachineId
-        ? `${host}(${shortMachineId})`
-        : getHostDisplayName({ displayName, host, machineId, sessionId })
-    const colorStyle = label ? getHostColorStyle(label) : null
+    const label = getHostDisplayName({ displayName, host, platform, machineId, sessionId })
+    const colorKey = getHostColorKey({ displayName, host, platform, machineId, sessionId })
+    const colorStyle = colorKey ? getHostColorStyle(colorKey) : null
 
     if (!label || !colorStyle) return null
 

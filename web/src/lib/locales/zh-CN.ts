@@ -126,6 +126,8 @@ export default {
   'spawn.useAsIs': '直接使用选定的目录',
   'spawn.createWorktree': '在仓库旁创建新工作树',
   'spawn.worktreePlaceholder': 'feature-x (默认 1228-xxxx)',
+  'spawn.error': '创建会话失败',
+  'spawn.runnerLastError': 'Runner 最近一次创建错误',
   'spawn.cancel': '取消',
   'spawn.create': '创建会话',
   'spawn.creating': '创建中…',
@@ -312,4 +314,5 @@ export default {
   'misc.permissionRequired': '需要权限',
   'misc.percentLeft': '剩余 {percent}%',
   'misc.online': '在线',
+  'misc.unknown': '未知',
 } as const

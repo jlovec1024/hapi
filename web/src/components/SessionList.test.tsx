@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { SessionList } from './SessionList'
 import type { SessionSummary } from '@/types/api'
 
-const hostBadgeMock = vi.fn((_props?: { host?: string; machineId?: string; showBoth?: boolean }) => null)
+const hostBadgeMock = vi.fn((_props?: { host?: string; platform?: string; machineId?: string }) => null)
 
 vi.mock('@/hooks/usePlatform', () => ({
     usePlatform: () => ({
@@ -25,7 +25,7 @@ vi.mock('@/hooks/mutations/useSessionActions', () => ({
 }))
 
 vi.mock('@/components/HostBadge', () => ({
-    HostBadge: (props: { host?: string; machineId?: string; showBoth?: boolean }) => hostBadgeMock(props)
+    HostBadge: (props: { host?: string; platform?: string; machineId?: string }) => hostBadgeMock(props)
 }))
 
 vi.mock('@/components/SessionActionMenu', () => ({
@@ -69,7 +69,7 @@ function createSession(partial: Partial<SessionSummary> & { id: string }): Sessi
         pendingRequestsCount: partial.pendingRequestsCount ?? 0,
         updatedAt: partial.updatedAt ?? Date.now(),
         modelMode: partial.modelMode ?? 'default',
-        metadata: partial.metadata ?? { path: '/tmp/project-a', flavor: 'claude', host: undefined, machineId: undefined },
+        metadata: partial.metadata ?? { path: '/tmp/project-a', flavor: 'claude', host: undefined, os: undefined, machineId: undefined },
         todoProgress: partial.todoProgress ?? null,
         ...partial
     } as SessionSummary
@@ -184,7 +184,7 @@ describe('SessionList action touch behavior', () => {
         hostBadgeMock.mockClear()
 
         const sessions: SessionSummary[] = [
-            createSession({ id: 'sess-1', metadata: { path: '/home/user/project', flavor: 'claude', machineId: 'machine1', host: 'laptop' } as SessionSummary['metadata'] })
+            createSession({ id: 'sess-1', metadata: { path: '/home/user/project', flavor: 'claude', machineId: 'machine1', host: 'laptop', os: 'linux' } as SessionSummary['metadata'] })
         ]
 
         render(
@@ -202,8 +202,8 @@ describe('SessionList action touch behavior', () => {
         expect(hostBadgeMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 host: 'laptop',
-                machineId: 'machine1',
-                showBoth: true
+                platform: 'linux',
+                machineId: 'machine1'
             })
         )
     })

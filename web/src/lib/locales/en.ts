@@ -124,6 +124,8 @@ export default {
   'spawn.useAsIs': 'Use selected directory as-is',
   'spawn.createWorktree': 'Create a new worktree next to repo',
   'spawn.worktreePlaceholder': 'feature-x (default 1228-xxxx)',
+  'spawn.error': 'Failed to spawn session',
+  'spawn.runnerLastError': 'Runner last spawn error',
   'spawn.cancel': 'Cancel',
   'spawn.create': 'Create Session',
   'spawn.creating': 'Creating…',
@@ -310,4 +312,5 @@ export default {
   'misc.permissionRequired': 'permission required',
   'misc.percentLeft': '{percent}% left',
   'misc.online': 'online',
+  'misc.unknown': 'unknown',
 } as const

@@ -1,20 +1,30 @@
 import type { Machine } from '@/types/api'
+import { HostBadge } from '@/components/HostBadge'
+import { getHostDisplayName } from '@/lib/host-utils'
 import { useTranslation } from '@/lib/use-translation'
 
 function getMachineTitle(machine: Machine): string {
-    if (machine.metadata?.displayName) return machine.metadata.displayName
-    if (machine.metadata?.host) return machine.metadata.host
-    return machine.id.slice(0, 8)
+    return getHostDisplayName({
+        displayName: machine.metadata?.displayName,
+        host: machine.metadata?.host,
+        platform: machine.metadata?.platform,
+        machineId: machine.id,
+    }) ?? machine.id.slice(0, 8)
 }
 
-export function MachineSelector(props: {
+type MachineSelectorProps = {
     machines: Machine[]
     machineId: string | null
     isLoading?: boolean
     isDisabled: boolean
     onChange: (machineId: string) => void
-}) {
+}
+
+export function MachineSelector(props: MachineSelectorProps) {
     const { t } = useTranslation()
+    const selectedMachine = props.machineId
+        ? props.machines.find((machine) => machine.id === props.machineId) ?? null
+        : null
 
     return (
         <div className="flex flex-col gap-1.5 px-3 py-3">
@@ -36,10 +46,18 @@ export function MachineSelector(props: {
                 {props.machines.map((m) => (
                     <option key={m.id} value={m.id}>
                         {getMachineTitle(m)}
-                        {m.metadata?.platform ? ` (${m.metadata.platform})` : ''}
                     </option>
                 ))}
             </select>
+            {selectedMachine ? (
+                <HostBadge
+                    displayName={selectedMachine.metadata?.displayName}
+                    host={selectedMachine.metadata?.host}
+                    platform={selectedMachine.metadata?.platform}
+                    machineId={selectedMachine.id}
+                    className="self-start"
+                />
+            ) : null}
         </div>
     )
 }

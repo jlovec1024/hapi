@@ -234,7 +234,7 @@ function SessionItem(props: {
 
     const sessionName = getSessionTitle(s)
     const statusDotClass = s.active
-        ? (s.thinking ? 'bg-[#007AFF]' : 'bg-[var(--app-badge-success-text)]')
+        ? (s.thinking ? 'bg-[var(--app-link)]' : 'bg-[var(--app-badge-success-text)]')
         : 'bg-[var(--app-hint)]'
     return (
         <>
@@ -458,8 +458,8 @@ export function SessionList(props: {
                                 <div className="flex items-center gap-2 min-w-0 flex-1">
                                     <HostBadge
                                         host={group.host}
+                                        platform={group.sessions[0]?.metadata?.os}
                                         machineId={group.machineId}
-                                        showBoth={true}
                                     />
                                     <span className="font-medium text-base break-words" title={group.directory}>
                                         / {group.displayName}

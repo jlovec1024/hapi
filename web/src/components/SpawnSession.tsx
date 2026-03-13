@@ -3,6 +3,7 @@ import type { ApiClient } from '@/api/client'
 import type { Machine } from '@/types/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { HostBadge } from '@/components/HostBadge'
 import { usePlatform } from '@/hooks/usePlatform'
 import { useSpawnSession } from '@/hooks/mutations/useSpawnSession'
 import { formatRunnerSpawnError } from '@/utils/formatRunnerSpawnError'
@@ -10,20 +11,15 @@ import { useTranslation } from '@/lib/use-translation'
 
 type SessionType = 'simple' | 'worktree'
 
-function getMachineTitle(machine: Machine | null): string {
-    if (!machine) return 'Machine'
-    if (machine.metadata?.displayName) return machine.metadata.displayName
-    if (machine.metadata?.host) return machine.metadata.host
-    return machine.id.slice(0, 8)
-}
-
-export function SpawnSession(props: {
+type SpawnSessionProps = {
     api: ApiClient
     machineId: string
     machine: Machine | null
     onSuccess: (sessionId: string) => void
     onCancel: () => void
-}) {
+}
+
+export function SpawnSession(props: SpawnSessionProps) {
     const { haptic } = usePlatform()
     const { t } = useTranslation()
     const [directory, setDirectory] = useState('')
@@ -32,7 +28,6 @@ export function SpawnSession(props: {
     const [error, setError] = useState<string | null>(null)
     const { spawnSession, isPending, error: spawnError } = useSpawnSession(props.api)
 
-    const machineTitle = useMemo(() => getMachineTitle(props.machine), [props.machine])
     const runnerSpawnError = useMemo(
         () => formatRunnerSpawnError(props.machine),
         [props.machine?.runnerState?.lastSpawnError]
@@ -59,7 +54,7 @@ export function SpawnSession(props: {
             setError(result.message)
         } catch (e) {
             haptic.notification('error')
-            setError(e instanceof Error ? e.message : 'Failed to spawn session')
+            setError(e instanceof Error ? e.message : t('spawn.error'))
         }
     }
 
@@ -69,14 +64,23 @@ export function SpawnSession(props: {
                 <CardHeader className="pb-2">
                     <CardTitle>{t('spawn.title')}</CardTitle>
                     <CardDescription className="truncate">
-                        {machineTitle}
+                        {props.machine ? (
+                            <HostBadge
+                                displayName={props.machine.metadata?.displayName}
+                                host={props.machine.metadata?.host}
+                                platform={props.machine.metadata?.platform}
+                                machineId={props.machine.id}
+                            />
+                        ) : (
+                            t('misc.machine')
+                        )}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0">
                     <div className="flex flex-col gap-3">
                         <input
                             type="text"
-                            placeholder="/path/to/project"
+                            placeholder={t('newSession.placeholder')}
                             value={directory}
                             onChange={(e) => setDirectory(e.target.value)}
                             className="w-full rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] p-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--app-link)]"
@@ -84,7 +88,7 @@ export function SpawnSession(props: {
 
                         <div className="flex flex-col gap-2">
                             <label className="text-xs font-medium text-[var(--app-hint)]">
-                                Session type
+                                {t('spawn.sessionType')}
                             </label>
                             <div className="flex flex-col gap-3 text-sm">
                                 {(['simple', 'worktree'] as const).map((type) => (
@@ -106,7 +110,7 @@ export function SpawnSession(props: {
                                                         {sessionType === 'worktree' ? (
                                                             <input
                                                                 type="text"
-                                                                placeholder="feature-x (default 1228-xxxx)"
+                                                                placeholder={t('spawn.worktreePlaceholder')}
                                                                 value={worktreeName}
                                                                 onChange={(e) => setWorktreeName(e.target.value)}
                                                                 disabled={isPending}
@@ -117,12 +121,12 @@ export function SpawnSession(props: {
                                                                 htmlFor="session-type-worktree"
                                                                 className="capitalize cursor-pointer"
                                                             >
-                                                                Worktree
+                                                                {t('newSession.type.worktree')}
                                                             </label>
                                                         )}
                                                     </div>
                                                     <span className={`block text-xs text-[var(--app-hint)] ${sessionType === 'worktree' ? 'invisible' : ''}`}>
-                                                        Create a new worktree next to the repo
+                                                        {t('spawn.createWorktree')}
                                                     </span>
                                                 </div>
                                             </div>
@@ -138,9 +142,9 @@ export function SpawnSession(props: {
                                                     disabled={isPending}
                                                     className="accent-[var(--app-link)]"
                                                 />
-                                                <span className="capitalize">Simple</span>
+                                                <span className="capitalize">{t('newSession.type.simple')}</span>
                                                 <span className="text-xs text-[var(--app-hint)]">
-                                                    Use the selected directory as-is
+                                                    {t('spawn.useAsIs')}
                                                 </span>
                                             </label>
                                         )}
@@ -151,7 +155,7 @@ export function SpawnSession(props: {
 
                         {runnerSpawnError ? (
                             <div className="text-xs text-red-600">
-                                Runner last spawn error: {runnerSpawnError}
+                                {t('spawn.runnerLastError')}: {runnerSpawnError}
                             </div>
                         ) : null}
 

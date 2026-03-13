@@ -5,6 +5,7 @@ export type SessionSummaryMetadata = {
     name?: string
     path: string
     host?: string
+    os?: string
     machineId?: string
     summary?: { text: string }
     flavor?: string | null
@@ -30,6 +31,7 @@ export function toSessionSummary(session: Session): SessionSummary {
         name: session.metadata.name,
         path: session.metadata.path,
         host: session.metadata.host || undefined,
+        os: session.metadata.os || undefined,
         machineId: session.metadata.machineId ?? undefined,
         summary: session.metadata.summary ? { text: session.metadata.summary.text } : undefined,
         flavor: session.metadata.flavor ?? null,
