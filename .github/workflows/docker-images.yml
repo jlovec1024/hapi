@@ -106,7 +106,7 @@ jobs:
 
       - name: Create smoke env
         run: |
-          cat > .env.smoke <<EOF
+          cat > .env <<EOF
           CLI_API_TOKEN=smoke-test-token
           ZS_API_URL=http://zs-hub:3006
           CLAUDE_CONFIG_DIR=/tmp/.claude-smoke
@@ -117,7 +117,7 @@ jobs:
 
       - name: Compose smoke test
         run: |
-          docker compose --env-file .env.smoke up -d zs-hub zs-runner
+          docker compose up -d zs-hub zs-runner
           sleep 5
           docker compose ps
           docker compose logs zs-hub zs-runner
