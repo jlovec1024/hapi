@@ -3,6 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { SessionList } from './SessionList'
 import type { SessionSummary } from '@/types/api'
 
+const hostBadgeMock = vi.fn((_props?: { host?: string; machineId?: string; showBoth?: boolean }) => null)
+
 vi.mock('@/hooks/usePlatform', () => ({
     usePlatform: () => ({
         isTouch: true,
@@ -23,7 +25,7 @@ vi.mock('@/hooks/mutations/useSessionActions', () => ({
 }))
 
 vi.mock('@/components/HostBadge', () => ({
-    HostBadge: () => null
+    HostBadge: (props: { host?: string; machineId?: string; showBoth?: boolean }) => hostBadgeMock(props)
 }))
 
 vi.mock('@/components/SessionActionMenu', () => ({
@@ -67,7 +69,7 @@ function createSession(partial: Partial<SessionSummary> & { id: string }): Sessi
         pendingRequestsCount: partial.pendingRequestsCount ?? 0,
         updatedAt: partial.updatedAt ?? Date.now(),
         modelMode: partial.modelMode ?? 'default',
-        metadata: partial.metadata ?? { path: '/tmp/project-a', flavor: 'claude', host: null, machineId: null },
+        metadata: partial.metadata ?? { path: '/tmp/project-a', flavor: 'claude', host: undefined, machineId: undefined },
         todoProgress: partial.todoProgress ?? null,
         ...partial
     } as SessionSummary
@@ -78,8 +80,8 @@ describe('SessionList action touch behavior', () => {
         const onSelect = vi.fn()
 
         const sessions: SessionSummary[] = [
-            createSession({ id: 'active-1', active: true, metadata: { path: '/tmp/project-a', flavor: 'claude' } as SessionSummary['metadata'] }),
-            createSession({ id: 'inactive-1', active: false, metadata: { path: '/tmp/project-a', flavor: 'claude' } as SessionSummary['metadata'] })
+            createSession({ id: 'active-1', active: true, metadata: { path: '/tmp/project-a', flavor: 'claude', machineId: 'machine1' } as SessionSummary['metadata'] }),
+            createSession({ id: 'inactive-1', active: false, metadata: { path: '/tmp/project-a', flavor: 'claude', machineId: 'machine1' } as SessionSummary['metadata'] })
         ]
 
         render(
@@ -110,7 +112,7 @@ describe('SessionList action touch behavior', () => {
         const onSelect = vi.fn()
 
         const sessions: SessionSummary[] = [
-            createSession({ id: 'active-2', active: true, metadata: { path: '/tmp/project-b', flavor: 'claude' } as SessionSummary['metadata'] })
+            createSession({ id: 'active-2', active: true, metadata: { path: '/tmp/project-b', flavor: 'claude', machineId: 'machine2' } as SessionSummary['metadata'] })
         ]
 
         const { container } = render(
@@ -132,5 +134,77 @@ describe('SessionList action touch behavior', () => {
         fireEvent.touchEnd(row as Element)
 
         expect(onSelect).toHaveBeenCalledWith('active-2')
+    })
+
+    it('groups sessions by machineId and path', () => {
+        const sessions: SessionSummary[] = [
+            createSession({ id: 'sess-1', active: true, metadata: { path: '/home/user/project', flavor: 'claude', machineId: 'machine1', host: 'laptop' } as SessionSummary['metadata'] }),
+            createSession({ id: 'sess-2', active: false, metadata: { path: '/home/user/project', flavor: 'claude', machineId: 'machine1', host: 'laptop' } as SessionSummary['metadata'] }),
+            createSession({ id: 'sess-3', active: true, metadata: { path: '/home/user/project', flavor: 'claude', machineId: 'machine2', host: 'server' } as SessionSummary['metadata'] })
+        ]
+
+        const { container } = render(
+            <SessionList
+                sessions={sessions}
+                onSelect={vi.fn()}
+                onNewSession={vi.fn()}
+                onRefresh={vi.fn()}
+                isLoading={false}
+                api={null}
+                selectedSessionId={null}
+            />
+        )
+
+        const groupButtons = container.querySelectorAll('button[class*="sticky"]')
+        expect(groupButtons.length).toBe(2)
+    })
+
+    it('separates groups by host when machineId is missing', () => {
+        const sessions: SessionSummary[] = [
+            createSession({ id: 'sess-4', active: true, metadata: { path: '/home/user/project', flavor: 'claude', machineId: undefined, host: 'laptop' } as SessionSummary['metadata'] }),
+            createSession({ id: 'sess-5', active: true, metadata: { path: '/home/user/project', flavor: 'claude', machineId: undefined, host: 'server' } as SessionSummary['metadata'] })
+        ]
+
+        const { container } = render(
+            <SessionList
+                sessions={sessions}
+                onSelect={vi.fn()}
+                onNewSession={vi.fn()}
+                onRefresh={vi.fn()}
+                isLoading={false}
+                api={null}
+                selectedSessionId={null}
+            />
+        )
+
+        const groupButtons = container.querySelectorAll('button[class*="sticky"]')
+        expect(groupButtons.length).toBe(2)
+    })
+    it('renders group HostBadge with showBoth enabled', () => {
+        hostBadgeMock.mockClear()
+
+        const sessions: SessionSummary[] = [
+            createSession({ id: 'sess-1', metadata: { path: '/home/user/project', flavor: 'claude', machineId: 'machine1', host: 'laptop' } as SessionSummary['metadata'] })
+        ]
+
+        render(
+            <SessionList
+                sessions={sessions}
+                onSelect={vi.fn()}
+                onNewSession={vi.fn()}
+                onRefresh={vi.fn()}
+                isLoading={false}
+                api={null}
+                selectedSessionId={null}
+            />
+        )
+
+        expect(hostBadgeMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                host: 'laptop',
+                machineId: 'machine1',
+                showBoth: true
+            })
+        )
     })
 })

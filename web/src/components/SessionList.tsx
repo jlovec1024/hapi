@@ -13,19 +13,21 @@ import { getSessionTitle } from '@/lib/sessionTitle'
 import { useTranslation } from '@/lib/use-translation'
 
 type SessionGroup = {
+    groupKey: string
     directory: string
     displayName: string
     sessions: SessionSummary[]
     latestUpdatedAt: number
     hasActiveSession: boolean
+    machineId?: string
+    host?: string
 }
 
 function getGroupDisplayName(directory: string): string {
     if (directory === 'Other') return directory
     const parts = directory.split(/[\\/]+/).filter(Boolean)
     if (parts.length === 0) return directory
-    if (parts.length === 1) return parts[0]
-    return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`
+    return parts[parts.length - 1]
 }
 
 function groupSessionsByDirectory(sessions: SessionSummary[]): SessionGroup[] {
@@ -33,14 +35,20 @@ function groupSessionsByDirectory(sessions: SessionSummary[]): SessionGroup[] {
 
     sessions.forEach(session => {
         const path = session.metadata?.worktree?.basePath ?? session.metadata?.path ?? 'Other'
-        if (!groups.has(path)) {
-            groups.set(path, [])
+        const machineKey = session.metadata?.machineId?.trim()
+            || session.metadata?.host?.trim()
+            || 'unknown'
+        const groupKey = `${machineKey}:${path}`
+        if (!groups.has(groupKey)) {
+            groups.set(groupKey, [])
         }
-        groups.get(path)!.push(session)
+        groups.get(groupKey)!.push(session)
     })
 
     return Array.from(groups.entries())
-        .map(([directory, groupSessions]) => {
+        .map(([groupKey, groupSessions]) => {
+            const first = groupSessions[0]
+            const directory = first?.metadata?.worktree?.basePath ?? first?.metadata?.path ?? 'Other'
             const sortedSessions = [...groupSessions].sort((a, b) => {
                 const rankA = a.active ? (a.pendingRequestsCount > 0 ? 0 : 1) : 2
                 const rankB = b.active ? (b.pendingRequestsCount > 0 ? 0 : 1) : 2
@@ -53,8 +61,19 @@ function groupSessionsByDirectory(sessions: SessionSummary[]): SessionGroup[] {
             )
             const hasActiveSession = groupSessions.some(s => s.active)
             const displayName = getGroupDisplayName(directory)
+            const machineId = first?.metadata?.machineId?.trim() || undefined
+            const host = first?.metadata?.host?.trim() || undefined
 
-            return { directory, displayName, sessions: sortedSessions, latestUpdatedAt, hasActiveSession }
+            return {
+                groupKey,
+                directory,
+                displayName,
+                sessions: sortedSessions,
+                latestUpdatedAt,
+                hasActiveSession,
+                machineId,
+                host
+            }
         })
         .sort((a, b) => {
             if (a.hasActiveSession !== b.hasActiveSession) {
@@ -312,11 +331,6 @@ function SessionItem(props: {
                     {s.metadata?.worktree?.branch ? (
                         <span>{t('session.item.worktree')}: {s.metadata.worktree.branch}</span>
                     ) : null}
-                    <HostBadge
-                        host={s.metadata?.host}
-                        machineId={s.metadata?.machineId}
-                        sessionId={s.id}
-                    />
                 </div>
             </div>
 
@@ -385,15 +399,15 @@ export function SessionList(props: {
         () => new Map()
     )
     const isGroupCollapsed = (group: SessionGroup): boolean => {
-        const override = collapseOverrides.get(group.directory)
+        const override = collapseOverrides.get(group.groupKey)
         if (override !== undefined) return override
         return !group.hasActiveSession
     }
 
-    const toggleGroup = (directory: string, isCollapsed: boolean) => {
+    const toggleGroup = (group: SessionGroup, isCollapsed: boolean) => {
         setCollapseOverrides(prev => {
             const next = new Map(prev)
-            next.set(directory, !isCollapsed)
+            next.set(group.groupKey, !isCollapsed)
             return next
         })
     }
@@ -402,11 +416,11 @@ export function SessionList(props: {
         setCollapseOverrides(prev => {
             if (prev.size === 0) return prev
             const next = new Map(prev)
-            const knownGroups = new Set(groups.map(group => group.directory))
+            const knownGroups = new Set(groups.map(group => group.groupKey))
             let changed = false
-            for (const directory of next.keys()) {
-                if (!knownGroups.has(directory)) {
-                    next.delete(directory)
+            for (const groupKey of next.keys()) {
+                if (!knownGroups.has(groupKey)) {
+                    next.delete(groupKey)
                     changed = true
                 }
             }
@@ -436,10 +450,10 @@ export function SessionList(props: {
                 {groups.map((group) => {
                     const isCollapsed = isGroupCollapsed(group)
                     return (
-                        <div key={group.directory}>
+                        <div key={group.groupKey}>
                             <button
                                 type="button"
-                                onClick={() => toggleGroup(group.directory, isCollapsed)}
+                                onClick={() => toggleGroup(group, isCollapsed)}
                                 className="sticky top-0 z-10 flex w-full items-center gap-2 px-3 py-2 text-left bg-[var(--app-bg)] border-b border-[var(--app-divider)] transition-colors hover:bg-[var(--app-secondary-bg)]"
                             >
                                 <ChevronIcon
@@ -447,8 +461,13 @@ export function SessionList(props: {
                                     collapsed={isCollapsed}
                                 />
                                 <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <HostBadge
+                                        host={group.host}
+                                        machineId={group.machineId}
+                                        showBoth={true}
+                                    />
                                     <span className="font-medium text-base break-words" title={group.directory}>
-                                        {group.displayName}
+                                        / {group.displayName}
                                     </span>
                                     <span className="shrink-0 text-xs text-[var(--app-hint)]">
                                         ({group.sessions.length})

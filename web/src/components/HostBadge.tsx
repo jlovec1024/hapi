@@ -8,12 +8,16 @@ type HostBadgeProps = {
     machineId?: string
     sessionId?: string
     className?: string
+    showBoth?: boolean
 }
 
-export function HostBadge({ displayName, host, machineId, sessionId, className }: HostBadgeProps) {
+export function HostBadge({ displayName, host, machineId, sessionId, className, showBoth = false }: HostBadgeProps) {
     const { t } = useTranslation()
 
-    const label = getHostDisplayName({ displayName, host, machineId, sessionId })
+    const shortMachineId = machineId?.slice(0, 8)
+    const label = showBoth && host && shortMachineId
+        ? `${host}(${shortMachineId})`
+        : getHostDisplayName({ displayName, host, machineId, sessionId })
     const colorStyle = label ? getHostColorStyle(label) : null
 
     if (!label || !colorStyle) return null
