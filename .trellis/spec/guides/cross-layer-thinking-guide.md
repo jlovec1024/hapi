@@ -197,6 +197,81 @@ Source → Transform → Store → Retrieve → Transform → Display
 - [ ] 身份切换时，是否会在推导 fallback UI 之前先重置旧身份缓存？
 - [ ] fallback 逻辑是否能防止前一个实体的错误 / 状态泄漏到当前实体？
 - [ ] loading / error 三态是否在作用域重置后再判断？
+
+---
+
+## WebSocket 跨层契约检查清单（Frontend ↔ Hub ↔ CLI）
+
+当实现或修改 WebSocket 连接功能时，必须检查以下跨层契约：
+
+### 前端层（Web）
+
+- [ ] **组件生命周期与 Socket 同步**：组件 unmount 时是否调用 `disconnect()`？
+- [ ] **清理所有监听器**：`disconnect()` 是否调用了 `socket.removeAllListeners()`？
+- [ ] **区分 terminal 进程复用与 socket 复用**：允许复用 registry 里的 `terminalId` / terminal 进程，但页面离开后不得保留旧页面 socket。
+- [ ] **重连协议与页面生命周期一致**：同一组件实例内可复用现有 socket；跨页面重新挂载必须依赖 cleanup 先断开旧 socket，再由新页面创建新 socket。
+- [ ] **等待连接建立**：是否在 `socket.on('connect')` 回调中发送初始化消息（如 `terminal:create`），而不是立即发送？
+- [ ] **错误日志上下文**：错误日志是否包含 `sessionId`、`terminalId`、`socketId`、`cause` 等关键信息？
+
+### 服务端层（Hub）
+
+- [ ] **disconnect 自动 detach**：socket 断开时，Hub 是否自动 `detachSocket(socket.id)`？
+- [ ] **允许 detached terminal reattach**：当 registry 中 terminal 的 `socketId === null` 时，新的 socket 是否可以用同一个 `terminalId` 重绑？
+- [ ] **拒绝活跃 socket 冲突**：当 terminal 仍绑定在另一个活跃 socket 上时，是否返回明确冲突错误，而不是静默抢占？
+- [ ] **幂等性保证**：重复的 `terminal:create` 请求是否能正确处理（返回已存在的终端或拒绝）？
+
+### 跨层状态同步
+
+- [ ] **页面生命周期优先于连接优化**：不要为了“返回页面更快恢复”而保留旧页面 socket。
+- [ ] **前端不假设服务端状态**：前端不应假设 socket 在服务端仍然有效，每次操作前应检查连接状态
+- [ ] **服务端不假设前端清理**：服务端应在 socket 断开时自动 detach，不依赖前端主动调用 `terminal:close`
+- [ ] **重连协议明确**：重连时的握手流程是否明确（页面 mount → connect → `terminal:create` → Hub attach/reattach → `terminal:ready`）？
+- [ ] **状态机一致性**：前端和服务端对连接状态的理解是否一致（idle/connecting/connected/reconnecting/error）？
+
+### 常见陷阱
+
+**陷阱 1：把“恢复终端”误解成“保留旧 socket”**
+- **症状**：`socket_not_connected`、`Terminal ID is already in use by another socket.`
+- **根因**：前端为了支持恢复 terminal，页面离开时没有断开旧 socket；回来后新页面又创建新 socket，两个 socket 竞争同一个 `terminalId`。
+- **解决**：页面 unmount 时必须 `disconnect()`；恢复的是 Hub registry 里的 terminal 进程，不是旧页面 socket。
+
+**陷阱 2：组件 unmount 时未清理**
+- **症状**：内存泄漏、事件监听器累积、页面切换后仍收到旧数据
+- **根因**：未在 useEffect cleanup 中调用 `disconnect()`
+- **解决**：添加 cleanup effect
+
+**陷阱 3：立即发送消息**
+- **症状**：`socket_not_connected`、消息丢失
+- **根因**：在 `socket.connect()` 后立即 `socket.emit()`，但连接尚未建立
+- **解决**：在 `socket.on('connect')` 回调中发送
+
+### 调试检查清单
+
+当遇到 WebSocket 连接问题时：
+
+1. **检查前端日志**：
+   - 是否有 `socket_not_connected` 错误？
+   - 是否有 `socket_already_connected` 警告？
+   - `connect()` 和 `disconnect()` 的调用顺序是否正确？
+
+2. **检查服务端日志**：
+   - 是否有 `detachSocket` 操作？
+   - 是否有 `Terminal ID is already in use by another socket.` 错误？
+   - `rebindSocket` 是否成功？
+
+3. **检查页面 cleanup**：
+   - 终端页面 unmount 时 cleanup 是否真的执行？
+   - cleanup 是否调用了 `disconnect()`，而不是只保留 `terminalId`？
+
+4. **检查重连对象**：
+   - 当前是在同一组件实例内复用 socket，还是跨页面重新 mount？
+   - 是否错误地把“terminal 可恢复”实现成了“旧 socket 不断开”？
+
+参考实现：
+- `web/src/hooks/useTerminalSocket.ts` - 前端 Socket 管理
+- `web/src/routes/sessions/terminal.tsx` - 页面生命周期 cleanup
+- `hub/src/socket/handlers/terminal.ts` - 服务端 Socket 处理
+- `hub/src/socket/terminalRegistry.ts` - 服务端状态管理
 - [ ] 是否有集成测试覆盖“创建新实体 -> 初次加载 -> 不泄漏旧缓存”？
 
 典型失败模式：

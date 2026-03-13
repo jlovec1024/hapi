@@ -375,15 +375,14 @@ export function TerminalPage() {
         disconnect()
     }, [sessionId, disconnect])
 
-    // Cleanup on component unmount only (not on dependency changes)
-    // Empty deps array is intentional - we want this to run only on mount/unmount
+    // Cleanup on component unmount.
+    // We disconnect the web socket here so Hub can detach the terminal from the old socket.
+    // The terminal process itself remains alive in the registry and can be reattached
+    // when the user navigates back to this page within the idle timeout window.
     useEffect(() => {
         return () => {
             inputDisposableRef.current?.dispose()
-            // Note: We intentionally do NOT disconnect here.
-            // The socket should remain connected when navigating within the same session.
-            // Disconnection only happens when sessionId changes (see useEffect above).
-            // This allows the terminal to reattach when the user returns to this page.
+            disconnectRef.current()
         }
     }, [])
 

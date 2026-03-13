@@ -246,6 +246,15 @@ describe('TerminalPage paste behavior', () => {
         expect(terminalResetSpy).not.toHaveBeenCalled()
     })
 
+    it('disconnects socket on unmount so terminal can reattach on next mount', () => {
+        const view = renderWithProviders()
+
+        disconnectMock.mockClear()
+        view.unmount()
+
+        expect(disconnectMock).toHaveBeenCalledTimes(1)
+    })
+
     it('closes previous terminal when terminal not found triggers recreation', () => {
         renderWithProviders()
         closeMock.mockClear()

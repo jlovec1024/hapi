@@ -459,3 +459,144 @@ useEffect(() => {
 - API 调用使用 TanStack Query（缓存、重试、错误处理）
 - 消息窗口使用模块级 store（跨组件、实时、乐观更新）
 - 没有 prop drilling，也避免了不必要的重渲染
+
+---
+
+## Socket 连接生命周期管理
+
+### 问题背景
+
+WebSocket 连接是有状态的长连接，在 React 组件的生命周期中需要特别注意：
+
+1. **页面切换**：用户从终端页面切换到其他页面再切回来时，组件会重新挂载
+2. **浏览器休眠**：浏览器标签页进入后台时，连接可能被挂起
+3. **网络波动**：连接断开后需要重连
+4. **服务端状态**：服务端可能已经 detach 了连接，但前端不知道
+
+### 核心原则
+
+**Socket 连接必须与组件生命周期严格同步**：
+
+```typescript
+// ❌ 错误：把“terminal 可恢复”误解成“旧页面 socket 也要保留”
+function TerminalPage() {
+    useEffect(() => {
+        return () => {
+            // 不 disconnect，导致旧 socket 继续占用 terminalId
+        }
+    }, [])
+}
+
+// ✅ 正确：页面离开时断开旧 socket，恢复的是 terminalId 对应的后端终端
+function TerminalPage() {
+    useEffect(() => {
+        return () => {
+            disconnectRef.current()
+        }
+    }, [])
+}
+```
+
+补充约束：
+- **terminalId 可以跨页面复用，但 socket 不可以跨页面生命周期泄漏。**
+- 同一组件实例内，`useTerminalSocket` 可以复用当前 `socketRef.current`；一旦页面 unmount，必须 `disconnect()`，让 Hub 执行 detach。
+- “返回页面恢复终端” 的含义是：Hub registry 中的 terminal 进程仍存活，新的页面 socket 用同一个 `terminalId` 重新 attach。
+
+
+### 常见陷阱
+
+#### 1. 把 terminal 恢复误做成 socket 保活
+
+**问题**：Hub 允许 detached terminal 通过同一个 `terminalId` 重新 attach，但前端如果把这个契约误解成“页面离开时不要断开 socket”，就会让旧 socket 在页面销毁后继续占用 terminal。
+
+**症状**：
+- `socket_not_connected` 错误
+- `Terminal ID is already in use by another socket.` 错误
+- 点击“终端” -> 切走页面 -> 再回来时大量报错
+
+**解决方案**：
+- 页面 unmount 时始终 `disconnect()`。
+- 保留的是 `terminalId` 与输出 buffer，不是旧 socket 实例。
+- 新页面重新 mount 后，由新 socket 在 `connect` 成功后再次发送 `terminal:create`，让 Hub 执行 reattach。
+
+#### 2. 组件 Unmount 时未清理
+
+**问题**：组件 unmount 时如果不清理 socket，会导致内存泄漏和事件监听器累积。
+
+**解决方案**：
+```typescript
+useEffect(() => {
+    return () => {
+        const socket = socketRef.current
+        if (socket) {
+            socket.removeAllListeners()
+            socket.disconnect()
+            socketRef.current = null
+        }
+    }
+}, [])
+```
+
+#### 3. 竞态条件：快速切换页面
+
+**问题**：用户快速切换页面时，可能出现：
+1. 组件 A mount → 创建 socket
+2. 组件 A unmount → 开始断开 socket
+3. 组件 A 再次 mount → 创建新 socket
+4. 步骤 2 的断开完成 → 影响步骤 3 的 socket
+
+**解决方案**：使用标志位防止竞态
+```typescript
+const mountedRef = useRef(true)
+
+useEffect(() => {
+    mountedRef.current = true
+    return () => {
+        mountedRef.current = false
+    }
+}, [])
+
+const connect = useCallback(() => {
+    if (!mountedRef.current) {
+        return
+    }
+    // ... 连接逻辑
+}, [])
+```
+
+### 最佳实践清单
+
+在实现 Socket 相关功能时，必须检查：
+
+- [ ] **组件 unmount 时是否调用 `disconnect()`**
+- [ ] **`disconnect()` 是否清理了所有事件监听器**（`removeAllListeners()`）
+- [ ] **重连前是否清理了旧连接**
+- [ ] **是否处理了服务端 detach 的情况**
+- [ ] **是否考虑了页面切换场景**
+- [ ] **是否考虑了浏览器休眠场景**
+- [ ] **是否有竞态条件保护**
+- [ ] **错误日志是否包含足够的上下文**（sessionId、terminalId、socketId、cause）
+
+### 调试技巧
+
+当遇到 Socket 连接问题时：
+
+1. **检查日志中的 cause 字段**：
+   - `socket_not_connected`：socket 未连接就尝试操作
+   - `socket_already_connected`：重复连接
+   - `terminal_runtime_error`：服务端拒绝操作
+
+2. **检查 socket 状态**：
+   ```typescript
+   console.log('Socket state:', {
+       connected: socket.connected,
+       disconnected: socket.disconnected,
+       id: socket.id
+   })
+   ```
+
+3. **检查服务端 registry 状态**：
+   服务端日志会显示 `detachSocket` 和 `rebindSocket` 操作
+
+4. **使用 React DevTools**：
+   检查 `socketRef.current` 是否在预期的时机被清理
