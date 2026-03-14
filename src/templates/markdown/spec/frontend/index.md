@@ -18,6 +18,7 @@ This directory contains guidelines for frontend development. Fill in each file w
 | [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition | To fill |
 | [Hook Guidelines](./hook-guidelines.md) | Custom hooks, data fetching patterns | Updated (session header Git status contract) |
 | [State Management](./state-management.md) | Local state, global state, server state | To fill |
+| [Error Handling](./error-handling.md) | Error classification, reconnection strategy, user notification | Updated (Socket.IO CORS error handling) |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
 | [Type Safety](./type-safety.md) | Type patterns, validation | To fill |
 
