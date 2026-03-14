@@ -1,5 +1,9 @@
 name: Codex PR Review
 
+# This workflow automatically reviews PRs using OpenAI Codex.
+# Retry strategy: Up to 3 attempts with exponential backoff (5s, 10s) to handle transient network failures.
+# Idempotency: The workflow checks for existing reviews by head SHA before running, preventing duplicate reviews.
+
 on:
   pull_request_target:
     types: [opened, reopened, ready_for_review, synchronize]
@@ -149,9 +153,71 @@ jobs:
       - name: Setup project environment
         uses: ./.github/actions/setup-project-env
 
-      - name: Run Codex for PR Review
-        id: run_codex
+      # Retry strategy: 3 attempts with exponential backoff (5s, 10s)
+      # This mitigates transient network failures when calling the Responses API
+      - name: Run Codex for PR Review (attempt 1)
+        id: run_codex_1
         if: steps.check_bot.outputs.has_review_for_current_head != 'true'
+        continue-on-error: true
+        uses: openai/codex-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          CURRENT_HEAD_SHA: ${{ steps.check_bot.outputs.current_head_sha }}
+          LATEST_BOT_REVIEW_ID: ${{ steps.check_bot.outputs.latest_bot_review_id }}
+          LATEST_BOT_REVIEW_COMMIT: ${{ steps.check_bot.outputs.latest_bot_review_commit }}
+          IS_FOLLOW_UP_REVIEW: ${{ steps.check_bot.outputs.is_follow_up_review }}
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          responses-api-endpoint: ${{ steps.validate_endpoint.outputs.responses_api_endpoint }}
+          codex-home: ${{ runner.temp }}/codex-home
+          model: ${{ vars.OPENAI_MODEL || 'gpt-5.2-codex' }}
+          effort: ${{ vars.OPENAI_EFFORT || 'high' }}
+          sandbox: danger-full-access
+          safety-strategy: drop-sudo
+          prompt-file: .github/prompts/codex-pr-review.md
+          allow-bots: true
+          allow-users: "*"
+
+      - name: Wait before retry (5s)
+        if: steps.run_codex_1.outcome == 'failure'
+        run: |
+          echo "Attempt 1 failed, waiting 5 seconds before retry..."
+          sleep 5
+
+      - name: Run Codex for PR Review (attempt 2)
+        id: run_codex_2
+        if: steps.run_codex_1.outcome == 'failure'
+        continue-on-error: true
+        uses: openai/codex-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          CURRENT_HEAD_SHA: ${{ steps.check_bot.outputs.current_head_sha }}
+          LATEST_BOT_REVIEW_ID: ${{ steps.check_bot.outputs.latest_bot_review_id }}
+          LATEST_BOT_REVIEW_COMMIT: ${{ steps.check_bot.outputs.latest_bot_review_commit }}
+          IS_FOLLOW_UP_REVIEW: ${{ steps.check_bot.outputs.is_follow_up_review }}
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          responses-api-endpoint: ${{ steps.validate_endpoint.outputs.responses_api_endpoint }}
+          codex-home: ${{ runner.temp }}/codex-home
+          model: ${{ vars.OPENAI_MODEL || 'gpt-5.2-codex' }}
+          effort: ${{ vars.OPENAI_EFFORT || 'high' }}
+          sandbox: danger-full-access
+          safety-strategy: drop-sudo
+          prompt-file: .github/prompts/codex-pr-review.md
+          allow-bots: true
+          allow-users: "*"
+
+      - name: Wait before final retry (10s)
+        if: steps.run_codex_2.outcome == 'failure'
+        run: |
+          echo "Attempt 2 failed, waiting 10 seconds before final retry..."
+          sleep 10
+
+      - name: Run Codex for PR Review (attempt 3 - final)
+        id: run_codex_3
+        if: steps.run_codex_2.outcome == 'failure'
         uses: openai/codex-action@v1
         env:
           GH_TOKEN: ${{ github.token }}
@@ -175,6 +241,7 @@ jobs:
       - name: Diagnose Codex failure
         if: failure() && steps.check_bot.outputs.has_review_for_current_head != 'true'
         run: |
+          echo "All retry attempts exhausted (3 attempts total)"
           echo "workflow=codex-pr-review"
           echo "endpoint_mode=${{ steps.validate_endpoint.outputs.endpoint_mode }}"
           echo "endpoint_host=${{ steps.validate_endpoint.outputs.endpoint_host }}"
