@@ -104,7 +104,7 @@ npx @jlovec/zhushen
 <details>
 <summary>预编译二进制</summary>
 
-从 [GitHub Releases](https://github.com/jlovec1024/hapi/releases) 下载最新版。
+从 [GitHub Releases](https://github.com/jlovec1024/zhushen/releases) 下载最新版。
 
 ```bash
 xattr -d com.apple.quarantine ./zs
@@ -119,8 +119,8 @@ sudo mv ./zs /usr/local/bin/
 > 若在本仓库中直接构建，请先确认本机满足 Node.js >= 24 与 Bun >= 1.3.10 的要求。
 
 ```bash
-git clone https://github.com/jlovec1024/hapi.git
-cd hapi
+git clone https://github.com/jlovec1024/zhushen.git
+cd zhushen
 bun install
 bun build:single-exe
 

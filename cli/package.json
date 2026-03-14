@@ -5,11 +5,11 @@
   "author": "Kirill Dubovitskiy & weishu",
   "license": "AGPL-3.0-only",
   "type": "module",
-  "homepage": "https://github.com/jlovec1024/hapi",
-  "bugs": "https://github.com/jlovec1024/hapi/issues",
+  "homepage": "https://github.com/jlovec1024/zhushen",
+  "bugs": "https://github.com/jlovec1024/zhushen/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jlovec1024/hapi.git",
+    "url": "git+https://github.com/jlovec1024/zhushen.git",
     "directory": "cli"
   },
   "bin": {

@@ -2,8 +2,6 @@
 
 在本地运行官方 Claude Code / Codex / Gemini / OpenCode 会话，并通过 Web / PWA 远程控制。
 
-> **为什么选择主神?** 主神是 Happy 的本地优先替代方案。详见 [为什么选择主神](docs/guide/why-hapi.md)。
-
 ## 特性
 
 - **无缝切换** - 在本地工作，需要时切换到远程，随时切换回来。无上下文丢失，无需重启会话。
@@ -11,10 +9,6 @@
 - **离开也不停** - 离开工位？在手机上一键批准 AI 请求。
 - **自由选择 AI** - Claude Code、Codex、Cursor Agent、Gemini、OpenCode -- 不同模型，统一工作流。
 - **随时随地终端** - 从手机或浏览器运行命令，直连工作机器。
-
-## 演示
-
-https://github.com/user-attachments/assets/38230353-94c6-4dbe-9c29-b2a2cc457546
 
 ## 快速开始
 
@@ -28,38 +22,6 @@ npx @jlovec/zhushen                 # 运行 claude code
 > 中继使用 WireGuard + TLS 进行端到端加密。你的数据从设备到机器全程加密。
 
 如需自托管方案 (Cloudflare Tunnel、Tailscale)，请参阅[安装指南](docs/guide/installation.md)。
-
-## Breaking Changes (从 hapi 迁移)
-
-本项目已从 `hapi` 重命名为 `主神 / zhushen`。以下是迁移要点：
-
-| 旧值 | 新值 | 说明 |
-|------|------|------|
-| 命令 `hapi` | 命令 `zs` | CLI 命令硬切，不保留旧别名 |
-| 包名 `@jlovec/hapi` | `@jlovec/zhushen` | npm 包名变更 |
-| `HAPI_*` 环境变量 | `ZS_*` 环境变量 | 所有环境变量前缀变更 |
-| `~/.hapi/` | `~/.zhushen/` | 配置目录变更 |
-| `@hapi/protocol` | `@zs/protocol` | 内部协议包变更 |
-
-迁移命令示例：
-
-```bash
-# 旧方式
-hapi hub --relay
-export HAPI_API_URL="http://your-hub:3006"
-export HAPI_HOME="~/.hapi"
-
-# 新方式
-zs hub --relay
-export ZS_API_URL="http://your-hub:3006"
-export ZS_HOME="~/.zhushen"
-```
-
-如需迁移现有数据：
-
-```bash
-cp -r ~/.hapi/* ~/.zhushen/
-```
 
 ## Docker (zs-hub + zs-runner)
 
@@ -97,19 +59,6 @@ docker compose logs -f zs-hub zs-runner
 - `ZCF_ALL_LANG`: 运行时统一覆盖语言参数
 - `ZCF_AI_OUTPUT_LANG`: 运行时覆盖 AI 输出语言
 
-### 运行模式
-
-- 默认服务: `zs-runner` (前台运行 `zs runner start-sync`)
-- 仅保留 `zs-hub` + `zs-runner`，不再提供 compose 交互 profile 服务。
-- compose 已配置 healthcheck：`zs-hub` 通过 `/health` 探针检查，`zs-runner` 通过主进程命令行检查。
-- GitHub Actions 会额外断言 `zs-runner` 的 `RestartCount=0` 且未进入 `Restarting`，避免“健康但实际处于重启环”的回归。
-
-### 常见错误
-
-- `CLAUDE_CONFIG_DIR` 未设置或不是绝对路径
-- `.env` 不存在（先执行 `cp .env.example .env`）
-- `ZCF_API_KEY` / `ZCF_API_URL` 写反（前者是 token，后者是 URL）
-
 详细使用方法请参阅 [Runner Docker 独立使用指南](docs/guide/docker-runner.md)。
 
 ## 文档
@@ -122,17 +71,6 @@ docker compose logs -f zs-hub zs-runner
 - [Cursor Agent](docs/guide/cursor.md)
 - [为什么选择主神](docs/guide/why-hapi.md)
 - [常见问题](docs/guide/faq.md)
-
-## 从源码构建
-
-```bash
-bun install
-bun run build:single-exe
-```
-
-## 讨论
-
-- GitHub: [Issues](https://github.com/jlovec1024/hapi/issues)
 
 ## 致谢
 

@@ -204,7 +204,7 @@ zs doctor
 
 ### 如何参与贡献？
 
-访问 [GitHub 仓库](https://github.com/jlovec1024/hapi)：
+访问 [GitHub 仓库](https://github.com/jlovec1024/zhushen)：
 
 - 提交 issue
 - 提交 PR
@@ -212,4 +212,4 @@ zs doctor
 
 ### 在哪里反馈 bug？
 
-请在 [GitHub Issues](https://github.com/jlovec1024/hapi/issues) 提交问题。
+请在 [GitHub Issues](https://github.com/jlovec1024/zhushen/issues) 提交问题。
