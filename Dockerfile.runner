@@ -116,8 +116,8 @@ ENV NVM_DIR=/usr/local/nvm
 ENV GOENV_ROOT=/usr/local/goenv
 ENV PNPM_HOME=/usr/local/pnpm
 ENV PATH="${GOENV_ROOT}/bin:${GOENV_ROOT}/shims:${PNPM_HOME}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-ENV ZS_HOME=/data
-ENV ZS_API_URL=http://zs-hub:3006
+ENV ZS_HOME=/root/.zhushen
+ENV ZS_API_URL=http://zs-hub:80
 ENV ZS_GO_VERSION=1.24.3
 ENV ZS_NODE_VERSION=22
 

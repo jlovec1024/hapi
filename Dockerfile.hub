@@ -36,10 +36,10 @@ COPY hub ./hub
 COPY shared ./shared
 COPY --from=web-build /app/web/dist ./web/dist
 
-EXPOSE 3006
+EXPOSE 80
 
 ENV ZS_LISTEN_HOST=0.0.0.0
-ENV ZS_LISTEN_PORT=3006
-ENV ZS_HOME=/data/zhushen
+ENV ZS_LISTEN_PORT=80
+ENV ZS_HOME=/root/.zhushen
 
 CMD ["bun", "run", "--cwd", "hub", "src/index.ts"]

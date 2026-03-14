@@ -28,29 +28,30 @@ npx @jlovec/zhushen                 # 运行 claude code
 使用 Docker 将 hub 和 runner 作为独立服务运行。runner 镜像预装了常用开发/运维工具，并支持运行时切换 Go/Node.js 版本。
 
 ```bash
-cp .env.example .env
-mkdir -p ./.claude
-
-# 编辑 .env，至少设置：
-# - CLI_API_TOKEN
-# - CLAUDE_CONFIG_DIR（必须是宿主机绝对路径）
-
-bun run docker:check
+# 启动服务（需要提供必填环境变量）
+CLI_API_TOKEN=your-secret \
+CLAUDE_CONFIG_DIR=/absolute/path/to/your/.claude \
 docker compose up -d --build zs-hub zs-runner
+
+# 查看日志
 docker compose logs -f zs-hub zs-runner
 ```
 
-> `bun run docker:check` 现在会同时校验 `.env` 语义与 `docker compose config --quiet`，可以在真正启动前尽早发现配置错误。
-
 ### 配置
 
+必填环境变量（通过命令行 `-e` 或修改 `docker-compose.yml` 提供）：
+
 - `CLI_API_TOKEN`: zs-hub 和 zs-runner 共用的密钥
-- `ZS_API_URL`: CLI 连接 hub 的 URL (compose 网络内为 `http://zs-hub:3006`)
-- `CLAUDE_CONFIG_DIR`: 挂载到容器的 Claude Code 认证/会话配置的宿主机绝对路径（必填）
-- `ZS_GO_VERSION`: 运行时 Go 版本（默认 `1.24.3`，由 goenv 管理）
-- `ZS_NODE_VERSION`: 运行时 Node.js 主版本号（默认 `22`，由 nvm 管理）
-- `ZCF_API_KEY`: 运行时注入 Claude API Key（仅在设置时触发覆盖，不能填 URL）
-- `ZCF_API_URL`: 运行时注入 Claude API URL（仅在设置时触发覆盖，必须是 `http(s)://` URL）
+- `CLAUDE_CONFIG_DIR`: 挂载到容器的 Claude Code 认证/会话配置的宿主机绝对路径
+
+可选环境变量（已有默认值）：
+
+- `ZS_LISTEN_PORT`: hub 暴露端口（默认 `80`）
+- `ZS_PUBLIC_URL`: hub 公开访问地址（默认 `http://localhost:80`）
+- `ZS_GO_VERSION`: 运行时 Go 版本（默认 `1.24.3`）
+- `ZS_NODE_VERSION`: 运行时 Node.js 主版本号（默认 `22`）
+- `ZCF_API_KEY`: 运行时注入 Claude API Key
+- `ZCF_API_URL`: 运行时注入 Claude API URL（必须是 `http(s)://` URL）
 - `ZCF_API_MODEL`: 运行时覆盖主模型
 - `ZCF_API_HAIKU_MODEL`: 运行时覆盖 Haiku 模型
 - `ZCF_API_SONNET_MODEL`: 运行时覆盖 Sonnet 模型
