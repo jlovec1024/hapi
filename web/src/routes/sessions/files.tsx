@@ -261,7 +261,7 @@ export default function FilesPage() {
     return (
         <div className="flex h-full flex-col">
             <div className="border-b border-[var(--app-border)] bg-[var(--app-bg)]">
-                <div className="mx-auto flex w-full max-w-content items-center gap-2 p-3">
+                <div className="mx-auto flex w-full max-w-content items-center gap-2 px-3 py-2">
                     <div className="flex items-center gap-2 rounded-md bg-[var(--app-subtle-bg)] px-3 py-2">
                         <SearchIcon className="text-[var(--app-hint)]" />
                         <input
@@ -291,7 +291,7 @@ export default function FilesPage() {
                         role="tab"
                         aria-selected={activeTab === 'changes'}
                         onClick={() => handleTabChange('changes')}
-                        className={`relative py-3 text-center text-sm font-semibold transition-colors hover:bg-[var(--app-subtle-bg)] ${activeTab === 'changes' ? 'text-[var(--app-fg)]' : 'text-[var(--app-hint)]'}`}
+                        className={`relative py-2 text-center text-sm font-semibold transition-colors hover:bg-[var(--app-subtle-bg)] ${activeTab === 'changes' ? 'text-[var(--app-fg)]' : 'text-[var(--app-hint)]'}`}
                     >
                         {t('session.files.changes')}
                         <span
@@ -303,7 +303,7 @@ export default function FilesPage() {
                         role="tab"
                         aria-selected={activeTab === 'directories'}
                         onClick={() => handleTabChange('directories')}
-                        className={`relative py-3 text-center text-sm font-semibold transition-colors hover:bg-[var(--app-subtle-bg)] ${activeTab === 'directories' ? 'text-[var(--app-fg)]' : 'text-[var(--app-hint)]'}`}
+                        className={`relative py-2 text-center text-sm font-semibold transition-colors hover:bg-[var(--app-subtle-bg)] ${activeTab === 'directories' ? 'text-[var(--app-fg)]' : 'text-[var(--app-hint)]'}`}
                     >
                         {t('session.files.directories')}
                         <span
@@ -354,7 +354,7 @@ export default function FilesPage() {
                         <div>
                             {gitStatus?.stagedFiles.length ? (
                                 <div>
-                                    <div className="border-b border-[var(--app-divider)] bg-[var(--app-bg)] px-3 py-2 text-xs font-semibold text-[var(--app-git-staged-color)]">
+                                    <div className="border-b border-[var(--app-divider)] bg-[var(--app-bg)] px-3 py-1.5 text-xs font-semibold leading-tight text-[var(--app-git-staged-color)]">
                                         {t('session.files.stagedChanges', { n: gitStatus.stagedFiles.length })}
                                     </div>
                                     {gitStatus.stagedFiles.map((file, index) => (
@@ -370,7 +370,7 @@ export default function FilesPage() {
 
                             {gitStatus?.unstagedFiles.length ? (
                                 <div>
-                                    <div className="border-b border-[var(--app-divider)] bg-[var(--app-bg)] px-3 py-2 text-xs font-semibold text-[var(--app-git-unstaged-color)]">
+                                    <div className="border-b border-[var(--app-divider)] bg-[var(--app-bg)] px-3 py-1.5 text-xs font-semibold leading-tight text-[var(--app-git-unstaged-color)]">
                                         {t('session.files.unstagedChanges', { n: gitStatus.unstagedFiles.length })}
                                     </div>
                                     {gitStatus.unstagedFiles.map((file, index) => (

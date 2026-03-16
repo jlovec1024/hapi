@@ -73,7 +73,7 @@ function GitStatusBar(props: { gitSummary: GitSummary | null; isLoading: boolean
 
     if (props.isLoading) {
         return (
-            <div className="flex items-center gap-1.5 text-xs text-[var(--app-hint)]" role="status">
+            <div className="flex items-center gap-1 text-xs leading-tight text-[var(--app-hint)]" role="status">
                 <GitBranchIcon className="text-[var(--app-hint)]" />
                 <span>{t('session.git.loading')}</span>
             </div>
@@ -82,7 +82,7 @@ function GitStatusBar(props: { gitSummary: GitSummary | null; isLoading: boolean
 
     if (props.hasError || !props.gitSummary) {
         return (
-            <div className="flex items-center gap-1.5 text-xs text-[var(--app-hint)]">
+            <div className="flex items-center gap-1 text-xs leading-tight text-[var(--app-hint)]">
                 <GitBranchIcon className="text-[var(--app-hint)]" />
                 <span>{t('session.git.unavailable')}</span>
             </div>
@@ -93,7 +93,7 @@ function GitStatusBar(props: { gitSummary: GitSummary | null; isLoading: boolean
     const branchLabel = branch ?? t('session.git.detached')
 
     return (
-        <div className="flex items-center gap-1.5 text-xs text-[var(--app-hint)]">
+        <div className="flex items-center gap-1 text-xs leading-tight text-[var(--app-hint)]">
             <GitBranchIcon className="text-[var(--app-hint)]" />
             <span className="font-semibold text-[var(--app-fg)]">{branchLabel}</span>
             <span aria-hidden="true">&middot;</span>
@@ -158,7 +158,7 @@ export function SessionHeader({
     return (
         <>
             <div className="border-b border-[var(--app-border)] bg-[var(--app-bg)] pt-[env(safe-area-inset-top)]">
-                <div className="mx-auto flex w-full max-w-content items-center gap-2 p-3">
+                <div className="mx-auto flex w-full max-w-content items-center gap-2 px-3 py-2">
                     <button
                         type="button"
                         onClick={onBack}
@@ -169,8 +169,8 @@ export function SessionHeader({
                     </button>
 
                     <div className="min-w-0 flex-1">
-                        <div className="truncate font-semibold">{title}</div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[var(--app-hint)]">
+                        <div className="truncate text-sm font-semibold leading-tight">{title}</div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-tight text-[var(--app-hint)]">
                             <HostBadge
                                 host={session.metadata?.host}
                                 platform={session.metadata?.os}
@@ -221,7 +221,7 @@ export function SessionHeader({
                                     aria-selected={active}
                                     onClick={() => onSelectView(view.key)}
                                     className={cn(
-                                        'relative py-3 text-center text-sm font-semibold transition-colors hover:bg-[var(--app-subtle-bg)]',
+                                        'relative py-2 text-center text-sm font-semibold transition-colors hover:bg-[var(--app-subtle-bg)]',
                                         active ? 'text-[var(--app-fg)]' : 'text-[var(--app-hint)]'
                                     )}
                                 >
