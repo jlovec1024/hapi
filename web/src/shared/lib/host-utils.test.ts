@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getHostDisplayName, getHostColorKey, getShortMachineId } from './host-utils'
+import { getHostDisplayName, getHostColorKey, getShortMachineId, getHostColorStyle } from './host-utils'
 
 describe('getShortMachineId', () => {
     it('returns first 8 characters of machineId', () => {
@@ -92,39 +92,65 @@ describe('getHostDisplayName', () => {
 })
 
 describe('getHostColorKey', () => {
-    it('prefers host for color stability', () => {
+    it('uses machineId even when host and displayName present', () => {
         const result = getHostColorKey({
             host: 'jlovec',
             displayName: 'My Laptop',
             machineId: '12345678'
         })
-        expect(result).toBe('jlovec')
+        expect(result).toBe('12345678')
     })
 
-    it('falls back to displayName when host missing', () => {
-        const result = getHostColorKey({
-            displayName: 'My Laptop',
-            machineId: '12345678'
-        })
-        expect(result).toBe('My Laptop')
-    })
-
-    it('falls back to machineId when host and displayName missing', () => {
+    it('uses machineId when only machineId present', () => {
         const result = getHostColorKey({
             machineId: '12345678'
         })
         expect(result).toBe('12345678')
     })
 
-    it('falls back to sessionId when all else missing', () => {
+    it('returns fixed identifier when machineId missing', () => {
+        const result = getHostColorKey({
+            host: 'jlovec',
+            displayName: 'My Laptop',
+            sessionId: 'session-123'
+        })
+        expect(result).toBe('__no_machine_id__')
+    })
+
+    it('returns fixed identifier when only sessionId present', () => {
         const result = getHostColorKey({
             sessionId: 'session-123'
         })
-        expect(result).toBe('session-123')
+        expect(result).toBe('__no_machine_id__')
     })
 
-    it('returns null when all fields missing', () => {
+    it('returns fixed identifier when all fields missing', () => {
         const result = getHostColorKey({})
-        expect(result).toBe(null)
+        expect(result).toBe('__no_machine_id__')
+    })
+})
+
+describe('getHostColorStyle', () => {
+    it('returns gray style for fixed identifier', () => {
+        const result = getHostColorStyle('__no_machine_id__')
+        expect(result).toEqual({
+            backgroundColor: 'light-dark(hsl(0 5% 90%), hsl(0 5% 25%))',
+            color: 'light-dark(hsl(0 5% 40%), hsl(0 5% 70%))',
+            borderColor: 'light-dark(hsl(0 5% 80%), hsl(0 5% 35%))',
+        })
+    })
+
+    it('returns colored style for machineId', () => {
+        const result = getHostColorStyle('12345678')
+        // 验证返回的是彩色样式（包含 hsl 且不是灰色）
+        expect(result.backgroundColor).toMatch(/hsl\(\d+/)
+        expect(result.color).toMatch(/hsl\(\d+/)
+        expect(result.borderColor).toMatch(/hsl\(\d+/)
+    })
+
+    it('returns consistent color for same machineId', () => {
+        const result1 = getHostColorStyle('abcdef12')
+        const result2 = getHostColorStyle('abcdef12')
+        expect(result1).toEqual(result2)
     })
 })

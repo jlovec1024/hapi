@@ -38,10 +38,11 @@ export function getHostDisplayName(params: HostDisplayNameParams): string | null
 }
 
 export function getHostColorKey(params: HostDisplayNameParams): string | null {
-    return normalize(params.host)
-        ?? normalize(params.displayName)
-        ?? normalize(params.machineId)
-        ?? normalize(params.sessionId)
+    const machineId = normalize(params.machineId)
+    if (machineId) return machineId
+
+    // 没有 machineId 时返回固定标识符，映射到灰色调
+    return '__no_machine_id__'
 }
 
 function stableHash(str: string): number {
@@ -61,8 +62,17 @@ export type HostColorStyle = {
 }
 
 export function getHostColorStyle(hostKey: string): HostColorStyle {
-    const hue = HOST_HUES[stableHash(hostKey) % HOST_HUES.length]
+    // 特殊处理：没有 machineId 时显示纯灰色
+    if (hostKey === '__no_machine_id__') {
+        return {
+            backgroundColor: 'light-dark(hsl(0 5% 90%), hsl(0 5% 25%))',
+            color: 'light-dark(hsl(0 5% 40%), hsl(0 5% 70%))',
+            borderColor: 'light-dark(hsl(0 5% 80%), hsl(0 5% 35%))',
+        }
+    }
 
+    // 正常流程：通过哈希选择颜色
+    const hue = HOST_HUES[stableHash(hostKey) % HOST_HUES.length]
     return {
         backgroundColor: `light-dark(hsl(${hue} 30% 92%), hsl(${hue} 20% 22%))`,
         color: `light-dark(hsl(${hue} 40% 35%), hsl(${hue} 30% 75%))`,
