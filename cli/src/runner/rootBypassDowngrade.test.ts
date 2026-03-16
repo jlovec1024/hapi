@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import type { SpawnSessionOptions, SpawnSessionResult } from '@/modules/common/rpcTypes';
 
 // Mock dependencies
@@ -78,7 +79,7 @@ vi.mock('os', () => ({
 
 describe('Root user BYPASS mode downgrade', () => {
   let originalGetuid: typeof process.getuid;
-  let mockGetuid: ReturnType<typeof vi.fn>;
+  let mockGetuid: Mock<() => number>;
 
   beforeEach(() => {
     vi.clearAllMocks();
