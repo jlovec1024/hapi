@@ -368,7 +368,17 @@ export async function startRunner(): Promise<void> {
         if (options.model && agent !== 'opencode') {
           args.push('--model', options.model);
         }
-        if (yolo) {
+
+        // Check for root user + bypass mode combination
+        const isRootUser = typeof process.getuid === 'function' && process.getuid() === 0;
+        const shouldDowngradeBypass = isRootUser && agent === 'claude' && yolo;
+        let warnings: string[] = [];
+
+        if (shouldDowngradeBypass) {
+          logger.warn('[RUNNER RUN] Root user detected with BYPASS mode for Claude - downgrading to default mode');
+          warnings.push('BYPASS mode is not allowed for root user with Claude Code. Session started in default mode instead.');
+          // Do not add --yolo argument
+        } else if (yolo) {
           args.push('--yolo');
         }
 
@@ -528,7 +538,8 @@ export async function startRunner(): Promise<void> {
             logger.debug(`[RUNNER RUN] Session ${completedSession.happySessionId} fully spawned with webhook`);
             resolve({
               type: 'success',
-              sessionId: completedSession.happySessionId!
+              sessionId: completedSession.happySessionId!,
+              ...(warnings.length > 0 ? { warnings } : {})
             });
           });
           pidToErrorAwaiter.set(pid, (errorMessage) => {

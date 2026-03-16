@@ -661,6 +661,62 @@ try {
 
 ---
 
+## 成功响应中的警告信息
+
+### 模式：操作成功但有警告
+
+某些操作可能成功完成，但需要通知用户某些行为被调整或降级。使用可选的 `warnings` 字段：
+
+```typescript
+// RPC 类型定义示例
+export type SpawnSessionResult =
+    | { type: 'success'; sessionId: string; warnings?: string[] }
+    | { type: 'requestToApproveDirectoryCreation'; directory: string }
+    | { type: 'error'; errorMessage: string }
+```
+
+**使用场景：**
+- 安全策略导致的自动降级（如 root 用户 + BYPASS 模式）
+- 配置自动调整
+- 兼容性回退
+
+**实现示例：**
+
+```typescript
+// cli/src/runner/run.ts
+const isRootUser = typeof process.getuid === 'function' && process.getuid() === 0;
+const shouldDowngradeBypass = isRootUser && agent === 'claude' && yolo;
+let warnings: string[] = [];
+
+if (shouldDowngradeBypass) {
+  logger.warn('[RUNNER RUN] Root user detected with BYPASS mode for Claude - downgrading to default mode');
+  warnings.push('BYPASS mode is not allowed for root user with Claude Code. Session started in default mode instead.');
+  // 不添加 --yolo 参数
+} else if (yolo) {
+  args.push('--yolo');
+}
+
+// 返回时携带警告
+return {
+  type: 'success',
+  sessionId: completedSession.happySessionId!,
+  ...(warnings.length > 0 ? { warnings } : {})
+};
+```
+
+**前端处理：**
+- 检查 `result.warnings` 是否存在
+- 在 UI 中显示警告通知
+- 记录到日志
+
+**原则：**
+- ✅ 操作仍然成功完成
+- ✅ 警告信息对用户有价值
+- ✅ 同时记录到服务端日志
+- ❌ 不要用警告代替错误（失败应该返回 error 类型）
+
+---
+
 ## 常见错误
 
 - ❌ 使用 Zod `.parse()`（验证失败时抛出异常）- 使用 `.safeParse()`
