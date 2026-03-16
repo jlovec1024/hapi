@@ -134,8 +134,46 @@ async function main(): Promise<void> {
 
     // Step 5: bun install to get complete lockfile
     console.log('\n📥 Step 5: Updating lockfile...');
+    console.log('⏳ Waiting for npm registry to sync (60s)...');
+    await new Promise(resolve => setTimeout(resolve, 60_000));  // 等待 60 秒
 
-    await runWithTimeoutRetry('bun install', repoRoot);
+    // 重试机制：验证 lockfile 完整性
+    let retries = 0;
+    const maxRetries = 5;
+    while (retries < maxRetries) {
+        await runWithTimeoutRetry('bun install', repoRoot);
+
+        // 验证 lockfile 完整性
+        const pkgJson = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+        const lockfile = readFileSync(join(repoRoot, 'bun.lock'), 'utf-8');
+        const optionalDeps = pkgJson.optionalDependencies || {};
+        const missing: string[] = [];
+
+        for (const [name, ver] of Object.entries(optionalDeps)) {
+            const expectedPattern = `"${name}@${ver}"`;
+            if (!lockfile.includes(expectedPattern)) {
+                missing.push(`${name}@${ver}`);
+            }
+        }
+
+        if (missing.length === 0) {
+            console.log('✅ Lockfile 完整性验证通过');
+            break;
+        }
+
+        retries++;
+        if (retries < maxRetries) {
+            console.warn(`⚠️ Lockfile 缺少包定义: ${missing.join(', ')}`);
+            console.warn(`⏳ 等待 npm registry 同步... (${retries}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 60_000));
+        } else {
+            console.error('❌ Lockfile 验证失败，缺少以下包定义：');
+            missing.forEach(pkg => console.error(`  - ${pkg}`));
+            console.error('\n可能原因：npm registry 同步延迟过长');
+            console.error('建议：稍后手动运行 bun install 并提交 lockfile');
+            process.exit(1);
+        }
+    }
     // Step 6: Git commit + tag + push
     console.log('\n📝 Step 6: Creating git commit and tag...');
     run(`git add .`, repoRoot);

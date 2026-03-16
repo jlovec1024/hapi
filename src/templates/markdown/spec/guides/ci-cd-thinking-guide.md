@@ -186,6 +186,7 @@ grep -r "setup-bun" .github/workflows/ | grep -o "bun-version: [0-9.]*" | sort -
 - [ ] CI 中的测试 workflow 通过
 - [ ] 如果有 AI reviewer，确认它能运行测试
 - [ ] 如果 AI reviewer 报告"未运行测试"，检查环境配置
+- [ ] **检查是否引入了运行时特定依赖（见下方"引入运行时特定依赖"）**
 
 ### 升级运行时版本
 
@@ -193,6 +194,47 @@ grep -r "setup-bun" .github/workflows/ | grep -o "bun-version: [0-9.]*" | sort -
 - [ ] 更新 Dockerfile 中的版本号
 - [ ] 更新 `package.json` 中的 `engines` 字段
 - [ ] 更新文档中的版本要求
+
+### 引入运行时特定依赖
+
+- [ ] 依赖是否只在特定运行时可用？（如 `bun:ffi`、`bun:sqlite`、Node.js 特定模块）
+- [ ] 测试环境是否与生产环境使用相同的运行时？
+  - 是 → 无需额外处理
+  - 否 → 必须提供测试环境的 mock
+- [ ] 是否在 vitest.config.ts 中配置了 alias mock？
+- [ ] Mock 实现是否覆盖了测试所需的接口？
+- [ ] 是否添加了注释说明为何需要 mock？
+
+### 版本发布
+
+- [ ] 是否更新了所有 workspace 的 `package.json` 版本号？
+- [ ] 是否运行了 `bun install` 重新生成 lockfile？
+- [ ] 是否验证了 lockfile 包含所有平台的包定义？
+  - 对于有 optionalDependencies 的包，检查所有平台都有对应的包定义行
+- [ ] 是否运行了 `bun install --frozen-lockfile` 验证一致性？
+- [ ] 是否运行了 `git diff --exit-code bun.lock` 确认无额外变更？
+- [ ] 是否提交了 lockfile 和 package.json？
+
+**示例：Mock bun-pty**
+
+```typescript
+// vitest.config.ts
+export default defineConfig({
+    test: {
+        alias: {
+            // Mock bun-pty for test environment (vitest runs in Node.js, not Bun)
+            // bun-pty depends on bun:ffi which is not available in Node.js
+            'bun-pty': resolve('./src/__mocks__/bun-pty.ts'),
+        }
+    }
+})
+```
+
+```typescript
+// src/__mocks__/bun-pty.ts
+export interface IPty { /* ... */ }
+export const spawn: null = null  // Simulate unavailable runtime
+```
 
 ---
 
@@ -244,6 +286,35 @@ bun install --frozen-lockfile
 bun run test
 ```
 
+### 问题：测试失败提示"Cannot find package 'bun:ffi'"
+
+**原因**：
+- 代码中静态导入了依赖 Bun 运行时特定模块的包（如 `bun-pty`）
+- 测试环境运行在 Node.js（vitest），无法解析 `bun:ffi` 等 Bun 特定模块
+
+**修复**：
+1. 在 `vitest.config.ts` 中添加 alias mock：
+```typescript
+export default defineConfig({
+    test: {
+        alias: {
+            'bun-pty': resolve('./src/__mocks__/bun-pty.ts'),
+        }
+    }
+})
+```
+
+2. 创建 mock 文件 `src/__mocks__/bun-pty.ts`：
+```typescript
+// Mock for bun-pty in test environment
+export interface IPty { /* ... */ }
+export const spawn: null = null  // Simulate unavailable runtime
+```
+
+**预防**：
+- 引入新的运行时特定依赖时，立即提供测试环境的 mock
+- 参考"引入运行时特定依赖" checklist
+
 ---
 
 ## 案例 3: Lockfile Drift - 依赖锁文件不一致
@@ -284,8 +355,159 @@ Process completed with exit code 1.
 | **版本差异** | 本地 bun 1.3.10，CI bun 1.3.15 | lockfile 格式/哈希不同 |
 | **部分安装** | 只安装了部分 workspace 的依赖 | lockfile 不完整 |
 | **手动编辑** | 直接编辑 lockfile（极少见） | 格式损坏 |
+| **版本升级遗漏** | 升级版本时遗漏某些平台的包定义 | lockfile 不完整，CI 重新生成后不一致 |
+
+### 循环复现分析（2026-03-16）
+
+**问题时间线**：
+1. **首次发现** (commit 0068697)：lockfile 缺少 Windows 平台支持
+   - 修复：手动添加了 `@jlovec/zhushen-win32-x64@0.3.1` 的包定义
+   - 状态：✅ 修复成功
+2. **循环复现** (commit e91f8f0)：版本升级到 0.3.2 时，同样的问题再次发生
+   - 触发：本地执行 `bun run release-all 0.3.2` → git push tag → GitHub Actions 触发
+   - 失败：docker-images.yml 的 compose-smoke job 在 "Lockfile precheck" 步骤失败
+   - 状态：❌ 预防机制失效
+
+**真正的根本原因（竞态条件）**：
+
+`cli/scripts/release-all.ts` 的执行流程存在时序问题：
+
+```typescript
+// Step 3: 顺序发布 5 个平台包
+for (const platform of ['darwin-arm64', 'darwin-x64', 'linux-arm64', 'linux-x64', 'win32-x64']) {
+    run(`npm publish --access public`, npmDir);  // win32-x64 是最后一个
+}
+
+// Step 4: 发布主包
+run(`npm publish --access public`, mainNpmDir);
+
+// Step 5: 立即运行 bun install 更新 lockfile
+await runWithTimeoutRetry('bun install', repoRoot);  // ❌ 问题在这里！
+
+// Step 6: git commit + tag + push
+```
+
+**竞态条件**：
+- `npm publish` 完成 ≠ 包在 registry 上立即可用
+- npm registry 有同步延迟（CDN 缓存、镜像同步等，通常几秒到几分钟）
+- Step 5 的 `bun install` 在 Step 3 发布完成后**立即**运行
+- 此时 win32-x64@0.3.2（最后发布的包）可能还没有在 registry 上可用
+- 结果：`bun install` 找不到 win32-x64@0.3.2，lockfile 中缺少这个包的定义
+- Step 6 提交了不完整的 lockfile → git push tag → CI 失败
+
+**为什么总是 win32-x64**：
+- 它是循环中**最后一个**发布的平台（line 118）
+- 当 `bun install` 运行时，前面的包可能已经同步，但最后一个包还没有
+
+**为什么预防机制失效**：
+
+| 失效点 | 原因 | 影响 |
+|--------|------|------|
+| **隐式假设** | release-all.ts 假设 `npm publish` 后包立即可用 | 竞态条件 |
+| **缺少等待** | Step 5 没有等待 registry 同步完成 | lockfile 不完整 |
+| **缺少验证** | Step 5 后没有验证 lockfile 完整性 | 无法检测问题 |
+| **补丁式修复** | 首次修复只是手动补全，没有修复 release-all.ts | 问题会重复 |
+
+**根本问题**：
+- release-all.ts 的 Step 5 存在**时序依赖**，但没有等待机制
+- 没有验证 lockfile 是否包含所有 optionalDependencies
+- 即使有 `runWithTimeoutRetry`，也只是重试 `bun install`，不会等待 registry 同步
 
 ### 预防机制
+
+#### P0: 修复 release-all.ts 的竞态条件
+
+在 `cli/scripts/release-all.ts` 的 Step 5 中添加等待和验证：
+
+```typescript
+// Step 5: bun install to get complete lockfile
+console.log('\n📥 Step 5: Updating lockfile...');
+console.log('⏳ Waiting for npm registry to sync (60s)...');
+await new Promise(resolve => setTimeout(resolve, 60_000));  // 等待 60 秒
+
+// 重试机制：验证 lockfile 完整性
+let retries = 0;
+const maxRetries = 5;
+while (retries < maxRetries) {
+    await runWithTimeoutRetry('bun install', repoRoot);
+
+    // 验证 lockfile 完整性
+    const packageJson = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf-8'));
+    const lockfile = readFileSync(join(repoRoot, 'bun.lock'), 'utf-8');
+    const optionalDeps = packageJson.optionalDependencies || {};
+    const missing: string[] = [];
+
+    for (const [name, version] of Object.entries(optionalDeps)) {
+        const expectedPattern = `"${name}@${version}"`;
+        if (!lockfile.includes(expectedPattern)) {
+            missing.push(`${name}@${version}`);
+        }
+    }
+
+    if (missing.length === 0) {
+        console.log('✅ Lockfile 完整性验证通过');
+        break;
+    }
+
+    retries++;
+    if (retries < maxRetries) {
+        console.warn(`⚠️ Lockfile 缺少包定义: ${missing.join(', ')}`);
+        console.warn(`⏳ 等待 npm registry 同步... (${retries}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, 60_000));
+    } else {
+        console.error('❌ Lockfile 验证失败，缺少以下包定义：');
+        missing.forEach(pkg => console.error(`  - ${pkg}`));
+        process.exit(1);
+    }
+}
+```
+
+#### P0: 创建独立的 lockfile 验证脚本
+
+创建 `scripts/verify-lockfile.ts` 用于手动验证：
+
+```typescript
+#!/usr/bin/env bun
+// 验证 lockfile 中所有 optionalDependencies 都有对应的包定义
+
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+const packageJson = JSON.parse(readFileSync('cli/package.json', 'utf-8'));
+const lockfile = readFileSync('bun.lock', 'utf-8');
+
+const optionalDeps = packageJson.optionalDependencies || {};
+const missing: string[] = [];
+
+for (const [name, version] of Object.entries(optionalDeps)) {
+  const expectedPattern = `"${name}@${version}"`;
+  if (!lockfile.includes(expectedPattern)) {
+    missing.push(`${name}@${version}`);
+  }
+}
+
+if (missing.length > 0) {
+  console.error('❌ Lockfile 缺少以下包定义：');
+  missing.forEach(pkg => console.error(`  - ${pkg}`));
+  console.error('\n修复方法：');
+  console.error('  1. 等待 npm registry 同步（如果刚发布）');
+  console.error('  2. 运行: bun install');
+  console.error('  3. 提交: git add bun.lock');
+  process.exit(1);
+}
+
+console.log('✅ Lockfile 完整性验证通过');
+```
+
+**在 package.json 中添加脚本**：
+
+```json
+{
+  "scripts": {
+    "verify-lockfile": "bun run scripts/verify-lockfile.ts"
+  }
+}
+```
 
 #### P0: Pre-commit Hook
 
@@ -438,3 +660,4 @@ git push
 - 基于 PR#24 的教训：环境一致性原则
 - 基于 Issue#313-012 的教训：运行时特定依赖的 mock 处理
 - 基于 CI failure (compose-smoke) 的教训：Lockfile drift 预防与修复
+- 基于 Lockfile drift 循环复现 (0068697 → e91f8f0) 的教训：npm registry 延迟导致的竞态条件，需要在 release-all.ts 中添加等待和验证机制
