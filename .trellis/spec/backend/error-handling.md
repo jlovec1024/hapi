@@ -565,6 +565,102 @@ console.error('[Component] Operation failed:', error)
 
 ---
 
+## 外部进程错误处理
+
+### 子进程错误捕获
+
+当启动外部进程（如 Claude Code SDK）时，必须：
+
+1. **捕获 stderr 输出**：始终收集 stderr，即使不在 DEBUG 模式
+2. **记录退出码和信号**：进程异常退出时记录完整上下文
+3. **标准化错误对象**：确保所有错误都是标准 Error 实例
+
+**正确示例**（来自 `cli/src/claude/sdk/query.ts`）：
+
+```typescript
+// 1. 捕获 stderr（始终，不仅在 DEBUG 模式）
+let stderrBuffer = ''
+child.stderr.on('data', (data) => {
+    const chunk = data.toString()
+    stderrBuffer += chunk
+
+    if (process.env.DEBUG) {
+        console.error('Claude Code stderr:', chunk)
+    }
+})
+
+// 2. 处理进程退出，包含完整诊断信息
+child.on('close', (code, signal) => {
+    if (code !== 0) {
+        const errorParts = [`Claude Code process exited with code ${code}`]
+
+        if (signal) {
+            errorParts.push(`Signal: ${signal}`)
+        }
+
+        if (stderrBuffer.trim()) {
+            errorParts.push(`\nStderr output:\n${stderrBuffer.trim()}`)
+        }
+
+        // 添加诊断上下文
+        errorParts.push(`\nCommand: ${spawnCommand} ${spawnArgs.join(' ')}`)
+        errorParts.push(`CWD: ${cwd || process.cwd()}`)
+        errorParts.push(`Platform: ${process.platform}`)
+
+        query.setError(new Error(errorParts.join('\n')))
+    }
+})
+```
+
+### 错误对象标准化
+
+**问题**：捕获到空对象 `{}` 而非标准 Error，导致无法获取错误信息。
+
+**解决方案**：在所有 catch 块中检查错误类型并标准化。
+
+**正确示例**（来自 `cli/src/claude/claudeRemoteLauncher.ts`）：
+
+```typescript
+try {
+    await claudeRemote({ /* ... */ })
+} catch (e) {
+    // 增强错误日志，包含类型检查
+    const errorInfo = e instanceof Error
+        ? { name: e.name, message: e.message, stack: e.stack }
+        : { raw: e, type: typeof e }
+
+    logger.debug('[remote]: launch error', errorInfo)
+
+    if (!this.exitReason) {
+        // 提供更详细的错误消息
+        let errorMessage = 'Process exited unexpectedly'
+        if (e instanceof Error && e.message) {
+            errorMessage += `: ${e.message}`
+        } else if (e && typeof e === 'object') {
+            errorMessage += ` (non-standard error object)`
+        }
+
+        session.client.sendSessionEvent({ type: 'message', message: errorMessage })
+        continue
+    }
+}
+```
+
+### 诊断信息收集清单
+
+当外部进程失败时，应收集：
+
+- [ ] 退出码（exit code）
+- [ ] 终止信号（signal，如果有）
+- [ ] stderr 完整输出
+- [ ] 启动命令和参数
+- [ ] 工作目录（CWD）
+- [ ] 平台信息（platform）
+- [ ] 环境变量（敏感信息除外）
+- [ ] 进程 PID（用于日志关联）
+
+---
+
 ## 常见错误
 
 - ❌ 使用 Zod `.parse()`（验证失败时抛出异常）- 使用 `.safeParse()`
@@ -577,6 +673,10 @@ console.error('[Component] Operation failed:', error)
 - ❌ 向客户端暴露内部错误详情（对 500 使用通用消息）
 - ❌ 因后台任务错误而让服务器崩溃
 - ❌ 对捕获的错误使用 `any`（使用 `unknown`）
+- ❌ **只在 DEBUG 模式捕获 stderr**（应始终捕获用于诊断）
+- ❌ **记录空错误对象 `{}`**（应检查类型并标准化）
+- ❌ **进程退出时不记录退出码和信号**（应记录完整上下文）
+- ❌ **不收集外部进程的诊断信息**（应包含命令、CWD、平台等）
 
 ---
 
@@ -592,3 +692,7 @@ console.error('[Component] Operation failed:', error)
 - ✅ 不要让后台服务崩溃 - 捕获并继续
 - ✅ 使用 `.catch(() => null)` 显式处理 JSON 解析错误
 - ✅ 对捕获的错误使用 `unknown` 类型，使用前先收窄
+- ✅ **始终捕获外部进程的 stderr**（不仅在 DEBUG 模式）
+- ✅ **在 catch 块中检查错误类型并标准化**（确保是 Error 实例）
+- ✅ **记录进程退出的完整上下文**（退出码、信号、stderr）
+- ✅ **为外部进程失败提供诊断信息**（命令、CWD、平台等）

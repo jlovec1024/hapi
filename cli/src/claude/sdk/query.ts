@@ -363,12 +363,17 @@ export function query(config: {
         childStdin = child.stdin
     }
 
-    // Handle stderr in debug mode
-    if (process.env.DEBUG) {
-        child.stderr.on('data', (data) => {
-            console.error('Claude Code stderr:', data.toString())
-        })
-    }
+    // Capture stderr for diagnostics (always, not just in DEBUG mode)
+    let stderrBuffer = ''
+    child.stderr.on('data', (data) => {
+        const chunk = data.toString()
+        stderrBuffer += chunk
+
+        // Also log in debug mode
+        if (process.env.DEBUG) {
+            console.error('Claude Code stderr:', chunk)
+        }
+    })
 
     // Setup cleanup
     const cleanup = () => {
@@ -382,12 +387,30 @@ export function query(config: {
 
     // Handle process exit
     const processExitPromise = new Promise<void>((resolve) => {
-        child.on('close', (code) => {
+        child.on('close', (code, signal) => {
             if (config.options?.abort?.aborted) {
                 query.setError(new AbortError('Claude Code process aborted by user'))
+                return
             }
+
             if (code !== 0) {
-                query.setError(new Error(`Claude Code process exited with code ${code}`))
+                // Build detailed error message with stderr
+                const errorParts = [`Claude Code process exited with code ${code}`]
+
+                if (signal) {
+                    errorParts.push(`Signal: ${signal}`)
+                }
+
+                if (stderrBuffer.trim()) {
+                    errorParts.push(`\nStderr output:\n${stderrBuffer.trim()}`)
+                }
+
+                // Add diagnostic context
+                errorParts.push(`\nCommand: ${spawnCommand} ${spawnArgs.join(' ')}`)
+                errorParts.push(`CWD: ${cwd || process.cwd()}`)
+                errorParts.push(`Platform: ${process.platform}`)
+
+                query.setError(new Error(errorParts.join('\n')))
             } else {
                 resolve()
             }
