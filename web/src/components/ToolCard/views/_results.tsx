@@ -2,7 +2,9 @@ import type { ToolViewComponent, ToolViewProps } from '@/components/ToolCard/vie
 import { isObject, safeStringify } from '@zs/protocol'
 import { CodeBlock } from '@/components/CodeBlock'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
+import { LongContentCollapse } from '@/components/LongContentCollapse'
 import { ChecklistList, extractTodoChecklist } from '@/components/ToolCard/checklist'
+import { useTranslation } from '@/lib/use-translation'
 import { basename, resolveDisplayPath } from '@/utils/path'
 
 function parseToolUseError(message: string): { isToolUseError: boolean; errorMessage: string | null } {
@@ -131,6 +133,23 @@ function renderText(text: string, opts: { mode: 'markdown' | 'code' | 'auto'; la
     return <MarkdownRenderer content={text} />
 }
 
+function renderFollowupText(props: ToolViewProps) {
+    const { t } = useTranslation()
+    const text = props.block.tool.followupText?.trim()
+    if (!text) return null
+
+    return (
+        <div className="mt-3">
+            <div className="mb-1 text-xs font-medium text-[var(--app-hint)]">{t('tool.skillInstructions')}</div>
+            <LongContentCollapse text={text}>
+                <div className="text-sm text-[var(--app-fg)]">
+                    <MarkdownRenderer content={text} />
+                </div>
+            </LongContentCollapse>
+        </div>
+    )
+}
+
 function placeholderForState(state: ToolViewProps['block']['tool']['state']): string {
     if (state === 'pending') return 'Waiting for permission…'
     if (state === 'running') return 'Running…'
@@ -229,6 +248,7 @@ const BashResultView: ToolViewComponent = (props: ToolViewProps) => {
         return (
             <>
                 <CodeBlock code={display} language="text" />
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -242,6 +262,7 @@ const BashResultView: ToolViewComponent = (props: ToolViewProps) => {
                     {stdio.stdout ? <CodeBlock code={stdio.stdout} language="text" /> : null}
                     {stdio.stderr ? <CodeBlock code={stdio.stderr} language="text" /> : null}
                 </div>
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -252,6 +273,7 @@ const BashResultView: ToolViewComponent = (props: ToolViewProps) => {
         return (
             <>
                 {renderText(text, { mode: 'code', language: 'text' })}
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -260,6 +282,7 @@ const BashResultView: ToolViewComponent = (props: ToolViewProps) => {
     return (
         <>
             <div className="text-sm text-[var(--app-hint)]">(no output)</div>
+            {renderFollowupText(props)}
             <RawJsonDevOnly value={result} />
         </>
     )
@@ -277,6 +300,7 @@ const MarkdownResultView: ToolViewComponent = (props: ToolViewProps) => {
         return (
             <>
                 {renderText(text, { mode: 'auto' })}
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -285,6 +309,7 @@ const MarkdownResultView: ToolViewComponent = (props: ToolViewProps) => {
     return (
         <>
             <div className="text-sm text-[var(--app-hint)]">(no output)</div>
+            {renderFollowupText(props)}
             <RawJsonDevOnly value={result} />
         </>
     )
@@ -302,6 +327,7 @@ const LineListResultView: ToolViewComponent = (props: ToolViewProps) => {
         return (
             <>
                 <div className="text-sm text-[var(--app-hint)]">(no output)</div>
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -311,6 +337,7 @@ const LineListResultView: ToolViewComponent = (props: ToolViewProps) => {
         return (
             <>
                 <MarkdownRenderer content={text} />
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -321,6 +348,7 @@ const LineListResultView: ToolViewComponent = (props: ToolViewProps) => {
         return (
             <>
                 <div className="text-sm text-[var(--app-hint)]">(no output)</div>
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -335,6 +363,7 @@ const LineListResultView: ToolViewComponent = (props: ToolViewProps) => {
                     </div>
                 ))}
             </div>
+            {renderFollowupText(props)}
             <RawJsonDevOnly value={result} />
         </>
     )
@@ -358,6 +387,7 @@ const ReadResultView: ToolViewComponent = (props: ToolViewProps) => {
                     </div>
                 ) : null}
                 <CodeBlock code={file.content} language="text" />
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -368,6 +398,7 @@ const ReadResultView: ToolViewComponent = (props: ToolViewProps) => {
         return (
             <>
                 {renderText(text, { mode: 'code', language: 'text' })}
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -376,6 +407,7 @@ const ReadResultView: ToolViewComponent = (props: ToolViewProps) => {
     return (
         <>
             <div className="text-sm text-[var(--app-hint)]">(no output)</div>
+            {renderFollowupText(props)}
             <RawJsonDevOnly value={result} />
         </>
     )
@@ -399,6 +431,7 @@ const MutationResultView: ToolViewComponent = (props: ToolViewProps) => {
                 <div className={`text-sm ${className}`}>
                     {renderText(text, { mode: state === 'error' ? 'code' : 'auto' })}
                 </div>
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -409,6 +442,7 @@ const MutationResultView: ToolViewComponent = (props: ToolViewProps) => {
             <div className="text-sm text-[var(--app-hint)]">
                 {state === 'completed' ? 'Done' : '(no output)'}
             </div>
+            {renderFollowupText(props)}
             <RawJsonDevOnly value={result} />
         </>
     )
@@ -421,6 +455,7 @@ const CodexPatchResultView: ToolViewComponent = (props: ToolViewProps) => {
         return (
             <>
                 {renderText(text, { mode: 'auto' })}
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -435,6 +470,7 @@ const CodexPatchResultView: ToolViewComponent = (props: ToolViewProps) => {
     return (
         <>
             <div className="text-sm text-[var(--app-hint)]">(no output)</div>
+            {renderFollowupText(props)}
             <RawJsonDevOnly value={result} />
         </>
     )
@@ -451,6 +487,7 @@ const CodexReasoningResultView: ToolViewComponent = (props: ToolViewProps) => {
         return (
             <>
                 {renderText(text, { mode: 'auto' })}
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -459,6 +496,7 @@ const CodexReasoningResultView: ToolViewComponent = (props: ToolViewProps) => {
     return (
         <>
             <div className="text-sm text-[var(--app-hint)]">(no output)</div>
+            {renderFollowupText(props)}
             <RawJsonDevOnly value={result} />
         </>
     )
@@ -477,6 +515,7 @@ const CodexDiffResultView: ToolViewComponent = (props: ToolViewProps) => {
         return (
             <>
                 {renderText(text, { mode: 'code', language: 'diff' })}
+                {renderFollowupText(props)}
                 <RawJsonDevOnly value={result} />
             </>
         )
@@ -485,6 +524,7 @@ const CodexDiffResultView: ToolViewComponent = (props: ToolViewProps) => {
     return (
         <>
             <div className="text-sm text-[var(--app-hint)]">Done</div>
+            {renderFollowupText(props)}
             <RawJsonDevOnly value={result} />
         </>
     )
@@ -518,6 +558,7 @@ const GenericResultView: ToolViewComponent = (props: ToolViewProps) => {
                         {parsed.wallTime && `Wall time: ${parsed.wallTime}`}
                     </div>
                     {renderText(parsed.output.trim(), { mode: 'code' })}
+                    {renderFollowupText(props)}
                     <RawJsonDevOnly value={result} />
                 </>
             )
@@ -529,16 +570,27 @@ const GenericResultView: ToolViewComponent = (props: ToolViewProps) => {
         return (
             <>
                 {renderText(text, { mode: 'auto' })}
+                {renderFollowupText(props)}
                 {typeof result === 'object' ? <RawJsonDevOnly value={result} /> : null}
             </>
         )
     }
 
     if (typeof result === 'string') {
-        return renderText(result, { mode: 'auto' })
+        return (
+            <>
+                {renderText(result, { mode: 'auto' })}
+                {renderFollowupText(props)}
+            </>
+        )
     }
 
-    return <CodeBlock code={safeStringify(result)} language="json" />
+    return (
+        <>
+            <CodeBlock code={safeStringify(result)} language="json" />
+            {renderFollowupText(props)}
+        </>
+    )
 }
 
 export const toolResultViewRegistry: Record<string, ToolViewComponent> = {

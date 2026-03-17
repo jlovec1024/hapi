@@ -109,6 +109,7 @@ export type ChatToolCall = {
     completedAt: number | null
     description: string | null
     result?: unknown
+    followupText?: string
     permission?: ToolPermission
 }
 

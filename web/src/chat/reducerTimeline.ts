@@ -4,6 +4,10 @@ import { createCliOutputBlock, isCliOutputText, mergeCliOutputBlocks } from '@/c
 import { classifySummaryAsEvent, classifyTitleChangeAsEvent, createAgentEventBlock, parseMessageAsEvent } from '@/chat/reducerEvents'
 import { ensureToolBlock, extractTitleFromChangeTitleInput, isChangeTitleToolName, type PermissionEntry } from '@/chat/reducerTools'
 
+function isSkillLaunchResult(content: unknown): boolean {
+    return typeof content === 'string' && content.startsWith('Launching skill:')
+}
+
 export function reduceTimeline(
     messages: TracedMessage[],
     context: {
@@ -61,9 +65,23 @@ export function reduceTimeline(
         }
 
         if (msg.role === 'agent') {
+            let pendingSkillToolId: string | null = null
+
             for (let idx = 0; idx < msg.content.length; idx += 1) {
                 const c = msg.content[idx]
                 if (c.type === 'text') {
+                    if (pendingSkillToolId) {
+                        const toolBlock = toolBlocksById.get(pendingSkillToolId)
+                        if (toolBlock && c.text.trim().length > 0) {
+                            toolBlock.tool.followupText = toolBlock.tool.followupText
+                                ? `${toolBlock.tool.followupText}\n\n${c.text}`
+                                : c.text
+                            pendingSkillToolId = null
+                            continue
+                        }
+                    }
+
+                    pendingSkillToolId = null
                     if (isCliOutputText(c.text, msg.meta)) {
                         blocks.push(createCliOutputBlock({
                             id: `${msg.id}:${idx}`,
@@ -85,6 +103,8 @@ export function reduceTimeline(
                     })
                     continue
                 }
+
+                pendingSkillToolId = null
 
                 if (c.type === 'reasoning') {
                     blocks.push({
@@ -202,6 +222,7 @@ export function reduceTimeline(
                     block.tool.result = c.content
                     block.tool.completedAt = msg.createdAt
                     block.tool.state = c.is_error ? 'error' : 'completed'
+                    pendingSkillToolId = isSkillLaunchResult(c.content) ? c.tool_use_id : null
                     continue
                 }
 

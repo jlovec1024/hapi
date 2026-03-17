@@ -223,6 +223,7 @@ export default {
   'tool.patch': 'Patch',
   'tool.input': 'Input',
   'tool.result': 'Result',
+  'tool.skillInstructions': 'Skill instructions',
   'tool.questionsAnswers': 'Questions & Answers',
   'tool.submit': 'Submit',
   'tool.submitting': 'Submitting…',

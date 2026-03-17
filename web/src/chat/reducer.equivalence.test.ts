@@ -28,7 +28,8 @@ function simplifyBlock(block: ChatBlock): unknown {
                 name: block.tool.name,
                 state: block.tool.state,
                 input: block.tool.input,
-                result: block.tool.result
+                result: block.tool.result,
+                followupText: block.tool.followupText
             },
             children: block.children.map(simplifyBlock)
         }
@@ -139,7 +140,8 @@ describe('chat block equivalence baseline', () => {
                     name: 'Task',
                     state: 'completed',
                     input: { prompt: 'subtask prompt' },
-                    result: { ok: true }
+                    result: { ok: true },
+                    followupText: undefined
                 },
                 children: [
                     { kind: 'user-text', id: 'm-sidechain-root:0', text: 'subtask prompt' },
@@ -150,5 +152,64 @@ describe('chat block equivalence baseline', () => {
             { kind: 'agent-event', id: 'm-turn', event: { type: 'turn-duration', durationMs: 321 } },
             { kind: 'agent-event', id: 'm-limit', event: { type: 'limit-reached', endsAt: 1700000000000 } }
         ])
+    })
+
+    it('merges skill launch instructions into the tool card instead of emitting a text block', () => {
+        const messages: NormalizedMessage[] = [
+            {
+                id: 'm-skill-call',
+                localId: null,
+                createdAt: 2000,
+                isSidechain: false,
+                role: 'agent',
+                content: [
+                    {
+                        type: 'tool-call',
+                        id: 'tool-skill-1',
+                        name: 'Skill',
+                        input: { skill: 'trellis:before-backend-dev' },
+                        description: null,
+                        uuid: 'u-skill-call',
+                        parentUUID: null
+                    }
+                ]
+            },
+            {
+                id: 'm-skill-result',
+                localId: null,
+                createdAt: 2001,
+                isSidechain: false,
+                role: 'agent',
+                content: [
+                    {
+                        type: 'tool-result',
+                        tool_use_id: 'tool-skill-1',
+                        content: 'Launching skill: trellis:before-backend-dev',
+                        is_error: false,
+                        uuid: 'u-skill-result',
+                        parentUUID: 'u-skill-call'
+                    },
+                    {
+                        type: 'text',
+                        text: 'Read the backend development guidelines before starting your development task.\n\n1. Read the index.',
+                        uuid: 'u-skill-text',
+                        parentUUID: 'u-skill-result'
+                    }
+                ]
+            }
+        ]
+
+        const { blocks } = reduceChatBlocks(messages, null)
+        expect(blocks).toHaveLength(1)
+        expect(blocks[0]?.kind).toBe('tool-call')
+
+        if (blocks[0]?.kind !== 'tool-call') {
+            throw new Error('Expected tool-call block')
+        }
+
+        expect(blocks[0].tool.result).toBe('Launching skill: trellis:before-backend-dev')
+        expect(blocks[0].tool.followupText).toBe(
+            'Read the backend development guidelines before starting your development task.\n\n1. Read the index.'
+        )
     })
 })

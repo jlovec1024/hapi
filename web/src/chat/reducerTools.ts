@@ -109,6 +109,7 @@ export function ensureToolBlock(
         startedAt: initialState === 'running' ? seed.createdAt : null,
         completedAt: null,
         description: seed.description,
+        followupText: undefined,
         permission: seed.permission
     }
 

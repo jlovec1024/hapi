@@ -149,6 +149,7 @@ function areToolCallsEqual(left: ToolCallBlock, right: ToolCallBlock, childrenSa
         && left.tool.state === right.tool.state
         && left.tool.input === right.tool.input
         && left.tool.result === right.tool.result
+        && left.tool.followupText === right.tool.followupText
         && left.tool.description === right.tool.description
         && left.tool.createdAt === right.tool.createdAt
         && left.tool.startedAt === right.tool.startedAt
