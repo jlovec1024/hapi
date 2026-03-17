@@ -10,6 +10,7 @@ import { readSettings } from '@/persistence'
 import { configuration } from '@/configuration'
 import { logger } from '@/ui/logger'
 import { runtimePath } from '@/projectPath'
+import { ensureGitSafeDirectoryForSession } from '@/utils/gitSafeDirectory'
 import { readWorktreeEnv } from '@/utils/worktreeEnv'
 import packageJson from '../../package.json'
 
@@ -106,8 +107,9 @@ export async function bootstrapSession(options: SessionBootstrapOptions): Promis
     const sessionTag = options.tag ?? randomUUID()
     const agentState = options.agentState === undefined ? {} : options.agentState
 
-    const api = await ApiClient.create()
+    await ensureGitSafeDirectoryForSession(workingDirectory)
 
+    const api = await ApiClient.create()
     const machineId = await getMachineIdOrExit()
     await api.getOrCreateMachine({
         machineId,

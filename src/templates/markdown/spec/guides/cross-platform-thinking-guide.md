@@ -196,6 +196,36 @@ ZCF_API_URL="https://axonhub.example.com"
 - 在入口脚本中打印脱敏后的配置摘要，便于肉眼识别写反
 - 对明显写反的输入做告警，必要时自动纠正或直接失败
 
+### 陷阱 7: Git 仓库信任状态假设
+
+**问题**: 在 Docker runner / worktree 场景中，代码默认假设 Git 已经信任当前仓库目录，但容器内路径、挂载目录或动态创建的 worktree 路径往往并不在 Git 的 `safe.directory` 白名单里。
+
+```bash
+# ❌ 错误：直接进入 worktree 流程，假设 git 一定可用
+git worktree add /workspace/.claude/worktrees/task-123
+
+# ✅ 正确：启动阶段先验证仓库信任状态，缺失时显式配置
+if ! git config --global --get-all safe.directory | grep -Fx "$REPO_DIR" >/dev/null; then
+  git config --global --add safe.directory "$REPO_DIR"
+fi
+```
+
+**症状**:
+- runner docker 中无法开启 worktree 模式
+- Git 报 `detected dubious ownership in repository`
+- 主流程看起来像“worktree 功能异常”，但真正失败点是基础 Git 配置缺失
+
+**根因**:
+- 把“仓库路径存在”误当成“Git 已认可该路径可操作”
+- 容器镜像、宿主挂载、worktree 子目录会改变 Git 看到的所有者/路径语义
+- 初始化逻辑只准备了目录和命令，却没有准备 Git trust prerequisite
+
+**预防**:
+- 在 runner / docker / worktree 初始化入口增加 `git rev-parse` + `safe.directory` 预检
+- 将仓库信任配置视为环境契约的一部分，而不是依赖人工补救
+- 错误日志同时输出 `repo path`、`git status/command`、`dubious ownership` 关键词，避免误判成 worktree API 故障
+- 对动态 worktree 根目录和主仓库目录分别校验，不要只校验其中一个
+
 ---
 
 ## 跨平台检查清单
@@ -230,6 +260,7 @@ hardcoded '/' in paths
 - [ ] 是否使用了 `path.join()` 而不是字符串拼接？
 - [ ] 是否使用了 `os.homedir()` 而不是 `process.env.HOME`？
 - [ ] 是否在 Windows 上测试过？
+- [ ] Docker / worktree 场景下是否验证过 Git `safe.directory` 信任状态？
 
 ---
 
@@ -370,7 +401,103 @@ if (terminalSupportIssue) {
 - 错误日志必须同时带上 `platform`、`shell`、`capability/cause`
 - websocket 重连日志要做节流，避免同一错误每秒刷屏掩盖真正根因
 
-### 案例 4: 多架构 Docker 发布卡在单镜像
+### 案例 5: Docker 环境可执行文件路径硬编码
+
+**问题**: Docker 容器启动后 Claude Code 会话失败，报错 `Process exited unexpectedly`
+
+**现象**:
+- 日志显示 `[Claude SDK] Using ZS_CLAUDE_PATH: /usr/local/bin/claude`
+- spawn 调用失败，但错误信息不明确
+- 用户无法判断是配置问题还是安装问题
+
+**根因**:
+- `Dockerfile.runner` 中硬编码了 `ENV ZS_CLAUDE_PATH=/usr/local/bin/claude`
+- 代码优先读取该环境变量，绕过了 PATH 查找
+- 一旦路径失效或镜像变更，直接失败
+- 违反"开箱即用"原则，把路径配置暴露给用户
+
+**错误设计**:
+```dockerfile
+# ❌ 硬编码可执行文件路径
+ENV ZS_CLAUDE_PATH=/usr/local/bin/claude
+```
+
+```yaml
+# ❌ 允许用户覆盖路径配置
+environment:
+  ZS_CLAUDE_PATH: /usr/local/bin/claude
+```
+
+**正确设计**:
+```dockerfile
+# ✅ 不设置路径环境变量，依赖 PATH
+# 确保安装时已正确链接到 PATH
+RUN npm install -g @anthropic-ai/claude-code \
+    && ln -sf "$(command -v claude)" /usr/local/bin/claude
+```
+
+```bash
+# ✅ 容器启动时预检
+if ! command -v claude >/dev/null 2>&1; then
+    echo "[entrypoint] ERROR: claude command not found in PATH" >&2
+    echo "[entrypoint] Please ensure Claude Code is installed in the container" >&2
+    exit 1
+fi
+```
+
+**预防原则**:
+- **不在仓库内显性定义可执行文件路径**
+- **不让用户配置可执行文件路径**（除非高级调试场景）
+- **只保证：安装成功 + 在 PATH 可执行**
+- **启动时预检 + 清晰错误提示**
+
+**文档更新**:
+- 移除 compose 示例中的路径配置说明
+- 强调"claude 已预安装，无需配置路径"
+- `ZS_CLAUDE_PATH` 标记为"高级用户选项"
+
+---
+
+### 案例 6: Docker runner 中 worktree 因 safe.directory 失败
+
+**问题**: runner docker 中无法开启 worktree 模式，必须先执行 `git config --global --add safe.directory <repo>` 才能继续。
+
+**现象**:
+- 进入 worktree 流程后 Git 命令立即失败
+- 报错通常包含 `detected dubious ownership in repository`
+- 用户感知为“worktree 模式坏了”，但目录与分支逻辑本身可能并无问题
+
+**根因**:
+- 容器中的仓库目录通常来自挂载卷或宿主 worktree，Git 会额外校验目录所有权与信任状态
+- 系统只做了 worktree 功能层面的准备，却遗漏了 Git 基础环境契约：`safe.directory`
+- 把“仓库路径存在”误当成“Git 已认可该路径可操作”
+
+**错误修复方式**:
+```bash
+# ❌ 出问题后让用户手工补命令，系统自身没有吸收经验
+git config --global --add safe.directory "$REPO_DIR"
+```
+
+**正确思路**:
+```bash
+# ✅ 在 runner / worktree 初始化阶段做前置校验
+if git rev-parse --show-toplevel >/dev/null 2>&1; then
+  repo_dir="$(git rev-parse --show-toplevel)"
+  if ! git config --global --get-all safe.directory | grep -Fx "$repo_dir" >/dev/null; then
+    git config --global --add safe.directory "$repo_dir"
+  fi
+fi
+```
+
+**预防**:
+- 把 `safe.directory` 视为 Docker + Git + worktree 的跨层契约，不要留给用户兜底
+- 对主仓库路径与新建 worktree 路径分别做 trust 校验
+- 在容器启动或 runner 初始化日志中打印脱敏后的 repo path 与 trust check 结果
+- 增加覆盖挂载目录、rootless、不同 uid/gid 组合的集成测试
+
+---
+
+### 案例 7: 多架构 Docker 发布卡在单镜像
 
 **问题**: GitHub Actions 中 `publish (hub, Dockerfile.hub)` 长时间停留在 `Build and push`，而同一工作流里的 runner 镜像已经完成，导致 `zs-hub` 镜像长期未成功发布。
 
@@ -426,30 +553,3 @@ if (terminalSupportIssue) {
 4. **PR 前**: 确保在 Windows 上测试过（或标注需要测试）
 
 ---
-
-## 相关资源
-
-- [Node.js os 模块文档](https://nodejs.org/api/os.html)
-- [Node.js path 模块文档](https://nodejs.org/api/path.html)
-- [cross-spawn 库](https://github.com/moxystudio/node-cross-spawn)
-- 项目参考: `cli/src/utils/process.ts` - 跨平台进程管理示例
-
----
-
-## 总结
-
-**核心思想**:
-- 不要假设平台
-- 使用跨平台 API
-- 增强错误日志
-- 编写跨平台测试
-
-**记住**:
-> 在我的机器上能跑 ≠ 在所有平台上能跑
->
-> 隐式假设是最危险的 Bug 来源
-
-**行动**:
-- 编码时主动检查危险信号
-- PR 时使用检查清单
-- 发现新陷阱时更新本指南
