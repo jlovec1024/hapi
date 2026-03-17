@@ -49,7 +49,8 @@ if [ -n "${ZS_GO_VERSION}" ]; then
 fi
 
 CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/root/.claude}"
-export CLAUDE_CONFIG_DIR
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${CLAUDE_CONFIG_DIR}/.config}"
+export CLAUDE_CONFIG_DIR XDG_CONFIG_HOME
 
 if [ -n "${ZCF_API_KEY}" ] && [ -n "${ZCF_API_URL}" ]; then
     case "${ZCF_API_KEY}" in
@@ -142,6 +143,23 @@ if [ "${runtime_override}" = "true" ]; then
             node -e "const fs=require('fs');const p=process.env.CLAUDE_CONFIG_DIR+'/settings.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));const set=(k,v)=>{if(v!==undefined&&v!==''){j[k]=v;}};set('apiKey',process.env.ZCF_API_KEY);set('apiUrl',process.env.ZCF_API_URL);set('apiModel',process.env.ZCF_API_MODEL);set('apiHaikuModel',process.env.ZCF_API_HAIKU_MODEL);set('apiSonnetModel',process.env.ZCF_API_SONNET_MODEL);set('apiOpusModel',process.env.ZCF_API_OPUS_MODEL);set('outputStyle',process.env.ZCF_DEFAULT_OUTPUT_STYLE);set('allLang',process.env.ZCF_ALL_LANG);set('aiOutputLang',process.env.ZCF_AI_OUTPUT_LANG);fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');"
         fi
     )
+fi
+
+# Preflight check: Verify rtk is available
+if ! command -v rtk >/dev/null 2>&1; then
+    echo "[entrypoint] ERROR: rtk command not found in PATH" >&2
+    echo "[entrypoint] Please ensure RTK is installed in the container" >&2
+    exit 1
+fi
+
+# RTK initialization (first-boot only)
+RTK_CONFIG_DIR="${XDG_CONFIG_HOME}/rtk"
+mkdir -p "${XDG_CONFIG_HOME}"
+if [ ! -d "${RTK_CONFIG_DIR}" ] || [ -z "$(ls -A "${RTK_CONFIG_DIR}" 2>/dev/null)" ]; then
+    echo "[entrypoint] RTK config is empty, running first-boot rtk init..." >&2
+    HOME=/root rtk init --global || {
+        echo "[entrypoint] WARN: rtk init failed, but continuing startup" >&2
+    }
 fi
 
 exec "$@"

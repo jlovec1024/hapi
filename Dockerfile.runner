@@ -9,6 +9,7 @@ ARG GO_122=1.22.12
 ARG GO_124=1.24.3
 ARG PNPM_VERSION=10.11.0
 ARG NVM_VERSION=v0.40.3
+ARG RTK_VERSION=0.30.0
 ARG CLAUDE_PRIMARY_MODEL=claude-sonnet-4-6
 ARG CLAUDE_HAIKU_MODEL=claude-haiku-4-5-20251001
 ARG CLAUDE_SONNET_MODEL=claude-sonnet-4-6
@@ -63,6 +64,11 @@ COPY . .
 
 # ---- Global CLI tools ----------------------------------------
 RUN pnpm install -g mcp-swagger-server @mindfoldhq/trellis ux zcf
+
+# ---- RTK (Rust Token Killer) installation -------------------
+RUN curl -fsSL "https://github.com/rtk-ai/rtk/releases/download/v${RTK_VERSION}/rtk-x86_64-unknown-linux-musl.tar.gz" \
+    | tar -xz -C /usr/local/bin rtk \
+    && chmod +x /usr/local/bin/rtk
 
 # ---- Cleanup transient caches -------------------------------
 RUN rm -rf /root/.cache /tmp/*
