@@ -48,6 +48,15 @@ if [ -n "${ZS_GO_VERSION}" ]; then
     eval "$(goenv init -)"
 fi
 
+# Git user configuration via environment variables
+if [ -n "${ZS_GIT_USER_NAME}" ]; then
+    git config --global user.name "${ZS_GIT_USER_NAME}"
+fi
+
+if [ -n "${ZS_GIT_USER_EMAIL}" ]; then
+    git config --global user.email "${ZS_GIT_USER_EMAIL}"
+fi
+
 CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/root/.claude}"
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${CLAUDE_CONFIG_DIR}/.config}"
 export CLAUDE_CONFIG_DIR XDG_CONFIG_HOME

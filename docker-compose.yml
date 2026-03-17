@@ -22,6 +22,8 @@ services:
       CLI_API_TOKEN: ${CLI_API_TOKEN}
       ZS_GO_VERSION: ${ZS_GO_VERSION:-1.24.3}
       ZS_NODE_VERSION: ${ZS_NODE_VERSION:-22}
+      ZS_GIT_USER_NAME: "${ZS_GIT_USER_NAME:-zs runner}"
+      ZS_GIT_USER_EMAIL: "${ZS_GIT_USER_EMAIL:-zs-runner@local}"
       # ZCF 运行时覆盖：ZCF_API_KEY 必须是 token，ZCF_API_URL 必须是 http(s) URL
       ZCF_API_KEY: ${ZCF_API_KEY:-}
       ZCF_API_URL: ${ZCF_API_URL:-}

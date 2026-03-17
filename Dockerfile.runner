@@ -93,6 +93,7 @@ RUN apt-get update \
         git \
         ca-certificates \
         xz-utils \
+        openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=tooling /usr/local/nvm /usr/local/nvm
