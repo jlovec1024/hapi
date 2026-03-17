@@ -103,7 +103,7 @@ COPY website/package.json ./website/package.json
 COPY docs/package.json ./docs/package.json
 
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun install --frozen-lockfile --production \
+    bun install --frozen-lockfile \
     && rm -rf /root/.cache /tmp/*
 
 COPY cli ./cli
