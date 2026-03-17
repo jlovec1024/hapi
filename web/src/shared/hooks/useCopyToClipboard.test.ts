@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
 import { useCopyToClipboard } from './useCopyToClipboard'
 
 // Mock dependencies
@@ -21,6 +21,12 @@ vi.mock('@/shared/lib/clipboard', () => ({
 describe('useCopyToClipboard', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        vi.useFakeTimers()  // 启用 fake timers
+    })
+
+    afterEach(() => {
+        vi.restoreAllMocks()
+        vi.useRealTimers()  // 恢复真实定时器
     })
 
     it('initializes with copied as false', () => {
@@ -56,7 +62,12 @@ describe('useCopyToClipboard', () => {
 
         expect(result.current.copied).toBe(true)
 
-        await waitFor(() => expect(result.current.copied).toBe(false), { timeout: 200 })
+        // 使用 fake timers 精确控制时间流逝
+        act(() => {
+            vi.advanceTimersByTime(100)
+        })
+
+        expect(result.current.copied).toBe(false)
     })
 
     it('returns false on copy failure', async () => {
@@ -86,6 +97,11 @@ describe('useCopyToClipboard', () => {
 
         expect(result.current.copied).toBe(true)
 
-        await waitFor(() => expect(result.current.copied).toBe(false), { timeout: 100 })
+        // 使用 fake timers 精确控制时间流逝
+        act(() => {
+            vi.advanceTimersByTime(50)
+        })
+
+        expect(result.current.copied).toBe(false)
     })
 })

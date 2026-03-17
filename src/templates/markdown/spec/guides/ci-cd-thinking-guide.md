@@ -166,6 +166,238 @@ grep -r "setup-bun" .github/workflows/ | grep -o "bun-version: [0-9.]*" | sort -
 
 ---
 
+### 4. 测试稳定性原则
+
+**涉及时间流逝的测试必须使用 fake timers，避免真实定时器导致的不稳定性。**
+
+#### 问题：Flaky Tests（不稳定测试）
+
+**反例：PR#52 的问题**
+
+```typescript
+// ❌ 错误：依赖真实定时器
+it('uses custom reset delay', async () => {
+    const { result } = renderHook(() => useCopyToClipboard(50))  // 50ms delay
+
+    await act(async () => {
+        await result.current.copy('test')
+    })
+
+    expect(result.current.copied).toBe(true)
+
+    // 问题：waitFor timeout=100ms，但 resetDelay=50ms
+    // 在高负载环境下，setTimeout 可能在 waitFor 轮询间隔之后才触发
+    await waitFor(() => expect(result.current.copied).toBe(false), { timeout: 100 })
+})
+```
+
+**后果**：
+- 本地通过，CI 环境失败（或反之）
+- 测试结果不可预测，依赖系统负载
+- 难以调试，因为问题不稳定复现
+- 浪费开发时间在"重新运行 CI"上
+
+#### 时序竞态分析
+
+```
+时间轴（真实定时器）：
+0ms:   copy() 调用，setTimeout(50ms) 启动，copied = true
+       waitFor 开始，第一次检查：copied = true ✗
+50ms:  waitFor 第二次检查（轮询间隔 50ms）
+       ⚠️ 竞态窗口：setTimeout 可能在检查前/后触发
+       - 如果 setTimeout 先触发：copied = false ✓
+       - 如果检查先执行：copied = true ✗
+100ms: waitFor timeout，如果 copied 仍为 true 则失败
+
+在 CI 高负载环境下，setTimeout 调度延迟更明显，失败概率更高。
+```
+
+#### 正确做法：使用 Fake Timers
+
+```typescript
+// ✅ 正确：使用 fake timers 控制时间
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+
+describe('useCopyToClipboard', () => {
+    beforeEach(() => {
+        vi.useFakeTimers()  // 启用 fake timers
+    })
+
+    afterEach(() => {
+        vi.restoreAllMocks()
+        vi.useRealTimers()  // 恢复真实定时器
+    })
+
+    it('uses custom reset delay', async () => {
+        const { result } = renderHook(() => useCopyToClipboard(50))
+
+        await act(async () => {
+            await result.current.copy('test')
+        })
+
+        expect(result.current.copied).toBe(true)
+
+        // 精确控制时间流逝
+        act(() => {
+            vi.advanceTimersByTime(50)  // 快进 50ms
+        })
+
+        expect(result.current.copied).toBe(false)  // 确定性结果
+    })
+})
+```
+
+**优势**：
+- **确定性**：时间流逝完全可控，结果可预测
+- **速度快**：不需要真实等待，测试瞬间完成
+- **无竞态**：消除了调度延迟导致的不确定性
+- **易调试**：失败时可以精确重现
+
+#### Checklist：何时使用 Fake Timers
+
+- [ ] 测试中使用了 `setTimeout` / `setInterval`
+- [ ] 测试中使用了 `waitFor` 等待状态变化
+- [ ] 测试中有延迟或定时行为
+- [ ] 测试依赖时间流逝（如倒计时、过期检查）
+- [ ] 测试中有防抖（debounce）或节流（throttle）
+
+**规则**：只要测试涉及时间，就应该使用 fake timers。
+
+#### 常见模式
+
+**模式 1：测试 setTimeout**
+
+```typescript
+it('resets state after delay', () => {
+    vi.useFakeTimers()
+
+    const { result } = renderHook(() => useDelayedReset(1000))
+
+    act(() => {
+        result.current.trigger()
+    })
+    expect(result.current.active).toBe(true)
+
+    act(() => {
+        vi.advanceTimersByTime(1000)
+    })
+    expect(result.current.active).toBe(false)
+
+    vi.useRealTimers()
+})
+```
+
+**模式 2：测试 setInterval**
+
+```typescript
+it('polls every 500ms', () => {
+    vi.useFakeTimers()
+    const callback = vi.fn()
+
+    const { result } = renderHook(() => useInterval(callback, 500))
+
+    expect(callback).toHaveBeenCalledTimes(0)
+
+    act(() => {
+        vi.advanceTimersByTime(500)
+    })
+    expect(callback).toHaveBeenCalledTimes(1)
+
+    act(() => {
+        vi.advanceTimersByTime(1000)
+    })
+    expect(callback).toHaveBeenCalledTimes(3)  // 总共 1500ms
+
+    vi.useRealTimers()
+})
+```
+
+**模式 3：测试 debounce**
+
+```typescript
+it('debounces input', () => {
+    vi.useFakeTimers()
+    const callback = vi.fn()
+
+    const { result } = renderHook(() => useDebounce(callback, 300))
+
+    // 快速连续调用
+    act(() => {
+        result.current('a')
+        result.current('ab')
+        result.current('abc')
+    })
+
+    expect(callback).not.toHaveBeenCalled()
+
+    // 等待 debounce 延迟
+    act(() => {
+        vi.advanceTimersByTime(300)
+    })
+
+    expect(callback).toHaveBeenCalledTimes(1)
+    expect(callback).toHaveBeenCalledWith('abc')  // 只调用最后一次
+
+    vi.useRealTimers()
+})
+```
+
+#### 避免的反模式
+
+**反模式 1：混用真实和 fake timers**
+
+```typescript
+// ❌ 错误：部分测试用 fake，部分用真实
+describe('MyComponent', () => {
+    it('test 1', async () => {
+        vi.useFakeTimers()
+        // ...
+        vi.useRealTimers()
+    })
+
+    it('test 2', async () => {
+        // 忘记设置 fake timers，使用真实定时器
+        await waitFor(...)  // 不稳定！
+    })
+})
+```
+
+**解决方案**：在 `beforeEach` 中统一设置
+
+```typescript
+// ✅ 正确：统一管理
+describe('MyComponent', () => {
+    beforeEach(() => {
+        vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+        vi.useRealTimers()
+    })
+
+    // 所有测试都使用 fake timers
+})
+```
+
+**反模式 2：忘记恢复真实定时器**
+
+```typescript
+// ❌ 错误：影响后续测试
+it('test with timers', () => {
+    vi.useFakeTimers()
+    // ...
+    // 忘记 vi.useRealTimers()
+})
+
+it('another test', () => {
+    // 这个测试会意外使用 fake timers！
+})
+```
+
+**解决方案**：使用 `afterEach` 确保清理
+
+---
+
 ## 常见场景 Checklist
 
 ### 添加新的 CI Workflow
@@ -187,6 +419,9 @@ grep -r "setup-bun" .github/workflows/ | grep -o "bun-version: [0-9.]*" | sort -
 - [ ] 如果有 AI reviewer，确认它能运行测试
 - [ ] 如果 AI reviewer 报告"未运行测试"，检查环境配置
 - [ ] **检查是否引入了运行时特定依赖（见下方"引入运行时特定依赖"）**
+- [ ] **检查是否涉及定时器（setTimeout/setInterval/waitFor）**
+  - 是 → 必须使用 `vi.useFakeTimers()`（见"测试稳定性原则"）
+  - 否 → 无需额外处理
 
 ### 升级运行时版本
 
@@ -656,8 +891,9 @@ git push
 
 ---
 
-**最后更新**：2026-03-16
+**最后更新**：2026-03-17
 - 基于 PR#24 的教训：环境一致性原则
 - 基于 Issue#313-012 的教训：运行时特定依赖的 mock 处理
 - 基于 CI failure (compose-smoke) 的教训：Lockfile drift 预防与修复
 - 基于 Lockfile drift 循环复现 (0068697 → e91f8f0) 的教训：npm registry 延迟导致的竞态条件，需要在 release-all.ts 中添加等待和验证机制
+- 基于 PR#52 CI 失败的教训：测试稳定性原则 - 涉及定时器的测试必须使用 fake timers 避免时序竞态
