@@ -40,6 +40,6 @@ EXPOSE 80
 
 ENV ZS_LISTEN_HOST=0.0.0.0
 ENV ZS_LISTEN_PORT=80
-ENV ZS_HOME=/root/.zhushen
+ENV ZS_HOME=/data/hub
 
 CMD ["bun", "run", "--cwd", "hub", "src/index.ts"]

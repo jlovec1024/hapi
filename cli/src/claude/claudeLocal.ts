@@ -10,6 +10,7 @@ import { spawnWithAbort } from "@/utils/spawnWithAbort";
 import { getZsBlobsDir } from "@/constants/uploadPaths";
 import { stripNewlinesForWindowsShellArg } from "@/utils/shellEscape";
 import { getDefaultClaudeCodePath } from "./sdk/utils";
+import { checkClaudeAuthConfig, formatClaudeAuthConfigError } from "./utils/authConfig";
 
 export async function claudeLocal(opts: {
     abort: AbortSignal,
@@ -42,6 +43,14 @@ export async function claudeLocal(opts: {
     if (opts.abort.aborted) {
         logger.debug('[ClaudeLocal] Abort already signaled before spawn; skipping launch');
         return startFrom ?? null;
+    }
+
+    const authConfig = checkClaudeAuthConfig({
+        ...process.env,
+        ...opts.claudeEnvVars
+    });
+    if (!authConfig.ok) {
+        throw new Error(formatClaudeAuthConfigError(authConfig));
     }
 
     // Build args for Claude CLI

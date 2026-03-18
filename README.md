@@ -25,12 +25,11 @@ npx @jlovec/zhushen                 # 运行 claude code
 
 ## Docker (zs-hub + zs-runner)
 
-使用 Docker 将 hub 和 runner 作为独立服务运行。runner 镜像预装了常用开发/运维工具，并支持运行时切换 Go/Node.js 版本。
+使用 Docker 将 hub 和 runner 作为独立服务运行。runner 镜像预装了常用开发/运维工具，支持运行时切换 Go/Node.js 版本，并以内置 `zs` 二进制作为默认入口。
 
 ```bash
 # 启动服务（需要提供必填环境变量）
 CLI_API_TOKEN=your-secret \
-CLAUDE_CONFIG_DIR=/absolute/path/to/your/.claude \
 docker compose up -d --build zs-hub zs-runner
 
 # 查看日志
@@ -39,26 +38,56 @@ docker compose logs -f zs-hub zs-runner
 
 ### 配置
 
-必填环境变量（通过命令行 `-e` 或修改 `docker-compose.yml` 提供）：
+必填环境变量（通过命令行 `-e` 或项目根目录 `.env` 提供）：
 
 - `CLI_API_TOKEN`: zs-hub 和 zs-runner 共用的密钥
-- `CLAUDE_CONFIG_DIR`: 挂载到容器的 Claude Code 认证/会话配置的宿主机绝对路径
 
 可选环境变量（已有默认值）：
 
 - `ZS_LISTEN_PORT`: hub 暴露端口（默认 `80`）
 - `ZS_PUBLIC_URL`: hub 公开访问地址（默认 `http://localhost:80`）
-- `ZS_GO_VERSION`: 运行时 Go 版本（默认 `1.24.3`）
-- `ZS_NODE_VERSION`: 运行时 Node.js 主版本号（默认 `22`）
-- `ZCF_API_KEY`: 运行时注入 Claude API Key
-- `ZCF_API_URL`: 运行时注入 Claude API URL（必须是 `http(s)://` URL）
-- `ZCF_API_MODEL`: 运行时覆盖主模型
-- `ZCF_API_HAIKU_MODEL`: 运行时覆盖 Haiku 模型
-- `ZCF_API_SONNET_MODEL`: 运行时覆盖 Sonnet 模型
-- `ZCF_API_OPUS_MODEL`: 运行时覆盖 Opus 模型
-- `ZCF_DEFAULT_OUTPUT_STYLE`: 运行时覆盖默认输出样式
-- `ZCF_ALL_LANG`: 运行时统一覆盖语言参数
-- `ZCF_AI_OUTPUT_LANG`: 运行时覆盖 AI 输出语言
+- `ZS_GO_VERSION`: runner 运行时 Go 版本（默认 `1.24.3`）
+- `ZS_NODE_VERSION`: runner 运行时 Node.js 主版本号（默认 `24`，镜像仅预装该版本；指定其他版本时会在运行时安装）
+- `ZS_GIT_USER_NAME`: runner 容器内 git user.name
+- `ZS_GIT_USER_EMAIL`: runner 容器内 git user.email
+
+### 数据目录与卷
+
+compose 默认使用独立命名卷，并统一挂载到容器内 `/data` 体系：
+
+- `hub-data` -> `/data/hub`
+- `runner-data` -> `/data/runner`
+- `goenv-data` -> `/data/goenv`
+- `nvm-data` -> `/data/nvm`
+- `claude-data` -> `/data/claude`
+
+其中：
+
+- hub 默认 `ZS_HOME=/data/hub`
+- runner 默认 `ZS_HOME=/data/runner`
+- Claude Code 配置目录默认 `CLAUDE_CONFIG_DIR=/data/claude/.claude`
+- `/root/.claude.json` 会被统一映射到 `/data/claude/.claude.json`
+
+首次启动 runner 时：
+
+- 若 `/data/claude/.claude` 为空，会从镜像内置模板复制最小 Claude 配置；
+- 若 `/data/claude/.claude.json` 不存在，会自动生成模板文件；
+- 只建立 Claude 配置骨架，不会主动把 token / API 写入 `settings.json`。
+
+模板目录位于 `docker/claude-default`，当前结构为：
+
+```text
+docker/claude-default/
+├── .claude/
+│   ├── output-styles/
+│   │   ├── engineer-professional.md
+│   │   ├── laowang-engineer.md
+│   │   └── nekomata-engineer.md
+│   └── settings.json
+└── .claude.json
+```
+
+主神优先复用 Claude Code 官方支持的认证入口，例如 `CLAUDE_CODE_OAUTH_TOKEN`、`ANTHROPIC_API_KEY`、`settings.json` 与 `.claude.json`；当检测到认证缺失时，会在启动 Claude 会话前直接提示用户补齐配置。
 
 详细使用方法请参阅 [Runner Docker 独立使用指南](docs/guide/docker-runner.md)。
 

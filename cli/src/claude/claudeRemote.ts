@@ -11,6 +11,7 @@ import { systemPrompt } from "./utils/systemPrompt";
 import { PermissionResult } from "./sdk/types";
 import { getZsBlobsDir } from "@/constants/uploadPaths";
 import { getDefaultClaudeCodePath } from "./sdk/utils";
+import { checkClaudeAuthConfig, formatClaudeAuthConfigError } from "./utils/authConfig";
 
 export async function claudeRemote(opts: {
 
@@ -37,6 +38,14 @@ export async function claudeRemote(opts: {
     onCompletionEvent?: (message: string) => void,
     onSessionReset?: () => void
 }) {
+
+    const authConfig = checkClaudeAuthConfig({
+        ...process.env,
+        ...opts.claudeEnvVars
+    });
+    if (!authConfig.ok) {
+        throw new Error(formatClaudeAuthConfigError(authConfig));
+    }
 
     // Check if session is valid
     let startFrom = opts.sessionId;

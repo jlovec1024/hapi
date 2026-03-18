@@ -13,6 +13,7 @@ import { maybeAutoStartServer } from '@/utils/autoStartServer'
 import { withBunRuntimeEnv } from '@/utils/bunRuntime'
 import { extractErrorInfo } from '@/utils/errorUtils'
 import type { CommandDefinition } from './types'
+import { checkClaudeAuthConfig, formatClaudeAuthConfigError } from '@/claude/utils/authConfig'
 
 export const claudeCommand: CommandDefinition = {
     name: 'default',
@@ -112,6 +113,16 @@ ${chalk.bold.cyan('Claude Code Options (from `claude --help`):')}
             }
 
             process.exit(0)
+        }
+
+        const authConfig = checkClaudeAuthConfig({
+            ...process.env,
+            ...options.claudeEnvVars
+        })
+        if (!authConfig.ok) {
+            console.error(chalk.red('Claude authentication/configuration missing.'))
+            console.error(chalk.gray(formatClaudeAuthConfigError(authConfig)))
+            process.exit(1)
         }
 
         await initializeToken()

@@ -106,11 +106,9 @@ jobs:
 
       - name: Create smoke env
         run: |
-          mkdir -p /tmp/.claude-smoke
           cat > .env <<EOF
           CLI_API_TOKEN=smoke-test-token
           ZS_API_URL=http://zs-hub:3006
-          CLAUDE_CONFIG_DIR=/tmp/.claude-smoke
           EOF
 
       - name: Validate env

@@ -20,6 +20,7 @@ import { startRunnerControlServer } from './controlServer';
 import { createWorktree, removeWorktree, type WorktreeInfo } from './worktree';
 import { join } from 'path';
 import { buildMachineMetadata } from '@/agent/sessionFactory';
+import { checkClaudeAuthConfig, formatClaudeAuthConfigError } from '@/claude/utils/authConfig';
 
 export async function startRunner(): Promise<void> {
   // We don't have cleanup function at the time of server construction
@@ -342,6 +343,22 @@ export async function startRunner(): Promise<void> {
             ZS_WORKTREE_PATH: worktreeInfo.worktreePath,
             ZS_WORKTREE_CREATED_AT: String(worktreeInfo.createdAt)
           };
+        }
+
+        if (agent === 'claude') {
+          const authConfig = checkClaudeAuthConfig({
+            ...process.env,
+            ...extraEnv
+          });
+          if (!authConfig.ok) {
+            const errorMessage = formatClaudeAuthConfigError(authConfig);
+            logger.debug(`[RUNNER RUN] Claude auth config check failed: ${errorMessage}`);
+            await maybeCleanupWorktree('auth-config-missing');
+            return {
+              type: 'error',
+              errorMessage
+            };
+          }
         }
 
         // Construct arguments for the CLI
