@@ -117,6 +117,9 @@ RUN apt-get update \
         libreadline-dev \
         libbz2-dev \
         libsqlite3-dev \
+        procps \
+        tree \
+        rsync \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=tooling /opt/nvm /opt/nvm
@@ -139,7 +142,6 @@ ENV ZS_API_URL=http://zs-hub:80
 ENV ZS_GO_VERSION=1.24.3
 ENV ZS_NODE_VERSION=24
 ENV CLAUDE_TEMPLATE_DIR=/opt/zhushen/claude-default
-ENV CLAUDE_CONFIG_DIR=/data/claude/.claude
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 

@@ -1,24 +1,39 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-copy_dir_if_empty() {
+seed_dir_if_needed() {
     src_dir="$1"
     dst_dir="$2"
 
     mkdir -p "${dst_dir}"
-    if [ -z "$(ls -A "${dst_dir}" 2>/dev/null)" ]; then
-        cp -a "${src_dir}/." "${dst_dir}/"
+    echo "[entrypoint] Syncing missing Claude template defaults into ${dst_dir}" >&2
+    rsync -a --ignore-existing "${src_dir}/" "${dst_dir}/"
+}
+
+resolve_user_home() {
+    if [ -n "${HOME:-}" ]; then
+        printf '%s\n' "${HOME}"
+        return
     fi
+
+    current_uid="$(id -u)"
+    passwd_home="$(getent passwd "${current_uid}" | cut -d: -f6)"
+    if [ -n "${passwd_home}" ]; then
+        printf '%s\n' "${passwd_home}"
+        return
+    fi
+
+    echo "[entrypoint] ERROR: unable to resolve user home; set HOME or use a user with a valid passwd entry" >&2
+    exit 1
 }
 
 ensure_nvm_runtime() {
     export NVM_DIR="${NVM_DIR:-/data/nvm}"
     nvm_source_dir="${NVM_SOURCE_DIR:-/opt/nvm}"
 
-    mkdir -p "$(dirname "${NVM_DIR}")"
+    mkdir -p "${NVM_DIR}"
     if [ ! -f "${NVM_DIR}/nvm.sh" ]; then
-        rm -rf "${NVM_DIR}"
-        cp -a "${nvm_source_dir}" "${NVM_DIR}"
+        cp -a "${nvm_source_dir}/." "${NVM_DIR}/"
     fi
 
     export PNPM_HOME="${PNPM_HOME:-/usr/local/pnpm}"
@@ -37,10 +52,9 @@ ensure_goenv_runtime() {
     export GOENV_ROOT="${GOENV_ROOT:-/data/goenv}"
     goenv_source_dir="${GOENV_SOURCE_DIR:-/opt/goenv}"
 
-    mkdir -p "$(dirname "${GOENV_ROOT}")"
+    mkdir -p "${GOENV_ROOT}"
     if [ ! -x "${GOENV_ROOT}/bin/goenv" ]; then
-        rm -rf "${GOENV_ROOT}"
-        cp -a "${goenv_source_dir}" "${GOENV_ROOT}"
+        cp -a "${goenv_source_dir}/." "${GOENV_ROOT}/"
     fi
 
     export PATH="${GOENV_ROOT}/bin:${GOENV_ROOT}/shims:${PNPM_HOME}:${PATH}"
@@ -52,27 +66,26 @@ ensure_goenv_runtime() {
 }
 
 ensure_claude_config() {
-    claude_data_root="${CLAUDE_DATA_ROOT:-/data/claude}"
     claude_template_dir="${CLAUDE_TEMPLATE_DIR:-/opt/zhushen/claude-default}"
+    resolved_home="$(resolve_user_home)"
+    claude_config_dir="${resolved_home}/.claude"
+    claude_legacy_config_path="${resolved_home}/.claude.json"
 
-    export CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-${claude_data_root}/.claude}"
-    export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${CLAUDE_CONFIG_DIR}/.config}"
+    export HOME="${resolved_home}"
+    export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${resolved_home}/.config}"
 
-    mkdir -p "${claude_data_root}" "${CLAUDE_CONFIG_DIR}" "${XDG_CONFIG_HOME}"
+    mkdir -p "${resolved_home}" "${claude_config_dir}" "${XDG_CONFIG_HOME}"
 
     if [ ! -d "${claude_template_dir}/.claude" ]; then
         echo "[entrypoint] ERROR: Claude template directory missing: ${claude_template_dir}/.claude" >&2
         exit 1
     fi
 
-    copy_dir_if_empty "${claude_template_dir}/.claude" "${CLAUDE_CONFIG_DIR}"
+    seed_dir_if_needed "${claude_template_dir}/.claude" "${claude_config_dir}"
 
-    if [ ! -f "${claude_data_root}/.claude.json" ]; then
-        cp -a "${claude_template_dir}/.claude.json" "${claude_data_root}/.claude.json"
+    if [ ! -f "${claude_legacy_config_path}" ]; then
+        cp -a "${claude_template_dir}/.claude.json" "${claude_legacy_config_path}"
     fi
-
-    rm -f /root/.claude.json
-    ln -s "${claude_data_root}/.claude.json" /root/.claude.json
 }
 
 ensure_runtime_versions() {
@@ -86,9 +99,12 @@ ensure_runtime_versions() {
     fi
 
     if [ -n "${ZS_GO_VERSION:-}" ]; then
-        if ! goenv versions --bare | grep -qx "${ZS_GO_VERSION}"; then
+        if ! goenv versions --bare 2>/dev/null | grep -qx "${ZS_GO_VERSION}"; then
             echo "[entrypoint] Go ${ZS_GO_VERSION} not installed, installing with goenv..." >&2
-            goenv install -s "${ZS_GO_VERSION}"
+            if ! goenv install -s "${ZS_GO_VERSION}" </dev/null; then
+                echo "[entrypoint] ERROR: goenv install ${ZS_GO_VERSION} failed" >&2
+                exit 1
+            fi
         fi
         goenv global "${ZS_GO_VERSION}"
         eval "$(goenv init -)"
@@ -112,13 +128,16 @@ ensure_rtk() {
         exit 1
     fi
 
-    rtk_config_dir="${XDG_CONFIG_HOME}/rtk"
     mkdir -p "${XDG_CONFIG_HOME}"
-    if [ ! -d "${rtk_config_dir}" ] || [ -z "$(ls -A "${rtk_config_dir}" 2>/dev/null)" ]; then
-        echo "[entrypoint] RTK config is empty, running first-boot rtk init..." >&2
-        HOME=/root rtk init --global || {
-            echo "[entrypoint] WARN: rtk init failed, but continuing startup" >&2
-        }
+    echo "[entrypoint] Running RTK global init..." >&2
+
+    if RTK_NON_INTERACTIVE=true rtk init --global --auto-patch </dev/null; then
+        return
+    fi
+
+    echo "[entrypoint] WARN: rtk init --auto-patch failed, falling back to plain init" >&2
+    if ! RTK_NON_INTERACTIVE=true rtk init --global </dev/null; then
+        echo "[entrypoint] WARN: rtk init failed, but continuing startup" >&2
     fi
 }
 

@@ -28,7 +28,6 @@ services:
       - runner-data:/data/runner
       - goenv-data:/data/goenv
       - nvm-data:/data/nvm
-      - claude-data:/data/claude
     depends_on:
       - zs-hub
     restart: unless-stopped
@@ -38,4 +37,3 @@ volumes:
   runner-data:
   goenv-data:
   nvm-data:
-  claude-data:

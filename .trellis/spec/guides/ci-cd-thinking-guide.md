@@ -967,17 +967,12 @@ RUN bun run download:tunwg
 RUN cd /app/cli && bun run build:exe --target bun-linux-x64-baseline
 ```
 
-**正确修复（只下载必需资源）**：
+**正确修复（只下载必需资源，且复用脚本契约）**：
 ```dockerfile
 COPY . .
 
-# ✅ 正模式：只下载当前构建目标必需的资源
-RUN mkdir -p /app/hub/tools/tunwg \
-    && curl -fsSL https://github.com/tiann/tunwg/releases/latest/download/tunwg \
-       -o /app/hub/tools/tunwg/tunwg-x64-linux \
-    && chmod +x /app/hub/tools/tunwg/tunwg-x64-linux \
-    && curl -fsSL https://raw.githubusercontent.com/tiann/tunwg/refs/heads/main/LICENSE \
-       -o /app/hub/tools/tunwg/LICENSE
+# ✅ 正模式：仅下载 Linux x64，复用统一下载脚本（避免 Dockerfile 与脚本逻辑分叉）
+RUN TUNWG_TARGET_PLATFORM=x64-linux bun run download:tunwg
 
 RUN cd /app/cli && bun run build:exe --target bun-linux-x64-baseline
 ```

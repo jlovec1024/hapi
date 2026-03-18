@@ -534,6 +534,42 @@ fi
 - 为 publish job 增加“按架构拆分 / 进度输出 / 超时阈值”的可观测性，避免长时间 `in_progress` 无法定位。
 - 在发布前优先检查 `Dockerfile.*` 差异，而不是看到另一个镜像成功就默认 workflow 没问题。
 
+### 案例 8: Docker runner 启动脚本未复制默认 `.claude` 模板
+
+**问题**: 预期 `/opt/zhushen/claude-default/.claude` 在容器启动时自动复制到 `/data/claude/.claude`，但实际目标目录没有 `output-styles` 和 `settings.json`。
+
+**现象**:
+- 容器中 `/data/claude/.claude` 目录存在，但缺失默认模板文件
+- 功能层面表现为“runner 启动脚本没有 copy 配置”
+- 排查时容易误判为 `cp` 逻辑异常
+
+**根因**:
+- `entrypoint.sh` 使用了 `copy_dir_if_empty`，仅在目标目录完全为空时才执行复制（`docker/entrypoint.sh:4`、`docker/entrypoint.sh:68`）
+- 容器启动前若挂载卷中已存在任意文件/目录（例如 `plugins`、`projects`、`session-env`），目标目录就不再满足“空目录”条件
+- 结果是模板不会被增量补齐，形成“目录有了，但默认文件没复制”的假象
+
+**错误思路**:
+```bash
+# ❌ 只检查 cp 语句是否存在，忽略 copy 触发条件
+cp -a "${src_dir}/." "${dst_dir}/"
+```
+
+**正确思路**:
+```text
+# ✅ 把“首次初始化”和“后续补齐”作为两个不同场景建模
+1. 首次初始化：允许整目录复制
+2. 非首次启动：按文件级策略补齐缺失默认文件（不覆盖用户文件）
+3. 日志显式输出：是“跳过复制（非空）”还是“执行补齐”
+```
+
+**预防**:
+- 对默认配置目录使用“幂等补齐”策略，而不是“仅空目录复制”策略
+- 启动日志打印模板目录、目标目录、跳过原因（例如 `dst not empty`）
+- 为 docker runner 增加集成测试：预先放入 `plugins/` 后启动，验证 `output-styles/*` 和 `settings.json` 仍会补齐
+- 在规范中把“copy 触发条件”列为必查项，避免只看 `cp` 命令本身
+
+---
+
 ## 何时使用这个指南
 
 ### 触发条件
