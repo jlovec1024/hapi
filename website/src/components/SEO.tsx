@@ -8,34 +8,44 @@ interface SEOProps {
   url?: string;
 }
 
+const SITE_NAME = "Zhushen";
+const SITE_URL = "https://app.zhushen.run";
+const DEFAULT_IMAGE = "/images/og-image.png";
+
+const TITLE_BY_LANG = {
+  en: "Zhushen - Vibe Coding Anytime, Anywhere",
+  zh: "主神 - 随时随地，自由编程",
+} as const;
+
+const DESCRIPTION_BY_LANG = {
+  en: "Zhushen is the local-first AI agent platform for developers who love freedom. Go for a hike, grab a coffee, or just relax while your AI agents work in the background.",
+  zh: "主神是为热爱自由的开发者打造的本地优先 AI 代理平台。去徒步，去喝咖啡，或者只是放松一下，让你的 AI 代理在后台持续工作。",
+} as const;
+
 export function SEO({ title, description, image, url }: SEOProps) {
   const { i18n } = useTranslation();
-  const currentLang = i18n.language;
-  
-  const siteTitle = "HAPI - Vibe Coding Anytime, Anywhere";
-  const defaultDescription = "The local-first AI agent platform for developers who love freedom. Go for a hike, grab a coffee, or just relax. Your AI agents work in the background.";
-  const siteUrl = "https://hapi.manus.space";
-  const defaultImage = "/images/og-image.png"; // We need to create this or use an existing one
+  const currentLang = i18n.language.startsWith("zh") ? "zh" : "en";
 
-  const metaTitle = title ? `${title} | HAPI` : siteTitle;
+  const siteTitle = TITLE_BY_LANG[currentLang];
+  const defaultDescription = DESCRIPTION_BY_LANG[currentLang];
+
+  const metaTitle = title ? `${title} | ${SITE_NAME}` : siteTitle;
   const metaDescription = description || defaultDescription;
-  const metaImage = image ? `${siteUrl}${image}` : `${siteUrl}${defaultImage}`;
-  const metaUrl = url ? `${siteUrl}${url}` : siteUrl;
+  const metaImage = image ? `${SITE_URL}${image}` : `${SITE_URL}${DEFAULT_IMAGE}`;
+  const metaUrl = url ? `${SITE_URL}${url}` : SITE_URL;
 
-  // Structured Data for Software Application
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "HAPI",
-    "operatingSystem": "Windows, macOS, Linux",
-    "applicationCategory": "DeveloperApplication",
-    "offers": {
+    name: currentLang === "zh" ? "主神" : SITE_NAME,
+    operatingSystem: "Windows, macOS, Linux",
+    applicationCategory: "DeveloperApplication",
+    offers: {
       "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
+      price: "0",
+      priceCurrency: "USD",
     },
-    "description": metaDescription,
-    "softwareVersion": "0.3.1"
+    description: metaDescription,
   };
 
   return (
@@ -47,9 +57,9 @@ export function SEO({ title, description, image, url }: SEOProps) {
       <link rel="canonical" href={metaUrl} />
       
       {/* Hreflang Tags for SEO */}
-      <link rel="alternate" hrefLang="en" href={`${siteUrl}?lng=en`} />
-      <link rel="alternate" hrefLang="zh" href={`${siteUrl}?lng=zh`} />
-      <link rel="alternate" hrefLang="x-default" href={siteUrl} />
+      <link rel="alternate" hrefLang="en" href={`${SITE_URL}?lng=en`} />
+      <link rel="alternate" hrefLang="zh" href={`${SITE_URL}?lng=zh`} />
+      <link rel="alternate" hrefLang="x-default" href={SITE_URL} />
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />
@@ -58,7 +68,7 @@ export function SEO({ title, description, image, url }: SEOProps) {
       <meta property="og:description" content={metaDescription} />
       <meta property="og:image" content={metaImage} />
       <meta property="og:locale" content={currentLang === 'zh' ? 'zh_CN' : 'en_US'} />
-      <meta property="og:site_name" content="HAPI" />
+      <meta property="og:site_name" content={currentLang === "zh" ? "主神" : SITE_NAME} />
 
       {/* Twitter */}
       <meta property="twitter:card" content="summary_large_image" />

@@ -27,4 +27,4 @@ docker pull ghcr.io/jlovec1024/zs-runner:${TAG}
 docker pull ghcr.io/jlovec1024/zs-hub:${TAG}
 ```
 
-See the full [Installation Guide](https://github.com/jlovec1024/hapi/blob/main/docs/guide/installation.md) for more options.
+See the full [Installation Guide](https://github.com/jlovec1024/zhushen/blob/main/docs/guide/installation.md) for more options.

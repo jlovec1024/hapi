@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://hapi.run/schemas/settings.schema.json",
+  "$id": "https://app.zhushen.run/schemas/settings.schema.json",
   "title": "Zhushen Settings",
   "description": "Configuration file for zhushen (~/.zhushen/settings.json)",
   "type": "object",
@@ -60,7 +60,7 @@
       "type": "boolean",
       "description": "Internal flag. Do not edit manually."
     },
-    "runnerAutoStartWhenRunningHappy": {
+    "runnerAutoStartWhenRunningZhushen": {
       "type": "boolean",
       "description": "Auto-start runner when running zs command."
     }

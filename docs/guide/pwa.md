@@ -11,12 +11,12 @@
 - **离线支持**：无网络时仍可使用基础功能
 - **自动更新**：始终获取最新版本
 
-## 安装 HAPI PWA
+## 安装主神 PWA
 
 ### Android（Chrome/Edge）
 
 1. 在 Chrome 或 Edge 中打开主神
-2. 在底部找到 **”Install HAPI”** 横幅
+2. 在底部找到 **“安装主神”** 或 **“Install Zhushen”** 横幅
 3. 点击 **”Install”**
 4. 主神会出现在主屏幕
 
@@ -39,7 +39,7 @@ iOS 仅支持通过 Safari 安装 PWA。iOS 上的 Chrome/Firefox 不支持“Ad
 
 1. 在浏览器中打开主神
 2. 点击地址栏中的安装图标（⊕）
-3. 或使用菜单：**“Install HAPI...”**
+3. 或使用菜单：**“Install Zhushen...”**
 4. 主神将以独立窗口打开
 
 ## PWA 功能
@@ -115,17 +115,17 @@ iOS 仅支持通过 Safari 安装 PWA。iOS 上的 Chrome/Firefox 不支持“Ad
 ### 卸载
 
 **Android：**
-1. 长按 HAPI 图标
+1. 长按主神图标
 2. 拖动到“卸载”或点击 X
 
 **iOS：**
-1. 长按 HAPI 图标
+1. 长按主神图标
 2. 点击 “Remove App” → “Delete App”
 
 **桌面端：**
-1. 打开 HAPI
+1. 打开主神
 2. 点击右上角三点菜单
-3. 选择 “Uninstall HAPI”
+3. 选择 “Uninstall Zhushen”
 
 ### 清理缓存
 
@@ -145,7 +145,7 @@ iOS 仅支持通过 Safari 安装 PWA。iOS 上的 Chrome/Firefox 不支持“Ad
 - 后台同步稳定执行
 - 通知及时到达
 
-路径：Settings → Apps → HAPI → Battery → Unrestricted
+路径：Settings → Apps → Zhushen → Battery → Unrestricted
 
 ### 流量使用
 

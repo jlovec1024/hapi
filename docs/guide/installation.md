@@ -190,7 +190,7 @@ zs hub --no-relay
 | `ZS_PUBLIC_URL` | - | `publicUrl` | 对外访问 URL |
 | `CORS_ORIGINS` | - | `corsOrigins` | 允许的 CORS 来源（逗号分隔） |
 | `ZS_RELAY_FORCE_TCP` | `false` | - | relay 强制 TCP |
-| `VAPID_SUBJECT` | `mailto:admin@hapi.run` | - | Web Push 联系信息 |
+| `VAPID_SUBJECT` | `mailto:admin@zhushen.run` | - | Web Push 联系信息 |
 | `ZS_HOME` | `~/.zhushen` | - | 配置目录路径 |
 | `DB_PATH` | `~/.zhushen/zhushen.db` | - | 数据库文件路径 |
 </details>
@@ -204,14 +204,14 @@ zs hub --no-relay
 
 ```json
 {
-  "$schema": "https://hapi.run/docs/schemas/settings.schema.json",
+  "$schema": "https://app.zhushen.run/docs/schemas/settings.schema.json",
   "listenHost": "0.0.0.0",
   "listenPort": 3006,
   "publicUrl": "https://your-domain.com"
 }
 ```
 
-JSON Schema: [settings.schema.json](https://hapi.run/schemas/settings.schema.json)
+JSON Schema: [settings.schema.json](https://app.zhushen.run/schemas/settings.schema.json)
 </details>
 
 ## CLI 配置

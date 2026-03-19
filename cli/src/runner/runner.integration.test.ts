@@ -30,11 +30,11 @@ import {
   notifyRunnerSessionStarted,
   stopRunner,
   getRunnerAvailability,
-  isRunnerRunningCurrentlyInstalledHappyVersion
+  isRunnerRunningCurrentlyInstalledZhushenVersion
 } from '@/runner/controlClient';
 import { readRunnerState, clearRunnerState, clearRunnerLock } from '@/persistence';
 import { Metadata } from '@/api/types';
-import { spawnHappyCLI } from '@/utils/spawnHappyCLI';
+import { spawnZhushenCLI } from '@/utils/spawnZhushenCLI';
 import { getLatestRunnerLog } from '@/ui/logger';
 import { isProcessAlive, isWindows, killProcess, killProcessByChildProcess } from '@/utils/process';
 
@@ -91,9 +91,9 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     const apiUrl = configuration.apiUrl.toLowerCase();
     const isLocalApi = apiUrl.startsWith('http://localhost:') || apiUrl.startsWith('http://127.0.0.1:');
 
-    if (configuration.happyHomeDir === defaultHome) {
+    if (configuration.zhushenHomeDir === defaultHome) {
       throw new Error(
-        `[TEST] Refusing to run runner integration tests against default ZS_HOME: ${configuration.happyHomeDir}. ` +
+        `[TEST] Refusing to run runner integration tests against default ZS_HOME: ${configuration.zhushenHomeDir}. ` +
           'Set isolated ZS_HOME in .env.integration-test.'
       );
     }
@@ -106,7 +106,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     }
 
     const isolatedHomePrefix = `${join(tmpdir(), 'zs-integration-test-')}`;
-    shouldCleanupIsolatedHome = configuration.happyHomeDir.startsWith(isolatedHomePrefix);
+    shouldCleanupIsolatedHome = configuration.zhushenHomeDir.startsWith(isolatedHomePrefix);
   });
 
   afterAll(() => {
@@ -114,7 +114,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
       return;
     }
 
-    rmSync(configuration.happyHomeDir, { recursive: true, force: true });
+    rmSync(configuration.zhushenHomeDir, { recursive: true, force: true });
   });
 
   beforeEach(async () => {
@@ -123,7 +123,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
 
     // Start fresh runner for this test
     // This will return and start a background process - we don't need to wait for it
-    void spawnHappyCLI(['runner', 'start'], {
+    void spawnZhushenCLI(['runner', 'start'], {
       stdio: 'ignore'
     });
 
@@ -158,9 +158,9 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
       path: '/test/path',
       host: 'test-host',
       homeDir: '/test/home',
-      happyHomeDir: '/test/happy-home',
-      happyLibDir: '/test/happy-lib',
-      happyToolsDir: '/test/happy-tools',
+      zhushenHomeDir: '/test/zhushen-home',
+      zhushenLibDir: '/test/zhushen-lib',
+      zhushenToolsDir: '/test/zhushen-tools',
       hostPid: 99999,
       startedBy: 'terminal',
       machineId: 'test-machine-123'
@@ -174,7 +174,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     
     const tracked = sessions[0];
     expect(tracked.startedBy).toBe('zs directly - likely by user from terminal');
-    expect(tracked.happySessionId).toBe('test-session-123');
+    expect(tracked.zhushenSessionId).toBe('test-session-123');
     expect(tracked.pid).toBe(99999);
   });
 
@@ -187,20 +187,20 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     // Verify session is tracked
     await waitFor(async () => {
       const sessions = await listRunnerSessions();
-      return sessions.some((s: any) => s.happySessionId === response.sessionId);
+      return sessions.some((s: any) => s.zhushenSessionId === response.sessionId);
     }, 5_000, 100);
 
     const sessions = await listRunnerSessions();
     const spawnedSession = sessions.find(
-      (s: any) => s.happySessionId === response.sessionId
+      (s: any) => s.zhushenSessionId === response.sessionId
     );
 
     expect(spawnedSession).toBeDefined();
     expect(spawnedSession.startedBy).toBe('runner');
 
     // Clean up - stop the spawned session
-    expect(spawnedSession.happySessionId).toBeDefined();
-    await stopRunnerSession(spawnedSession.happySessionId);
+    expect(spawnedSession.zhushenSessionId).toBeDefined();
+    await stopRunnerSession(spawnedSession.zhushenSessionId);
   });
 
   it('stress test: spawn / stop', { timeout: 60_000 }, async () => {
@@ -220,11 +220,11 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
 
     await waitFor(async () => {
       const sessions = await listRunnerSessions();
-      return sessionIds.every(sessionId => sessions.some((s: any) => s.happySessionId === sessionId));
+      return sessionIds.every(sessionId => sessions.some((s: any) => s.zhushenSessionId === sessionId));
     }, 15_000, 200);
 
     const sessions = await listRunnerSessions();
-    const runnerSessions = sessions.filter((s: any) => sessionIds.includes(s.happySessionId));
+    const runnerSessions = sessions.filter((s: any) => sessionIds.includes(s.zhushenSessionId));
     expect(runnerSessions).toHaveLength(sessionCount);
 
     // Stop all sessions
@@ -234,7 +234,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     // Verify all sessions are stopped
     await waitFor(async () => {
       const emptySessions = await listRunnerSessions();
-      return sessionIds.every(sessionId => !emptySessions.some((s: any) => s.happySessionId === sessionId));
+      return sessionIds.every(sessionId => !emptySessions.some((s: any) => s.zhushenSessionId === sessionId));
     }, 10_000, 200);
   });
 
@@ -253,9 +253,9 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
       path: '/tmp',
       host: 'test-host',
       homeDir: '/test/home',
-      happyHomeDir: '/test/happy-home',
-      happyLibDir: '/test/happy-lib',
-      happyToolsDir: '/test/happy-tools',
+      zhushenHomeDir: '/test/zhushen-home',
+      zhushenLibDir: '/test/zhushen-lib',
+      zhushenToolsDir: '/test/zhushen-tools',
       hostPid: terminalPid,
       startedBy: 'terminal',
       machineId: 'test-machine-terminal'
@@ -270,18 +270,18 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     await waitFor(async () => {
       const sessions = await listRunnerSessions();
       const hasTerminal = sessions.some(
-        (s: any) => s.startedBy === 'zs directly - likely by user from terminal' && s.happySessionId === terminalSessionId && s.pid === terminalPid
+        (s: any) => s.startedBy === 'zs directly - likely by user from terminal' && s.zhushenSessionId === terminalSessionId && s.pid === terminalPid
       );
-      const hasRunner = sessions.some((s: any) => s.happySessionId === spawnResponse.sessionId);
+      const hasRunner = sessions.some((s: any) => s.zhushenSessionId === spawnResponse.sessionId);
       return hasTerminal && hasRunner;
     }, 10_000, 200);
 
     const sessions = await listRunnerSessions();
     const terminalSession = sessions.find(
-      (s: any) => s.startedBy === 'zs directly - likely by user from terminal' && s.happySessionId === terminalSessionId && s.pid === terminalPid
+      (s: any) => s.startedBy === 'zs directly - likely by user from terminal' && s.zhushenSessionId === terminalSessionId && s.pid === terminalPid
     );
     const runnerSession = sessions.find(
-      (s: any) => s.happySessionId === spawnResponse.sessionId
+      (s: any) => s.zhushenSessionId === spawnResponse.sessionId
     );
 
     expect(terminalSession).toBeDefined();
@@ -291,7 +291,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     expect(runnerSession.startedBy).toBe('runner');
 
     await stopRunnerSession(terminalSessionId);
-    await stopRunnerSession(runnerSession.happySessionId);
+    await stopRunnerSession(runnerSession.zhushenSessionId);
   });
 
   it('should update session metadata when webhook is called', async () => {
@@ -302,11 +302,11 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     // Verify webhook was processed (session ID updated)
     await waitFor(async () => {
       const sessions = await listRunnerSessions();
-      return sessions.some((s: any) => s.happySessionId === spawnResponse.sessionId);
+      return sessions.some((s: any) => s.zhushenSessionId === spawnResponse.sessionId);
     }, 10_000, 200);
 
     const sessions = await listRunnerSessions();
-    const session = sessions.find((s: any) => s.happySessionId === spawnResponse.sessionId);
+    const session = sessions.find((s: any) => s.zhushenSessionId === spawnResponse.sessionId);
     expect(session).toBeDefined();
 
     // Clean up
@@ -361,20 +361,20 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
 
     await waitFor(async () => {
       const sessions = await listRunnerSessions();
-      return spawnedSessionIds.every(sessionId => sessions.some((s: any) => s.happySessionId === sessionId));
+      return spawnedSessionIds.every(sessionId => sessions.some((s: any) => s.zhushenSessionId === sessionId));
     }, 10_000, 200);
 
     // List should show all sessions
     const sessions = await listRunnerSessions();
     const runnerSessions = sessions.filter(
-      (s: any) => s.startedBy === 'runner' && spawnedSessionIds.includes(s.happySessionId)
+      (s: any) => s.startedBy === 'runner' && spawnedSessionIds.includes(s.zhushenSessionId)
     );
     expect(runnerSessions.length).toBeGreaterThanOrEqual(3);
 
     // Stop all spawned sessions
     for (const session of runnerSessions) {
-      expect(session.happySessionId).toBeDefined();
-      await stopRunnerSession(session.happySessionId);
+      expect(session.zhushenSessionId).toBeDefined();
+      await stopRunnerSession(session.zhushenSessionId);
     }
   });
 
@@ -544,10 +544,10 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
       expect(modifiedPackageStat.mtimeMs).not.toBe(initialCliMtimeMs);
 
       await waitFor(async () => {
-        return !(await isRunnerRunningCurrentlyInstalledHappyVersion());
+        return !(await isRunnerRunningCurrentlyInstalledZhushenVersion());
       }, 5_000, 200);
 
-      expect(await isRunnerRunningCurrentlyInstalledHappyVersion()).toBe(false);
+      expect(await isRunnerRunningCurrentlyInstalledZhushenVersion()).toBe(false);
     } finally {
       writeFileSync(packagePath, packageJsonOriginalRawText);
       console.log(`[TEST] Restored package.json version to ${originalVersion}`);
@@ -561,7 +561,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     const initialPid = initialState!.pid;
 
     // Use the actual restart subcommand (stop + start + show status)
-    void spawnHappyCLI(['runner', 'restart'], {
+    void spawnZhushenCLI(['runner', 'restart'], {
       stdio: 'ignore'
     });
 
@@ -588,7 +588,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     await waitFor(async () => !isProcessAlive(runnerPid), 3000);
 
     // Use the actual restart subcommand - should tolerate no runner running
-    void spawnHappyCLI(['runner', 'restart'], {
+    void spawnZhushenCLI(['runner', 'restart'], {
       stdio: 'ignore'
     });
 

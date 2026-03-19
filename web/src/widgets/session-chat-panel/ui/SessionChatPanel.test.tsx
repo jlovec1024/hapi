@@ -12,16 +12,16 @@ vi.mock('@assistant-ui/react', () => ({
     AssistantRuntimeProvider: ({ children }: any) => <div data-testid="runtime-provider">{children}</div>
 }))
 
-vi.mock('@/components/AssistantChat/HappyComposer', () => ({
-    HappyComposer: (props: any) => <div data-testid="happy-composer" data-props={JSON.stringify(props)}>Composer</div>
+vi.mock('@/components/AssistantChat/ZhushenComposer', () => ({
+    ZhushenComposer: (props: any) => <div data-testid="zhushen-composer" data-props={JSON.stringify(props)}>Composer</div>
 }))
 
-vi.mock('@/components/AssistantChat/HappyThread', () => ({
-    HappyThread: (props: any) => <div data-testid="happy-thread" data-props={JSON.stringify(props)}>Thread</div>
+vi.mock('@/components/AssistantChat/ZhushenThread', () => ({
+    ZhushenThread: (props: any) => <div data-testid="zhushen-thread" data-props={JSON.stringify(props)}>Thread</div>
 }))
 
 vi.mock('@/lib/assistant-runtime', () => ({
-    useHappyRuntime: vi.fn(() => ({}))
+    useZhushenRuntime: vi.fn(() => ({}))
 }))
 
 vi.mock('@/entities/message/lib/attachmentAdapter', () => ({
@@ -111,8 +111,8 @@ describe('SessionChatPanel', () => {
     it('renders chat thread and composer', () => {
         render(<SessionChatPanel {...defaultProps} />)
 
-        expect(screen.getByTestId('happy-thread')).toBeInTheDocument()
-        expect(screen.getByTestId('happy-composer')).toBeInTheDocument()
+        expect(screen.getByTestId('zhushen-thread')).toBeInTheDocument()
+        expect(screen.getByTestId('zhushen-composer')).toBeInTheDocument()
         expect(screen.getByTestId('runtime-provider')).toBeInTheDocument()
     })
 
@@ -142,7 +142,7 @@ describe('SessionChatPanel', () => {
         expect(screen.queryByText(/Session is inactive/)).not.toBeInTheDocument()
     })
 
-    it('passes correct props to HappyThread', () => {
+    it('passes correct props to ZhushenThread', () => {
         const onRefresh = vi.fn()
         const onLoadMore = vi.fn()
 
@@ -156,10 +156,10 @@ describe('SessionChatPanel', () => {
             />
         )
 
-        expect(screen.getByTestId('happy-thread')).toBeInTheDocument()
+        expect(screen.getByTestId('zhushen-thread')).toBeInTheDocument()
     })
 
-    it('passes correct props to HappyComposer', () => {
+    it('passes correct props to ZhushenComposer', () => {
         const session = createSession({
             permissionMode: 'ask',
             modelMode: 'opus',
@@ -168,7 +168,7 @@ describe('SessionChatPanel', () => {
 
         render(<SessionChatPanel {...defaultProps} session={session} />)
 
-        expect(screen.getByTestId('happy-composer')).toBeInTheDocument()
+        expect(screen.getByTestId('zhushen-composer')).toBeInTheDocument()
     })
 
     it('creates attachment adapter for active sessions', () => {

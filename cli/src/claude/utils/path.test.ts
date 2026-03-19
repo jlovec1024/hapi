@@ -45,9 +45,9 @@ describe('getProjectPath', () => {
     });
 
     it('should replace underscores with hyphens in the project path', () => {
-        const workingDir = '/data/github/hapi__worktrees/ime';
+        const workingDir = '/data/github/zhushen__worktrees/ime';
         const result = getProjectPath(workingDir);
-        expect(result).toBe(join(testHomeDir, '.claude', 'projects', '-data-github-hapi--worktrees-ime'));
+        expect(result).toBe(join(testHomeDir, '.claude', 'projects', '-data-github-zhushen--worktrees-ime'));
     });
 
     it('should handle relative paths by resolving them first', () => {

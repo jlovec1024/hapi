@@ -110,7 +110,7 @@ function isMachineMetadata(value: unknown): value is Machine['metadata'] {
     }
     return typeof value.host === 'string'
         && typeof value.platform === 'string'
-        && typeof value.happyCliVersion === 'string'
+        && typeof value.zhushenCliVersion === 'string'
 }
 
 function isMachineRecord(value: unknown): value is Machine {

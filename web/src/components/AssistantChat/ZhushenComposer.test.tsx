@@ -1,7 +1,7 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { HappyComposer } from './HappyComposer'
+import { ZhushenComposer } from './ZhushenComposer'
 
 const mockComposerSend = vi.fn()
 const mockComposerSetText = vi.fn()
@@ -151,7 +151,7 @@ afterEach(() => {
     cleanup()
 })
 
-describe('HappyComposer keyboard behavior', () => {
+describe('ZhushenComposer keyboard behavior', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         mockSuggestions = []
@@ -159,7 +159,7 @@ describe('HappyComposer keyboard behavior', () => {
     })
 
     it('sends on Enter when no suggestions are open', () => {
-        render(<HappyComposer />)
+        render(<ZhushenComposer />)
         const input = screen.getByTestId('composer-input')
 
         fireEvent.keyDown(input, { key: 'Enter' })
@@ -168,7 +168,7 @@ describe('HappyComposer keyboard behavior', () => {
     })
 
     it('does not send on Shift+Enter (newline behavior)', () => {
-        render(<HappyComposer />)
+        render(<ZhushenComposer />)
         const input = screen.getByTestId('composer-input')
 
         fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
@@ -180,7 +180,7 @@ describe('HappyComposer keyboard behavior', () => {
         mockSuggestions = [{ key: '1', text: '/help', label: 'help' }]
         mockSelectedIndex = 0
 
-        render(<HappyComposer />)
+        render(<ZhushenComposer />)
         const input = screen.getByTestId('composer-input')
 
         fireEvent.keyDown(input, { key: 'Enter' })
@@ -190,13 +190,13 @@ describe('HappyComposer keyboard behavior', () => {
     })
 
     it('restores draft when switching back to previous session', () => {
-        const { rerender } = render(<HappyComposer sessionId="session-a" />)
+        const { rerender } = render(<ZhushenComposer sessionId="session-a" />)
         const input = screen.getByTestId('composer-input')
 
         fireEvent.change(input, { target: { value: '123', selectionStart: 3, selectionEnd: 3 } })
 
-        rerender(<HappyComposer sessionId="session-b" />)
-        rerender(<HappyComposer sessionId="session-a" />)
+        rerender(<ZhushenComposer sessionId="session-b" />)
+        rerender(<ZhushenComposer sessionId="session-a" />)
 
         expect(mockComposerSetText).toHaveBeenCalledWith('123')
     })

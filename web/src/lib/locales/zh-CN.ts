@@ -9,7 +9,7 @@ export default {
   'loading.machines': '加载机器…',
 
   // Login / Auth
-  'login.title': 'HAPI',
+  'login.title': '主神',
   'login.subtitle': '随时随地，Vibe Coding',
   'login.submit': '登录',
   'login.submitting': '登录中…',
@@ -21,7 +21,7 @@ export default {
   'login.server.default': '(默认)',
   'login.server.custom': '(自定义)',
   'login.server.title': '服务器地址',
-  'login.server.description': '设置 HAPI 服务器地址以使用 API 和实时更新。',
+  'login.server.description': '设置主神服务器地址以使用 API 和实时更新。',
   'login.server.current': '当前：',
   'login.server.origin': '服务器地址',
   'login.server.placeholder': 'https://zhushen.example.com',
@@ -272,8 +272,8 @@ export default {
   'send.blocked.noConnection': '未连接到服务器',
 
   // Install prompt
-  'install.title': '安装 HAPI',
-  'install.description': '将 HAPI 添加到主屏幕以便快速访问。',
+  'install.title': '安装主神',
+  'install.description': '将主神添加到主屏幕，便于快速访问。',
   'install.button': '安装',
 
   // Language switcher

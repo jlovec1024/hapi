@@ -141,7 +141,7 @@ export class RpcGateway {
         try {
             const result = await this.machineRpc(
                 machineId,
-                'spawn-happy-session',
+                'spawn-zhushen-session',
                 { type: 'spawn-in-directory', directory, agent, model, yolo, sessionType, worktreeName, resumeSessionId }
             )
             if (result && typeof result === 'object') {

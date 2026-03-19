@@ -6,10 +6,10 @@
 
 ## Overview
 
-HAPI Web uses **TypeScript in strict mode** with comprehensive type coverage. Types are centralized in `types/` directory and imported via path aliases. The project emphasizes:
+Zhushen Web uses **TypeScript in strict mode** with comprehensive type coverage. Types are centralized in `types/` directory and imported via path aliases. The project emphasizes:
 
 - **Strict TypeScript** (`strict: true`, `noImplicitAny: true`, `strictNullChecks: true`)
-- **Shared protocol types** from `@hapi/protocol` workspace package
+- **Shared protocol types** from `@zhushen/protocol` workspace package
 - **Type-only imports** for better tree-shaking
 - **No runtime validation** on frontend (validation happens on backend)
 - **Explicit null handling** (no implicit undefined)
@@ -29,7 +29,7 @@ export type {
     AttachmentMetadata,
     Session,
     SessionSummary,
-} from '@hapi/protocol/types'
+} from '@zhushen/protocol/types'
 
 // Frontend-specific extensions
 export type DecryptedMessage = ProtocolDecryptedMessage & {
@@ -115,7 +115,7 @@ Type assertions are rare and only used for:
 const payload = JSON.parse(decoded) as { exp?: unknown }
 
 // Acceptable - library metadata typing
-const custom = message.metadata.custom as Partial<HappyChatMessageMetadata> | undefined
+const custom = message.metadata.custom as Partial<ZhushenChatMessageMetadata> | undefined
 ```
 
 **Never** use `as any` or `as unknown as T` without good reason.

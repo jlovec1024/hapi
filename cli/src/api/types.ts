@@ -28,11 +28,11 @@ export { AgentStateSchema, AttachmentMetadataSchema, MetadataSchema }
 export const MachineMetadataSchema = z.object({
     host: z.string(),
     platform: z.string(),
-    happyCliVersion: z.string(),
+    zhushenCliVersion: z.string(),
     displayName: z.string().optional(),
     homeDir: z.string(),
-    happyHomeDir: z.string(),
-    happyLibDir: z.string()
+    zhushenHomeDir: z.string(),
+    zhushenLibDir: z.string()
 })
 
 export type MachineMetadata = z.infer<typeof MachineMetadataSchema>

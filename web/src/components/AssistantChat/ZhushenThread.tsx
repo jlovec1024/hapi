@@ -2,10 +2,10 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { ThreadPrimitive } from '@assistant-ui/react'
 import type { ApiClient } from '@/api/client'
 import type { SessionMetadataSummary } from '@/types/api'
-import { HappyChatProvider } from '@/components/AssistantChat/context'
-import { HappyAssistantMessage } from '@/components/AssistantChat/messages/AssistantMessage'
-import { HappyUserMessage } from '@/components/AssistantChat/messages/UserMessage'
-import { HappySystemMessage } from '@/components/AssistantChat/messages/SystemMessage'
+import { ZhushenChatProvider } from '@/components/AssistantChat/context'
+import { ZhushenAssistantMessage } from '@/components/AssistantChat/messages/AssistantMessage'
+import { ZhushenUserMessage } from '@/components/AssistantChat/messages/UserMessage'
+import { ZhushenSystemMessage } from '@/components/AssistantChat/messages/SystemMessage'
 import { Button } from '@/shared/ui/button'
 import { Spinner } from '@/components/Spinner'
 import { useTranslation } from '@/lib/use-translation'
@@ -50,12 +50,12 @@ function MessageSkeleton() {
 }
 
 const THREAD_MESSAGE_COMPONENTS = {
-    UserMessage: HappyUserMessage,
-    AssistantMessage: HappyAssistantMessage,
-    SystemMessage: HappySystemMessage
+    UserMessage: ZhushenUserMessage,
+    AssistantMessage: ZhushenAssistantMessage,
+    SystemMessage: ZhushenSystemMessage
 } as const
 
-export function HappyThread(props: {
+export function ZhushenThread(props: {
     api: ApiClient
     sessionId: string
     metadata: SessionMetadataSummary | null
@@ -269,7 +269,7 @@ export function HappyThread(props: {
     const showSkeleton = props.isLoadingMessages && props.rawMessagesCount === 0 && props.pendingCount === 0
 
     return (
-        <HappyChatProvider value={{
+        <ZhushenChatProvider value={{
             api: props.api,
             sessionId: props.sessionId,
             metadata: props.metadata,
@@ -334,6 +334,6 @@ export function HappyThread(props: {
                 </ThreadPrimitive.Viewport>
                 <NewMessagesIndicator count={props.pendingCount} onClick={scrollToBottom} />
             </ThreadPrimitive.Root>
-        </HappyChatProvider>
+        </ZhushenChatProvider>
     )
 }

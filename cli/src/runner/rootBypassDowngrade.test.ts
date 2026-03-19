@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 import type { SpawnSessionOptions, SpawnSessionResult } from '@/modules/common/rpcTypes';
 
 // Mock dependencies
-const mockSpawnHappyCLI = vi.fn();
+const mockSpawnZhushenCLI = vi.fn();
 const mockLogger = {
   debug: vi.fn(),
   debugLargeJson: vi.fn(),
@@ -39,7 +39,7 @@ vi.mock('./controlClient', () => ({
   cleanupRunnerState: vi.fn(),
   getInstalledCliMtimeMs: vi.fn(),
   getRunnerAvailability: vi.fn(),
-  isRunnerRunningCurrentlyInstalledHappyVersion: vi.fn(),
+  isRunnerRunningCurrentlyInstalledZhushenVersion: vi.fn(),
   stopRunner: vi.fn()
 }));
 
@@ -51,8 +51,8 @@ vi.mock('@/agent/sessionFactory', () => ({ buildMachineMetadata: vi.fn() }));
 
 vi.mock('../../package.json', () => ({ default: { version: '1.0.0', bugs: 'https://github.com/test/test' } }));
 
-vi.mock('@/utils/spawnHappyCLI', () => ({
-  spawnHappyCLI: mockSpawnHappyCLI
+vi.mock('@/utils/spawnZhushenCLI', () => ({
+  spawnZhushenCLI: mockSpawnZhushenCLI
 }));
 
 vi.mock('@/ui/logger', () => ({
@@ -91,8 +91,8 @@ describe('Root user BYPASS mode downgrade', () => {
     mockGetuid = vi.fn();
     process.getuid = mockGetuid as any;
 
-    // Setup default mock behavior for spawnHappyCLI
-    mockSpawnHappyCLI.mockReturnValue({
+    // Setup default mock behavior for spawnZhushenCLI
+    mockSpawnZhushenCLI.mockReturnValue({
       pid: 12345,
       stderr: {
         on: vi.fn()
@@ -125,7 +125,7 @@ describe('Root user BYPASS mode downgrade', () => {
     // This is a placeholder - the actual test would need to:
     // 1. Set up a full runner environment
     // 2. Call spawnSession with root + claude + yolo
-    // 3. Verify that --yolo is not passed to spawnHappyCLI
+    // 3. Verify that --yolo is not passed to spawnZhushenCLI
     // 4. Verify that warnings are returned in the result
 
     expect(mockGetuid).toBeDefined();

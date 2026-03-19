@@ -88,7 +88,7 @@ For CLI runner integration tests and any test that starts real local processes:
 
 ### Runner Debugging Contract (Execution CWD vs Business Working Directory)
 
-When changing CLI process launch behavior (`spawnHappyCLI`, agent entrypoints, runner child spawning):
+When changing CLI process launch behavior (`spawnZhushenCLI`, agent entrypoints, runner child spawning):
 
 - Separate **execution/runtime resolution context** from **business working directory**.
 - In development mode, the runtime must start from a location where TS entrypoints, aliases, and assets resolve correctly.

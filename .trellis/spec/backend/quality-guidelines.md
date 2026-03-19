@@ -6,7 +6,7 @@
 
 ## 概述
 
-HAPI Hub 通过以下方式保障质量：
+Zhushen Hub 通过以下方式保障质量：
 
 - **严格 TypeScript** - 禁止隐式 any，启用严格空值检查
 - 使用 **Bun test** 进行单元测试（内置测试运行器）
@@ -850,7 +850,7 @@ jobs:
   - validation/smoke steps MUST precede any `push: true` artifact publish
 - Runtime availability signature:
   - `getRunnerAvailability(): Promise<{ status: 'missing' | 'stale' | 'degraded' | 'running'; ... }>`
-  - `isRunnerRunningCurrentlyInstalledHappyVersion(): Promise<boolean>`
+  - `isRunnerRunningCurrentlyInstalledZhushenVersion(): Promise<boolean>`
   - `startRunner()` caller branch in `cli/src/runner/run.ts`
 
 ### 3. 契约
@@ -1444,7 +1444,7 @@ bun install --frozen-lockfile
 - 触发条件： Remove an existing cross-layer capability (`Voice Assistant` / ElevenLabs) in a single phase.
 - 为什么需要 code-spec 深度：
   - API contract removal (`POST /api/voice/token`) spans frontend call sites and backend route registration.
-  - Shared protocol export removal (`@hapi/protocol/voice`) affects compile-time imports across multiple packages.
+  - Shared protocol export removal (`@zhushen/protocol/voice`) affects compile-time imports across multiple packages.
   - User-facing contract changes require synchronized docs, settings UI, and i18n cleanup.
 
 ### 2. 签名
@@ -1474,13 +1474,13 @@ bun install --frozen-lockfile
   - UI MUST NOT render voice entry points in composer/settings.
   - Runtime MUST NOT initiate `/api/voice/token` requests.
 - Build contract (after removal):
-  - No remaining import of `@hapi/protocol/voice`.
+  - No remaining import of `@zhushen/protocol/voice`.
   - No remaining dependency on `@elevenlabs/react` in `web/package.json`.
 
 ### 4. 校验与错误矩阵
 - Residual frontend API call to `/api/voice/token` -> 404/runtime noise; fix by removing call sites and state branches.
 - Residual backend `createVoiceRoutes` import/registration -> TypeScript compile failure; remove import + route mount together.
-- Residual `@hapi/protocol/voice` import after export removal -> unresolved module error; remove import chain before/with export deletion.
+- Residual `@zhushen/protocol/voice` import after export removal -> unresolved module error; remove import chain before/with export deletion.
 - Docs still mention ElevenLabs env keys after code removal -> operational confusion; remove docs links and setup sections.
 - i18n/settings keys removed incompletely -> dead UI labels or lint noise; remove keys and corresponding settings blocks together.
 
@@ -1488,7 +1488,7 @@ bun install --frozen-lockfile
 - Good：
   - Web/Hub typecheck/test/build pass.
   - No `/api/voice/token` route or client call remains.
-  - No `@hapi/protocol/voice` imports and no `@elevenlabs/react` dependency.
+  - No `@zhushen/protocol/voice` imports and no `@elevenlabs/react` dependency.
   - Docs no longer reference Voice Assistant/ElevenLabs setup.
 - Base：
   - Voice feature files removed; text chat, permission handling, session switching still function.
@@ -1506,7 +1506,7 @@ bun install --frozen-lockfile
 - Build assertions:
   - `bun run --cwd web build` passes (assert: no voice vendor chunk rule/dependency required).
 - Optional grep assertions (recommended):
-  - No source/docs matches for `@hapi/protocol/voice`, `/api/voice/token`, `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`.
+  - No source/docs matches for `@zhushen/protocol/voice`, `/api/voice/token`, `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`.
 
 ### 7. 错误示例 vs 正确示例
 #### 错误示例
@@ -1546,12 +1546,12 @@ bun install --frozen-lockfile
 - 本任务线排除的本地化范围：
   - `.claude/**`
   - `.github/**`
-  - `.trellis/**`
+  - `.trellis/tasks/**`
 
 ### 3. 契约
 - 语言契约：
   - User-facing product docs are Chinese-primary.
-  - Technical tokens/commands/paths remain literal (e.g., `hapi hub`, `/api/events`, `runner.state.json`).
+  - Technical tokens/commands/paths remain literal (e.g., `zhushen hub`, `/api/events`, `runner.state.json`).
 - 术语契约：
   - Product component names use consistent title form in prose: `Hub`, `Runner`, `Session`.
   - Generic concept text prefers Chinese term `会话`; keep English token only when needed for protocol/UI labels.
@@ -1566,7 +1566,7 @@ bun install --frozen-lockfile
 
 ### 5. 良好 / 基线 / 反例
 - Good：
-  - `web/README.md` uses `Hub` consistently in prose, while preserving `hapi hub` in commands.
+  - `web/README.md` uses `Hub` consistently in prose, while preserving `zhushen hub` in commands.
 - Base：
   - Existing docs already Chinese-primary; only minor terminology cleanup needed.
 - Bad：
@@ -1583,13 +1583,13 @@ bun install --frozen-lockfile
 ### 7. 错误示例 vs 正确示例
 #### 错误示例
 ```md
-登录页右上角有 hub 选择器；输入 hapi hub 的 origin。
+登录页右上角有 主神 Hub 选择器；输入 zhushen hub 的 origin。
 ```
 
 #### 正确示例
 ```md
-登录页右上角有 Hub 选择器；输入 hapi Hub 的 origin。
-# 代码块中的命令字面量保持不变：`hapi hub`
+登录页右上角有 主神 Hub 选择器；输入 zhushen Hub 的 origin。
+# 代码块中的命令字面量保持不变：`zhushen hub`
 ```
 
 ---

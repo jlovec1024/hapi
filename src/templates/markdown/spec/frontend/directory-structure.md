@@ -6,7 +6,7 @@
 
 ## Overview
 
-HAPI Web follows a feature-based organization with clear separation between UI components, business logic (hooks), and utilities. The structure emphasizes:
+Zhushen Web follows a feature-based organization with clear separation between UI components, business logic (hooks), and utilities. The structure emphasizes:
 
 - **Component isolation**: UI components are separated by feature/domain
 - **Hook-based logic**: Business logic lives in custom hooks, not components
@@ -62,8 +62,8 @@ web/src/
 **Component file structure**:
 ```
 components/AssistantChat/
-├── HappyThread.tsx         # Main thread component
-├── HappyComposer.tsx       # Message composer
+├── ZhushenThread.tsx      # Main thread component
+├── ZhushenComposer.tsx    # Message composer
 ├── context.tsx             # Shared context
 ├── messages/               # Message type components
 │   ├── AssistantMessage.tsx
@@ -95,7 +95,7 @@ components/AssistantChat/
 
 ### Files
 
-- **Components**: PascalCase (e.g., `HappyThread.tsx`, `Button.tsx`)
+- **Components**: PascalCase (e.g., `ZhushenThread.tsx`, `Button.tsx`)
 - **Hooks**: camelCase with `use` prefix (e.g., `useAuth.ts`, `useCopyToClipboard.ts`)
 - **Utilities**: camelCase (e.g., `utils.ts`, `clipboard.ts`)
 - **Types**: camelCase (e.g., `api.ts`, `session.ts`)

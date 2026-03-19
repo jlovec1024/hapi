@@ -7,7 +7,7 @@ import { hashObject } from '@/utils/deterministicJson';
 import { extractSDKMetadataAsync } from '@/claude/sdk/metadataExtractor';
 import { parseSpecialCommand } from '@/parsers/specialCommands';
 import { getEnvironmentInfo } from '@/ui/doctor';
-import { startHappyServer } from '@/claude/utils/startHappyServer';
+import { startZhushenServer } from '@/claude/utils/startZhushenServer';
 import { startHookServer } from '@/claude/utils/startHookServer';
 import { generateHookSettingsFile, cleanupHookSettingsFile } from '@/modules/common/hooks/generateHookSettings';
 import { registerKillSessionHandler } from './registerKillSessionHandler';
@@ -17,7 +17,7 @@ import { createModeChangeHandler, createRunnerLifecycle, setControlledByUser } f
 import { isModelModeAllowedForFlavor, isPermissionModeAllowedForFlavor } from '@zs/protocol';
 import { ModelModeSchema, PermissionModeSchema } from '@zs/protocol/schemas';
 import { formatMessageWithAttachments } from '@/utils/attachmentFormatter';
-import { getSpawnedCliWorkingDirectory } from '@/utils/spawnHappyCLI';
+import { getSpawnedCliWorkingDirectory } from '@/utils/spawnZhushenCLI';
 
 export interface StartOptions {
     model?: string
@@ -34,7 +34,7 @@ export async function runClaude(options: StartOptions = {}): Promise<void> {
     const startedBy = options.startedBy ?? 'terminal';
 
     // Log environment info at startup
-    logger.debugLargeJson('[START] HAPI process started', getEnvironmentInfo());
+    logger.debugLargeJson('[START] Zhushen process started', getEnvironmentInfo());
     logger.debug(`[START] Options: startedBy=${startedBy}, startingMode=${options.startingMode}`);
 
     // Validate runner spawn requirements
@@ -70,9 +70,9 @@ export async function runClaude(options: StartOptions = {}): Promise<void> {
         }
     });
 
-    // Start HAPI MCP server
-    const happyServer = await startHappyServer(session);
-    logger.debug(`[START] HAPI MCP server started at ${happyServer.url}`);
+    // Start Zhushen MCP server
+    const zhushenServer = await startZhushenServer(session);
+    logger.debug(`[START] Zhushen MCP server started at ${zhushenServer.url}`);
 
     // Variable to track current session instance (updated via onSessionReady callback)
     const currentSessionRef: { current: Session | null } = { current: null };
@@ -118,7 +118,7 @@ export async function runClaude(options: StartOptions = {}): Promise<void> {
         logTag: 'claude',
         stopKeepAlive: () => currentSessionRef.current?.stopKeepAlive(),
         onAfterClose: () => {
-            happyServer.stop();
+            zhushenServer.stop();
             hookServer.stop();
             cleanupHookSettingsFile(hookSettingsPath, 'generateHookSettings');
         }
@@ -320,7 +320,7 @@ export async function runClaude(options: StartOptions = {}): Promise<void> {
             startingMode,
             messageQueue,
             api,
-            allowedTools: happyServer.toolNames.map(toolName => `mcp__hapi__${toolName}`),
+            allowedTools: zhushenServer.toolNames.map(toolName => `mcp__zhushen__${toolName}`),
             onModeChange: createModeChangeHandler(session),
             onSessionReady: (sessionInstance) => {
                 currentSessionRef.current = sessionInstance;
@@ -329,7 +329,7 @@ export async function runClaude(options: StartOptions = {}): Promise<void> {
             mcpServers: {
                 'zs': {
                     type: 'http' as const,
-                    url: happyServer.url,
+                    url: zhushenServer.url,
                 }
             },
             session,

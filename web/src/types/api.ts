@@ -64,7 +64,7 @@ export type Machine = {
     metadata: {
         host: string
         platform: string
-        happyCliVersion: string
+        zhushenCliVersion: string
         displayName?: string
         homeDir?: string
     } | null

@@ -6,7 +6,7 @@
 
 ## 概述
 
-HAPI Web 使用 React 19 与 TypeScript。组件遵循函数式模式，具备清晰的 props 类型、使用 Tailwind CSS 进行样式处理，并内建可访问性支持。组件应保持小而专注，便于组合。
+Zhushen Web 使用 React 19 与 TypeScript。组件遵循函数式模式，具备清晰的 props 类型、使用 Tailwind CSS 进行样式处理，并内建可访问性支持。组件应保持小而专注，便于组合。
 
 **关键库**：
 - React 19 + hooks
@@ -57,22 +57,22 @@ export function Spinner({
 
 ```typescript
 // components/AssistantChat/context.tsx
-export type HappyChatContextValue = {
+export type ZhushenChatContextValue = {
     api: ApiClient
     sessionId: string
     disabled: boolean
 }
 
-const HappyChatContext = createContext<HappyChatContextValue | null>(null)
+const ZhushenChatContext = createContext<ZhushenChatContextValue | null>(null)
 
-export function HappyChatProvider(props: { value: HappyChatContextValue; children: ReactNode }) {
-    return <HappyChatContext.Provider value={props.value}>{props.children}</HappyChatContext.Provider>
+export function ZhushenChatProvider(props: { value: ZhushenChatContextValue; children: ReactNode }) {
+    return <ZhushenChatContext.Provider value={props.value}>{props.children}</ZhushenChatContext.Provider>
 }
 
 // 当 context 缺失时必须抛错，绝不返回 undefined
-export function useHappyChatContext(): HappyChatContextValue {
-    const ctx = useContext(HappyChatContext)
-    if (!ctx) throw new Error('HappyChatContext is missing')
+export function useZhushenChatContext(): ZhushenChatContextValue {
+    const ctx = useContext(ZhushenChatContext)
+    if (!ctx) throw new Error('ZhushenChatContext is missing')
     return ctx
 }
 ```
@@ -512,7 +512,7 @@ function MessageSkeleton() {
 }
 
 // 主导出组件
-export function HappyThread(props: HappyThreadProps) {
+export function ZhushenThread(props: ZhushenThreadProps) {
     return (
         // 使用本地子组件
         <NewMessagesIndicator ... />

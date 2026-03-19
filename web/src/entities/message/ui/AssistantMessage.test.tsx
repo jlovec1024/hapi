@@ -1,11 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
-import { HappyAssistantMessage } from './AssistantMessage'
+import { ZhushenAssistantMessage } from './AssistantMessage'
 
 // Create mock functions using vi.hoisted
-const { mockUseAssistantState, mockGetHappyChatMetadata, mockGetMessageTextContent } = vi.hoisted(() => ({
+const { mockUseAssistantState, mockGetZhushenChatMetadata, mockGetMessageTextContent } = vi.hoisted(() => ({
     mockUseAssistantState: vi.fn(),
-    mockGetHappyChatMetadata: vi.fn(),
+    mockGetZhushenChatMetadata: vi.fn(),
     mockGetMessageTextContent: vi.fn(),
 }))
 
@@ -33,7 +33,7 @@ vi.mock('@/components/assistant-ui/reasoning', () => ({
 }))
 
 vi.mock('./ToolMessage', () => ({
-    HappyToolMessage: () => <div>ToolMessage</div>,
+    ZhushenToolMessage: () => <div>ToolMessage</div>,
 }))
 
 vi.mock('@/components/CliOutputBlock', () => ({
@@ -41,14 +41,14 @@ vi.mock('@/components/CliOutputBlock', () => ({
 }))
 
 vi.mock('@/lib/assistant-runtime', () => ({
-    getHappyChatMetadata: mockGetHappyChatMetadata,
+    getZhushenChatMetadata: mockGetZhushenChatMetadata,
     getMessageTextContent: mockGetMessageTextContent,
 }))
 
-describe('HappyAssistantMessage', () => {
+describe('ZhushenAssistantMessage', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        mockGetHappyChatMetadata.mockReturnValue(null)
+        mockGetZhushenChatMetadata.mockReturnValue(null)
         mockGetMessageTextContent.mockReturnValue('')
     })
 
@@ -58,19 +58,19 @@ describe('HappyAssistantMessage', () => {
             return selector({ message })
         })
 
-        const { getByTestId } = render(<HappyAssistantMessage />)
+        const { getByTestId } = render(<ZhushenAssistantMessage />)
         expect(getByTestId('message-content')).toBeInTheDocument()
     })
 
     it('renders CLI output message', () => {
-        mockGetHappyChatMetadata.mockReturnValue({ kind: 'cli-output' })
+        mockGetZhushenChatMetadata.mockReturnValue({ kind: 'cli-output' })
         mockGetMessageTextContent.mockReturnValue('$ ls -la')
         mockUseAssistantState.mockImplementation((selector) => {
             const message = { role: 'assistant', content: [] }
             return selector({ message })
         })
 
-        const { getByTestId } = render(<HappyAssistantMessage />)
+        const { getByTestId } = render(<ZhushenAssistantMessage />)
         expect(getByTestId('cli-output')).toBeInTheDocument()
         expect(getByTestId('cli-output')).toHaveTextContent('$ ls -la')
     })
@@ -81,7 +81,7 @@ describe('HappyAssistantMessage', () => {
             return selector({ message })
         })
 
-        const { container } = render(<HappyAssistantMessage />)
+        const { container } = render(<ZhushenAssistantMessage />)
         const root = container.firstChild as HTMLElement
         expect(root.className).toContain('py-1')
     })
@@ -92,7 +92,7 @@ describe('HappyAssistantMessage', () => {
             return selector({ message })
         })
 
-        const { container } = render(<HappyAssistantMessage />)
+        const { container } = render(<ZhushenAssistantMessage />)
         const root = container.firstChild as HTMLElement
         expect(root.className).toContain('px-1')
     })

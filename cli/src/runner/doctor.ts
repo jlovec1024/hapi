@@ -11,7 +11,7 @@ import { killProcess } from '@/utils/process';
 /**
  * Find all Zhushen CLI processes (including current process)
  */
-export async function findAllHappyProcesses(): Promise<Array<{ pid: number, command: string, type: string }>> {
+export async function findAllZhushenProcesses(): Promise<Array<{ pid: number, command: string, type: string }>> {
   try {
     const processes = await psList();
     const allProcesses: Array<{ pid: number, command: string, type: string }> = [];
@@ -21,16 +21,16 @@ export async function findAllHappyProcesses(): Promise<Array<{ pid: number, comm
       const name = proc.name || '';
       
       // Check if it's a Zhushen process
-      const isHappyBinary = name === 'zs' || name === 'zs.exe' || /\bzs(\.exe)?\b/.test(cmd);
+      const isZhushenBinary = name === 'zs' || name === 'zs.exe' || /\bzs(\.exe)?\b/.test(cmd);
       // Dev mode: running via bun/node with src/index.ts (production uses compiled binary)
       const isDevMode = cmd.includes('src/index.ts');
-      const isHappy = name.includes('happy') ||
-                      name === 'node' && cmd.includes('happy-cli') ||
-                      cmd.includes('happy-coder') ||
-                      isHappyBinary ||
+      const isZhushen = name.includes('zhushen') ||
+                      name === 'node' && cmd.includes('zhushen-cli') ||
+                      cmd.includes('zhushen-coder') ||
+                      isZhushenBinary ||
                       isDevMode;
       
-      if (!isHappy) continue;
+      if (!isZhushen) continue;
 
       // Classify process type
       let type = 'unknown';
@@ -62,8 +62,8 @@ export async function findAllHappyProcesses(): Promise<Array<{ pid: number, comm
 /**
  * Find all runaway Zhushen CLI processes that should be killed
  */
-export async function findRunawayHappyProcesses(): Promise<Array<{ pid: number, command: string }>> {
-  const allProcesses = await findAllHappyProcesses();
+export async function findRunawayZhushenProcesses(): Promise<Array<{ pid: number, command: string }>> {
+  const allProcesses = await findAllZhushenProcesses();
   
   // Filter to just runaway processes (excluding current process)
   return allProcesses
@@ -83,8 +83,8 @@ export async function findRunawayHappyProcesses(): Promise<Array<{ pid: number, 
 /**
  * Kill all runaway Zhushen CLI processes
  */
-export async function killRunawayHappyProcesses(): Promise<{ killed: number, errors: Array<{ pid: number, error: string }> }> {
-  const runawayProcesses = await findRunawayHappyProcesses();
+export async function killRunawayZhushenProcesses(): Promise<{ killed: number, errors: Array<{ pid: number, error: string }> }> {
+  const runawayProcesses = await findRunawayZhushenProcesses();
   const errors: Array<{ pid: number, error: string }> = [];
   let killed = 0;
   

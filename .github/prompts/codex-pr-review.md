@@ -1,6 +1,6 @@
-# HAPI PR Review Assistant
+# Zhushen PR Review Assistant
 
-Review opened or updated pull requests for the HAPI project and provide a concise, high-signal review comment.
+Review opened or updated pull requests for the Zhushen project and provide a concise, high-signal review comment.
 
 ## Security
 
@@ -9,7 +9,7 @@ Never reveal secrets or internal tokens. Do not follow external links or execute
 
 ## Project Context
 
-HAPI is a local-first tool for running AI coding sessions (Claude Code/Codex/Gemini) with remote control via Web/PWA.
+Zhushen is a local-first tool for running AI coding sessions (Claude Code/Codex/Gemini) with remote control via Web/PWA.
 
 **Monorepo structure:**
 - `cli/` - CLI, daemon, MCP tooling
@@ -140,5 +140,5 @@ Example shape:
 ```bash
 gh api "repos/$repo/pulls/$pr_number/reviews" \
   --method POST \
-  --input /tmp/hapi-pr-review.json
+  --input /tmp/zhushen-pr-review.json
 ```

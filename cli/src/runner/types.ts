@@ -10,8 +10,8 @@ import { ChildProcess } from 'child_process';
  */
 export interface TrackedSession {
   startedBy: 'runner' | string;
-  happySessionId?: string;
-  happySessionMetadataFromLocalWebhook?: Metadata;
+  zhushenSessionId?: string;
+  zhushenSessionMetadataFromLocalWebhook?: Metadata;
   pid: number;
   childProcess?: ChildProcess;
   error?: string;

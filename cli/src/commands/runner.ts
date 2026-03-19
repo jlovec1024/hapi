@@ -3,13 +3,13 @@ import { startRunner } from '@/runner/run'
 import {
     checkIfRunnerRunningAndCleanupStaleState,
     getRunnerAvailability,
-    isRunnerRunningCurrentlyInstalledHappyVersion,
+    isRunnerRunningCurrentlyInstalledZhushenVersion,
     listRunnerSessions,
     stopRunner,
     stopRunnerSession
 } from '@/runner/controlClient'
 import { getLatestRunnerLog } from '@/ui/logger'
-import { spawnHappyCLI } from '@/utils/spawnHappyCLI'
+import { spawnZhushenCLI } from '@/utils/spawnZhushenCLI'
 import { runDoctorCommand } from '@/ui/doctor'
 import { initializeToken } from '@/ui/tokenInit'
 import { readRunnerState } from '@/persistence'
@@ -21,7 +21,7 @@ import type { CommandDefinition } from './types'
  * When previousPid is provided, waits until a different runner PID has taken over.
  */
 async function startRunnerDetached(previousPid?: number): Promise<boolean> {
-    const child = spawnHappyCLI(['runner', 'start-sync'], {
+    const child = spawnZhushenCLI(['runner', 'start-sync'], {
         detached: true,
         stdio: 'ignore',
         env: process.env
@@ -29,7 +29,7 @@ async function startRunnerDetached(previousPid?: number): Promise<boolean> {
     child.unref()
 
     for (let i = 0; i < 50; i++) {
-        const runningCurrentVersion = await isRunnerRunningCurrentlyInstalledHappyVersion()
+        const runningCurrentVersion = await isRunnerRunningCurrentlyInstalledZhushenVersion()
         if (runningCurrentVersion) {
             if (previousPid === undefined) {
                 return true

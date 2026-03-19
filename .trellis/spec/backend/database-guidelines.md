@@ -6,7 +6,7 @@
 
 ## 概述
 
-HAPI Hub 使用 **SQLite** 与 Bun 原生 SQLite 驱动。数据库层遵循清晰的分层架构，包含：
+Zhushen Hub 使用 **SQLite** 与 Bun 原生 SQLite 驱动。数据库层遵循清晰的分层架构，包含：
 
 - **WAL 模式**，提升并发能力
 - **Strict mode**，确保类型安全

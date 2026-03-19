@@ -6,8 +6,8 @@ import { AgentRegistry } from '@/agent/AgentRegistry';
 import { convertAgentMessage } from '@/agent/messageConverter';
 import { PermissionAdapter } from '@/agent/permissionAdapter';
 import type { AgentBackend, PromptContent } from '@/agent/types';
-import { startHappyServer } from '@/claude/utils/startHappyServer';
-import { getHappyCliCommand } from '@/utils/spawnHappyCLI';
+import { startZhushenServer } from '@/claude/utils/startZhushenServer';
+import { getZhushenCliCommand } from '@/utils/spawnZhushenCLI';
 import { registerKillSessionHandler } from '@/claude/registerKillSessionHandler';
 import { bootstrapSession } from '@/agent/sessionFactory';
 import { formatMessageWithAttachments } from '@/utils/attachmentFormatter';
@@ -55,11 +55,11 @@ export async function runAgentSession(opts: {
 
     const permissionAdapter = new PermissionAdapter(session, backend);
 
-    const happyServer = await startHappyServer(session);
-    const bridgeCommand = getHappyCliCommand(['mcp', '--url', happyServer.url]);
+    const zhushenServer = await startZhushenServer(session);
+    const bridgeCommand = getZhushenCliCommand(['mcp', '--url', zhushenServer.url]);
     const mcpServers = [
         {
-            name: 'happy',
+            name: 'zhushen',
             command: bridgeCommand.command,
             args: bridgeCommand.args,
             env: []
@@ -163,6 +163,6 @@ export async function runAgentSession(opts: {
         await session.flush();
         session.close();
         await backend.disconnect();
-        happyServer.stop();
+        zhushenServer.stop();
     }
 }

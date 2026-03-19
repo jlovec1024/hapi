@@ -37,7 +37,7 @@ const defaultSuggestionHandler = async (): Promise<Suggestion[]> => []
 
 const sessionDrafts = new Map<string, string>()
 
-export function HappyComposer(props: {
+export function ZhushenComposer(props: {
     disabled?: boolean
     permissionMode?: PermissionMode
     modelMode?: ModelMode

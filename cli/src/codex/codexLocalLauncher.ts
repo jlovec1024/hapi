@@ -3,7 +3,7 @@ import { codexLocal } from './codexLocal';
 import { CodexSession } from './session';
 import { createCodexSessionScanner } from './utils/codexSessionScanner';
 import { convertCodexEvent } from './utils/codexEventConverter';
-import { buildHapiMcpBridge } from './utils/buildHapiMcpBridge';
+import { buildZhushenMcpBridge } from './utils/buildZhushenMcpBridge';
 import { BaseLocalLauncher } from '@/modules/common/launcher/BaseLocalLauncher';
 
 export async function codexLocalLauncher(session: CodexSession): Promise<'switch' | 'exit'> {
@@ -11,8 +11,8 @@ export async function codexLocalLauncher(session: CodexSession): Promise<'switch
     let scanner: Awaited<ReturnType<typeof createCodexSessionScanner>> | null = null;
 
     // Start zs hub for MCP bridge (same as remote mode)
-    const { server: happyServer, mcpServers } = await buildHapiMcpBridge(session.client);
-    logger.debug(`[codex-local]: Started zs MCP bridge server at ${happyServer.url}`);
+    const { server: zhushenServer, mcpServers } = await buildZhushenMcpBridge(session.client);
+    logger.debug(`[codex-local]: Started zs MCP bridge server at ${zhushenServer.url}`);
 
     const handleSessionFound = (sessionId: string) => {
         session.onSessionFound(sessionId);
@@ -79,7 +79,7 @@ export async function codexLocalLauncher(session: CodexSession): Promise<'switch
         return await launcher.run();
     } finally {
         await scanner?.cleanup();
-        happyServer.stop();
+        zhushenServer.stop();
         logger.debug('[codex-local]: Stopped zs MCP bridge server');
     }
 }

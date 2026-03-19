@@ -14,7 +14,7 @@ import { join } from 'node:path'
 import { platform, arch, homedir } from 'node:os'
 import { isBunCompiled } from '../utils/bunCompiled'
 
-function getHapiHome(): string {
+function getZhushenHome(): string {
     return process.env.ZS_HOME
         ? process.env.ZS_HOME.replace(/^~/, homedir())
         : join(homedir(), '.zhushen')
@@ -42,9 +42,9 @@ function getTunwgPath(): string {
     const tunwgBinary = isWin ? 'tunwg.exe' : 'tunwg'
 
     if (isBunCompiled()) {
-        const hapiHome = getHapiHome()
+        const zhushenHome = getZhushenHome()
         const packageJson = require('../../../cli/package.json')
-        const runtimePath = join(hapiHome, 'runtime', packageJson.version)
+        const runtimePath = join(zhushenHome, 'runtime', packageJson.version)
         return join(runtimePath, 'tools', 'tunwg', tunwgBinary)
     }
 
@@ -57,7 +57,7 @@ function getTunwgPath(): string {
 export interface TunnelConfig {
     localPort: number
     enabled: boolean
-    apiDomain?: string | null  // TUNWG_API - default: relay.hapi.run (official relay)
+    apiDomain?: string | null  // TUNWG_API - default: relay.zhushen.run (official relay)
     authKey?: string | null    // TUNWG_AUTH - default: zs
     useRelay?: boolean         // TUNWG_RELAY
 }
@@ -110,7 +110,7 @@ export class TunnelManager {
         const env: Record<string, string> = { ...process.env as Record<string, string> }
 
         if (!env.TUNWG_PATH) {
-            env.TUNWG_PATH = join(getHapiHome(), 'tunwg')
+            env.TUNWG_PATH = join(getZhushenHome(), 'tunwg')
         }
 
         if (this.config.apiDomain) {

@@ -3,7 +3,7 @@ import { createContext, useContext } from 'react'
 import type { ApiClient } from '@/api/client'
 import type { SessionMetadataSummary } from '@/types/api'
 
-export type HappyChatContextValue = {
+export type ZhushenChatContextValue = {
     api: ApiClient
     sessionId: string
     metadata: SessionMetadataSummary | null
@@ -12,20 +12,20 @@ export type HappyChatContextValue = {
     onRetryMessage?: (localId: string) => void
 }
 
-const HappyChatContext = createContext<HappyChatContextValue | null>(null)
+const ZhushenChatContext = createContext<ZhushenChatContextValue | null>(null)
 
-export function HappyChatProvider(props: { value: HappyChatContextValue; children: ReactNode }) {
+export function ZhushenChatProvider(props: { value: ZhushenChatContextValue; children: ReactNode }) {
     return (
-        <HappyChatContext.Provider value={props.value}>
+        <ZhushenChatContext.Provider value={props.value}>
             {props.children}
-        </HappyChatContext.Provider>
+        </ZhushenChatContext.Provider>
     )
 }
 
-export function useHappyChatContext(): HappyChatContextValue {
-    const ctx = useContext(HappyChatContext)
+export function useZhushenChatContext(): ZhushenChatContextValue {
+    const ctx = useContext(ZhushenChatContext)
     if (!ctx) {
-        throw new Error('HappyChatContext is missing')
+        throw new Error('ZhushenChatContext is missing')
     }
     return ctx
 }

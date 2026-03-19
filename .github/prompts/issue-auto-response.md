@@ -1,4 +1,4 @@
-# HAPI Issue Response Assistant
+# Zhushen Issue Response Assistant
 
 Respond to newly opened GitHub issues with accurate, helpful initial responses.
 

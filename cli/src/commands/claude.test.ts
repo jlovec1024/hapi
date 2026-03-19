@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mockInitializeToken = vi.fn()
 const mockMaybeAutoStartServer = vi.fn()
 const mockAuthAndSetupMachineIfNeeded = vi.fn()
-const mockIsRunnerRunningCurrentlyInstalledHappyVersion = vi.fn()
-const mockSpawnHappyCLI = vi.fn()
+const mockIsRunnerRunningCurrentlyInstalledZhushenVersion = vi.fn()
+const mockSpawnZhushenCLI = vi.fn()
 const mockRunClaude = vi.fn()
 const mockCheckClaudeAuthConfig = vi.fn()
 const mockFormatClaudeAuthConfigError = vi.fn(() => 'missing auth details')
@@ -16,7 +16,7 @@ vi.mock('@/configuration', () => ({
 }))
 
 vi.mock('@/runner/controlClient', () => ({
-    isRunnerRunningCurrentlyInstalledHappyVersion: mockIsRunnerRunningCurrentlyInstalledHappyVersion
+    isRunnerRunningCurrentlyInstalledZhushenVersion: mockIsRunnerRunningCurrentlyInstalledZhushenVersion
 }))
 
 vi.mock('@/ui/auth', () => ({
@@ -34,8 +34,8 @@ vi.mock('@/ui/tokenInit', () => ({
     initializeToken: mockInitializeToken
 }))
 
-vi.mock('@/utils/spawnHappyCLI', () => ({
-    spawnHappyCLI: mockSpawnHappyCLI
+vi.mock('@/utils/spawnZhushenCLI', () => ({
+    spawnZhushenCLI: mockSpawnZhushenCLI
 }))
 
 vi.mock('@/utils/autoStartServer', () => ({
@@ -64,25 +64,25 @@ describe('claudeCommand runner availability gating', () => {
         mockInitializeToken.mockResolvedValue(undefined)
         mockMaybeAutoStartServer.mockResolvedValue(undefined)
         mockAuthAndSetupMachineIfNeeded.mockResolvedValue(undefined)
-        mockIsRunnerRunningCurrentlyInstalledHappyVersion.mockResolvedValue(true)
+        mockIsRunnerRunningCurrentlyInstalledZhushenVersion.mockResolvedValue(true)
         mockRunClaude.mockResolvedValue(undefined)
         mockCheckClaudeAuthConfig.mockReturnValue({
             ok: true,
             source: { type: 'env', envKey: 'CLAUDE_CODE_OAUTH_TOKEN' },
             checkedPaths: []
         })
-        mockSpawnHappyCLI.mockReturnValue({
+        mockSpawnZhushenCLI.mockReturnValue({
             unref: vi.fn()
         })
     })
 
     it('starts runner when reusable-health check is false so degraded control plane is not treated as ready', async () => {
-        mockIsRunnerRunningCurrentlyInstalledHappyVersion.mockResolvedValue(false)
+        mockIsRunnerRunningCurrentlyInstalledZhushenVersion.mockResolvedValue(false)
         const { claudeCommand } = await import('./claude')
 
         await claudeCommand.run({ commandArgs: [] } as never)
 
-        expect(mockSpawnHappyCLI).toHaveBeenCalledWith(['runner', 'start-sync'], {
+        expect(mockSpawnZhushenCLI).toHaveBeenCalledWith(['runner', 'start-sync'], {
             detached: true,
             stdio: 'ignore',
             env: process.env
@@ -95,7 +95,7 @@ describe('claudeCommand runner availability gating', () => {
 
         await claudeCommand.run({ commandArgs: [] } as never)
 
-        expect(mockSpawnHappyCLI).not.toHaveBeenCalled()
+        expect(mockSpawnZhushenCLI).not.toHaveBeenCalled()
         expect(mockRunClaude).toHaveBeenCalledTimes(1)
     })
 
@@ -118,7 +118,7 @@ describe('claudeCommand runner availability gating', () => {
             const { claudeCommand } = await import('./claude')
             await expect(claudeCommand.run({ commandArgs: [] } as never)).rejects.toThrow('EXIT:1')
             expect(mockInitializeToken).not.toHaveBeenCalled()
-            expect(mockSpawnHappyCLI).not.toHaveBeenCalled()
+            expect(mockSpawnZhushenCLI).not.toHaveBeenCalled()
             expect(mockRunClaude).not.toHaveBeenCalled()
         } finally {
             exitSpy.mockRestore()

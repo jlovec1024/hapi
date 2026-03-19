@@ -2,10 +2,10 @@
 export type { MessageStatus, DecryptedMessage, MessagesResponse } from './model'
 export { useMessages, useSendMessage } from './api'
 export {
-    HappyAssistantMessage,
-    HappyUserMessage,
-    HappySystemMessage,
-    HappyToolMessage,
+    ZhushenAssistantMessage,
+    ZhushenUserMessage,
+    ZhushenSystemMessage,
+    ZhushenToolMessage,
     MessageAttachments,
     MessageStatusIndicator
 } from './ui'

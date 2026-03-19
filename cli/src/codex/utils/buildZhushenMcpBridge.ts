@@ -5,8 +5,8 @@
  * bridge server and generating the MCP server configuration that Codex needs.
  */
 
-import { startHappyServer } from '@/claude/utils/startHappyServer';
-import { getHappyCliCommand } from '@/utils/spawnHappyCLI';
+import { startZhushenServer } from '@/claude/utils/startZhushenServer';
+import { getZhushenCliCommand } from '@/utils/spawnZhushenCLI';
 import type { ApiSessionClient } from '@/api/apiSession';
 
 /**
@@ -25,7 +25,7 @@ export type McpServersConfig = Record<string, McpServerEntry>;
 /**
  * Result of starting the zs MCP bridge.
  */
-export interface HapiMcpBridge {
+export interface ZhushenMcpBridge {
     /** The running server instance */
     server: {
         url: string;
@@ -42,14 +42,14 @@ export interface HapiMcpBridge {
  * This is the single source of truth for MCP bridge setup,
  * used by both local and remote launchers.
  */
-export async function buildHapiMcpBridge(client: ApiSessionClient): Promise<HapiMcpBridge> {
-    const happyServer = await startHappyServer(client);
-    const bridgeCommand = getHappyCliCommand(['mcp', '--url', happyServer.url]);
+export async function buildZhushenMcpBridge(client: ApiSessionClient): Promise<ZhushenMcpBridge> {
+    const zhushenServer = await startZhushenServer(client);
+    const bridgeCommand = getZhushenCliCommand(['mcp', '--url', zhushenServer.url]);
 
     return {
         server: {
-            url: happyServer.url,
-            stop: happyServer.stop
+            url: zhushenServer.url,
+            stop: zhushenServer.stop
         },
         mcpServers: {
             zs: {

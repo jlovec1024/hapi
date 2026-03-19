@@ -18,7 +18,7 @@ node_modules
 # Runtime leftovers
 **/*.log
 **/.DS_Store
-.hapi
+.zhushen
 
 # Local env files
 **/.env

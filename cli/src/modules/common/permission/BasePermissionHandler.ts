@@ -18,8 +18,8 @@ type AutoApprovalRuleSet = {
 
 const AUTO_APPROVE_TOOL_NAME_HINTS = [
     'change_title',
-    'happy__change_title',
-    'hapi_change_title',  // OpenCode MCP tool pattern
+    'zhushen__change_title',
+    'zhushen_change_title',  // OpenCode MCP tool pattern
     'geminireasoning',
     'codexreasoning',
     'think',

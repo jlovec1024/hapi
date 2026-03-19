@@ -9,7 +9,7 @@ export default {
   'loading.machines': 'Loading machines…',
 
   // Login / Auth
-  'login.title': 'HAPI',
+  'login.title': 'Zhushen',
   'login.subtitle': 'Vibe Coding Anytime, Anywhere',
   'login.submit': 'Sign In',
   'login.submitting': 'Signing in…',
@@ -21,7 +21,7 @@ export default {
   'login.server.default': '(Default)',
   'login.server.custom': '(Custom)',
   'login.server.title': 'Hub URL',
-  'login.server.description': 'Set zhushen hub origin for API and live updates.',
+  'login.server.description': 'Set Zhushen hub origin for API and live updates.',
   'login.server.current': 'Current:',
   'login.server.origin': 'Hub origin',
   'login.server.placeholder': 'https://zhushen.example.com',
@@ -270,8 +270,8 @@ export default {
   'send.blocked.noConnection': 'Not connected to server',
 
   // Install prompt
-  'install.title': 'Install HAPI',
-  'install.description': 'Add HAPI to your home screen for quick access.',
+  'install.title': 'Install Zhushen',
+  'install.description': 'Add Zhushen to your home screen for quick access.',
   'install.button': 'Install',
 
   // Language switcher

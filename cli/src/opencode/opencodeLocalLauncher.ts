@@ -5,7 +5,7 @@ import { ensureOpencodeHookPlugin } from './utils/hookPlugin';
 import { buildOpencodeEnv } from './utils/config';
 import { ensureOpencodeConfig } from './utils/opencodeConfig';
 import { TITLE_INSTRUCTION } from './utils/systemPrompt';
-import { buildHapiMcpBridge } from '@/codex/utils/buildHapiMcpBridge';
+import { buildZhushenMcpBridge } from '@/codex/utils/buildZhushenMcpBridge';
 import type { OpencodeHookEvent } from './types';
 import type { OpencodeHookServer } from './utils/startOpencodeHookServer';
 import { createOpencodeStorageScanner, type OpencodeStorageScannerHandle } from './utils/opencodeStorageScanner';
@@ -250,7 +250,7 @@ function resolveOpencodeConfigDir(session: OpencodeSession): string {
     if (process.env.OPENCODE_CONFIG_DIR) {
         return process.env.OPENCODE_CONFIG_DIR;
     }
-    return join(configuration.happyHomeDir, 'tmp', 'opencode', session.client.sessionId, '.opencode');
+    return join(configuration.zhushenHomeDir, 'tmp', 'opencode', session.client.sessionId, '.opencode');
 }
 
 export async function opencodeLocalLauncher(
@@ -263,12 +263,12 @@ export async function opencodeLocalLauncher(
     ensureOpencodeHookPlugin(opencodeConfigDir, hookUrl, opts.hookServer.token);
 
     // Start the zs MCP server for change_title support (optional feature)
-    let happyServer: { url: string; stop: () => void } | null = null;
+    let zhushenServer: { url: string; stop: () => void } | null = null;
     let opencodeConfigPath: string | null = null;
     try {
-        const bridge = await buildHapiMcpBridge(session.client);
-        happyServer = bridge.server;
-        logger.debug(`[opencode-local]: Started zs MCP server at ${happyServer.url}`);
+        const bridge = await buildZhushenMcpBridge(session.client);
+        zhushenServer = bridge.server;
+        logger.debug(`[opencode-local]: Started zs MCP server at ${zhushenServer.url}`);
 
         // Generate opencode.json config with MCP server and instructions
         const { configPath } = ensureOpencodeConfig(opencodeConfigDir, bridge.mcpServers.zs, TITLE_INSTRUCTION);
@@ -622,8 +622,8 @@ export async function opencodeLocalLauncher(
         if (storageScanner) {
             await storageScanner.cleanup();
         }
-        if (happyServer) {
-            happyServer.stop();
+        if (zhushenServer) {
+            zhushenServer.stop();
             logger.debug('[opencode-local]: Stopped zs MCP server');
         }
     }

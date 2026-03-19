@@ -7,9 +7,9 @@ import type { Suggestion } from '@/hooks/useActiveSuggestions'
 import { normalizeDecryptedMessage } from '@/chat/normalize'
 import { reduceChatBlocks } from '@/chat/reducer'
 import { reconcileChatBlocks } from '@/chat/reconcile'
-import { HappyComposer } from '@/components/AssistantChat/HappyComposer'
-import { HappyThread } from '@/components/AssistantChat/HappyThread'
-import { useHappyRuntime } from '@/lib/assistant-runtime'
+import { ZhushenComposer } from '@/components/AssistantChat/ZhushenComposer'
+import { ZhushenThread } from '@/components/AssistantChat/ZhushenThread'
+import { useZhushenRuntime } from '@/lib/assistant-runtime'
 import { createAttachmentAdapter } from '@/lib/attachmentAdapter'
 import { TeamPanel } from '@/components/TeamPanel'
 import { usePlatform } from '@/shared/hooks/usePlatform'
@@ -158,7 +158,7 @@ export function SessionChat(props: {
         return createAttachmentAdapter(props.api, props.session.id)
     }, [props.api, props.session.id, props.session.active])
 
-    const runtime = useHappyRuntime({
+    const runtime = useZhushenRuntime({
         session: props.session,
         blocks: reconciled.blocks,
         isSending: props.isSending,
@@ -182,7 +182,7 @@ export function SessionChat(props: {
 
             <AssistantRuntimeProvider runtime={runtime}>
                 <div className="relative flex min-h-0 flex-1 flex-col">
-                    <HappyThread
+                    <ZhushenThread
                         key={props.session.id}
                         api={props.api}
                         sessionId={props.session.id}
@@ -204,7 +204,7 @@ export function SessionChat(props: {
                         forceScrollToken={forceScrollToken}
                     />
 
-                    <HappyComposer
+                    <ZhushenComposer
                         disabled={props.isSending}
                         permissionMode={props.session.permissionMode}
                         modelMode={props.session.modelMode}

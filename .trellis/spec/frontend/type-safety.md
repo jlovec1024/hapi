@@ -6,7 +6,7 @@
 
 ## 概述
 
-HAPI Web 使用**严格模式的 TypeScript**，并具备全面的类型覆盖。类型集中在 `types/` 目录中，并通过路径别名导入。项目强调：
+Zhushen Web 使用**严格模式的 TypeScript**，并具备全面的类型覆盖。类型集中在 `types/` 目录中，并通过路径别名导入。项目强调：
 
 - **严格 TypeScript**（`strict: true`、`noImplicitAny: true`、`strictNullChecks: true`）
 - **共享协议类型**，来自 `@zs/protocol` workspace 包

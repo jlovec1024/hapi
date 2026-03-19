@@ -5,7 +5,7 @@ const path = require('path');
 
 const platform = process.platform;
 const arch = process.arch;
-const RELEASE_URL = 'https://github.com/jlovec1024/hapi/releases';
+const RELEASE_URL = 'https://github.com/jlovec1024/zhushen/releases';
 const OFFICIAL_NPM_REGISTRY = 'https://registry.npmjs.org';
 const SUPPORTED_PLATFORMS = [
     {

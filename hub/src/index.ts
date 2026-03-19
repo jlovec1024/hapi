@@ -106,9 +106,9 @@ async function main() {
     console.log('Zhushen Hub starting...')
 
     // Load configuration (async - loads from env/file with persistence)
-    const relayApiDomain = process.env.ZS_RELAY_API || 'relay.hapi.run'
+    const relayApiDomain = process.env.ZS_RELAY_API || 'relay.zhushen.run'
     const relayFlag = resolveRelayFlag(process.argv)
-    const officialWebUrl = process.env.ZS_OFFICIAL_WEB_URL || 'https://app.hapi.run'
+    const officialWebUrl = process.env.ZS_OFFICIAL_WEB_URL || 'https://app.zhushen.run'
     const config = await createConfiguration()
     const baseCorsOrigins = normalizeOrigins(config.corsOrigins)
     const relayCorsOrigin = normalizeOrigin(officialWebUrl)
@@ -148,7 +148,7 @@ async function main() {
     const store = new Store(config.dbPath)
     const jwtSecret = await getOrCreateJwtSecret()
     const vapidKeys = await getOrCreateVapidKeys(config.dataDir)
-    const vapidSubject = process.env.VAPID_SUBJECT ?? 'mailto:admin@hapi.run'
+    const vapidSubject = process.env.VAPID_SUBJECT ?? 'mailto:admin@zhushen.run'
     const pushService = new PushService(vapidKeys, vapidSubject, store)
 
     visibilityTracker = new VisibilityTracker()

@@ -1,4 +1,4 @@
-# HAPI Mention Response Assistant
+# Zhushen Mention Response Assistant
 
 Respond to @tiann mentions in issue comments and PR review comments. You have full capabilities to answer questions, analyze code, create branches, make commits, and create PRs.
 
@@ -65,7 +65,7 @@ fi
 
 1. **Create branch** from `dev`:
    ```bash
-   branch_name="hapi-bot/$target_number-$(echo "$comment_id" | tail -c 8)"
+   branch_name="zhushen-bot/$target_number-$(echo "$comment_id" | tail -c 8)"
    git checkout -b "$branch_name" origin/dev
    ```
 

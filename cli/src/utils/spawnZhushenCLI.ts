@@ -69,12 +69,12 @@ function resolveBunExecutable(): string {
   throw new Error('Bun runtime is required to spawn the TypeScript CLI entrypoint');
 }
 
-export interface HappyCliCommand {
+export interface ZhushenCliCommand {
   command: string;
   args: string[];
 }
 
-export function getHappyCliCommand(args: string[]): HappyCliCommand {
+export function getZhushenCliCommand(args: string[]): ZhushenCliCommand {
   // Compiled binary mode: just use the executable directly
   if (isBunCompiled()) {
     return {
@@ -98,7 +98,7 @@ export function getSpawnedCliWorkingDirectory(): string {
   return process.env[SESSION_CWD_ENV_KEY] || process.cwd();
 }
 
-export function spawnHappyCLI(args: string[], options: SpawnOptions = {}): ChildProcess {
+export function spawnZhushenCLI(args: string[], options: SpawnOptions = {}): ChildProcess {
   const requestedCwd = typeof options.cwd === 'string' ? options.cwd : undefined;
   const projectRoot = projectPath();
   const executionCwd = isBunCompiled() ? requestedCwd ?? process.cwd() : projectRoot;
@@ -111,7 +111,7 @@ export function spawnHappyCLI(args: string[], options: SpawnOptions = {}): Child
   const fullCommand = `zs ${args.join(' ')}`;
   logger.debug(`[SPAWN ZS CLI] Spawning: ${fullCommand} in ${requestedCwd ?? process.cwd()}`);
 
-  const { command: spawnCommand, args: spawnArgs } = getHappyCliCommand(args);
+  const { command: spawnCommand, args: spawnArgs } = getZhushenCliCommand(args);
 
   // On Windows, detached processes allocate a new console window by default.
   // windowsHide: true suppresses this to prevent cmd windows from accumulating.

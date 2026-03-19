@@ -14,7 +14,7 @@ import { resolveGeminiRuntimeConfig } from './utils/config';
 import { isPermissionModeAllowedForFlavor } from '@zs/protocol';
 import { PermissionModeSchema } from '@zs/protocol/schemas';
 import { formatMessageWithAttachments } from '@/utils/attachmentFormatter';
-import { getSpawnedCliWorkingDirectory } from '@/utils/spawnHappyCLI';
+import { getSpawnedCliWorkingDirectory } from '@/utils/spawnZhushenCLI';
 
 export async function runGemini(opts: {
     startedBy?: 'runner' | 'terminal';

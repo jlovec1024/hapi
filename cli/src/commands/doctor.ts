@@ -1,4 +1,4 @@
-import { killRunawayHappyProcesses } from '@/runner/doctor'
+import { killRunawayZhushenProcesses } from '@/runner/doctor'
 import { runDoctorCommand } from '@/ui/doctor'
 import type { CommandDefinition } from './types'
 
@@ -7,7 +7,7 @@ export const doctorCommand: CommandDefinition = {
     requiresRuntimeAssets: true,
     run: async ({ commandArgs }) => {
         if (commandArgs[0] === 'clean') {
-            const result = await killRunawayHappyProcesses()
+            const result = await killRunawayZhushenProcesses()
             console.log(`Cleaned up ${result.killed} runaway processes`)
             if (result.errors.length > 0) {
                 console.log('Errors:', result.errors)

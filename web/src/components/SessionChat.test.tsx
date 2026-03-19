@@ -7,16 +7,16 @@ vi.mock('@/components/TeamPanel', () => ({
     TeamPanel: () => null,
 }))
 
-vi.mock('@/components/AssistantChat/HappyComposer', () => ({
-    HappyComposer: () => <div data-testid="happy-composer" />,
+vi.mock('@/components/AssistantChat/ZhushenComposer', () => ({
+    ZhushenComposer: () => <div data-testid="zhushen-composer" />,
 }))
 
-vi.mock('@/components/AssistantChat/HappyThread', () => ({
-    HappyThread: () => <div data-testid="happy-thread" />,
+vi.mock('@/components/AssistantChat/ZhushenThread', () => ({
+    ZhushenThread: () => <div data-testid="zhushen-thread" />,
 }))
 
 vi.mock('@/lib/assistant-runtime', () => ({
-    useHappyRuntime: () => ({}),
+    useZhushenRuntime: () => ({}),
 }))
 
 vi.mock('@/lib/attachmentAdapter', () => ({
@@ -99,8 +99,8 @@ describe('SessionChat', () => {
         )
 
         expect(screen.getByText('Session is inactive. Sending will resume it automatically.')).toBeInTheDocument()
-        expect(screen.getByTestId('happy-thread')).toBeInTheDocument()
-        expect(screen.getByTestId('happy-composer')).toBeInTheDocument()
+        expect(screen.getByTestId('zhushen-thread')).toBeInTheDocument()
+        expect(screen.getByTestId('zhushen-composer')).toBeInTheDocument()
 
         rerender(
             <SessionChat
