@@ -2,18 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const harness = vi.hoisted(() => ({
-  homeDir: '/tmp/zs-auth-config-test-home'
-}));
-
-vi.mock('node:os', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:os')>();
-  return {
-    ...actual,
-    homedir: vi.fn(() => harness.homeDir)
-  };
-});
-
 vi.mock('@/ui/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -23,16 +11,28 @@ vi.mock('@/ui/logger', () => ({
   }
 }));
 
-const { checkClaudeAuthConfig, formatClaudeAuthConfigError } = await import('./authConfig');
+type AuthConfigModule = typeof import('./authConfig');
+
+const testHomeDir = '/tmp/zs-auth-config-test-home';
+const originalHome = process.env.HOME;
+
+let checkClaudeAuthConfig: AuthConfigModule['checkClaudeAuthConfig'];
+let formatClaudeAuthConfigError: AuthConfigModule['formatClaudeAuthConfigError'];
 
 describe('checkClaudeAuthConfig', () => {
   let testClaudeDir: string;
   let legacyConfigBackupPath: string | null = null;
   let legacyConfigPath: string;
 
-  beforeEach(() => {
-    testClaudeDir = join(harness.homeDir, '.claude');
-    legacyConfigPath = join(harness.homeDir, '.claude.json');
+  beforeEach(async () => {
+    process.env.HOME = testHomeDir;
+    delete process.env.CLAUDE_CONFIG_DIR;
+    vi.resetModules();
+
+    ({ checkClaudeAuthConfig, formatClaudeAuthConfigError } = await import('./authConfig'));
+
+    testClaudeDir = join(testHomeDir, '.claude');
+    legacyConfigPath = join(testHomeDir, '.claude.json');
 
     mkdirSync(testClaudeDir, { recursive: true });
     rmSync(join(testClaudeDir, 'settings.json'), { force: true });
@@ -52,6 +52,13 @@ describe('checkClaudeAuthConfig', () => {
   afterEach(() => {
     delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
     delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.CLAUDE_CONFIG_DIR;
+
+    if (originalHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = originalHome;
+    }
 
     if (existsSync(testClaudeDir)) {
       rmSync(testClaudeDir, { recursive: true, force: true });
