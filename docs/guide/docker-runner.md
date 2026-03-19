@@ -88,12 +88,13 @@ docker run --rm -it \
 | `ZS_NODE_VERSION` | `24` | 运行时 Node.js 版本（由 nvm 管理；镜像默认预装该版本） |
 | `ZS_GIT_USER_NAME` | `zs runner` | runner 容器内 git user.name |
 | `ZS_GIT_USER_EMAIL` | `zs-runner@local` | runner 容器内 git user.email |
+| `ZS_RUNNER_LOG_DESTINATION` | `stdio` | runner 日志输出目标；镜像默认写到 stdout/stderr，可设为 `file` 恢复文件日志 |
 | `CLAUDE_DATA_ROOT` | `/data/claude` | Claude 配置持久化根目录 |
 
 说明：
 
 - hub 默认监听端口为 `80`（容器内），通过 `ZS_LISTEN_PORT` 可以修改宿主机映射端口。
-- runner 默认 `ZS_HOME=/data/runner`，`ZS_API_URL=http://zs-hub:80`（compose 网络内）。
+- `ZS_RUNNER_LOG_DESTINATION` 默认是 `stdio`，因此 `zs-runner` 容器中的 runner debug 日志会直接进入容器标准输出；如需恢复容器内文件日志，可显式设置为 `file`。
 - hub 默认 `ZS_HOME=/data/hub`。
 - Claude 配置默认持久化到 `/data/claude`；runner 会优先使用当前环境中的 `HOME`，若未设置则按当前运行用户解析 home，并在启动时自动把 home 下 Claude 入口软链接回 `/data/claude`。
 - `claude` 在镜像构建时已预安装到 PATH，无需额外配置路径。

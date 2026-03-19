@@ -22,6 +22,7 @@ services:
       CLI_API_TOKEN: ${CLI_API_TOKEN}
       ZS_GO_VERSION: ${ZS_GO_VERSION:-1.24.3}
       ZS_NODE_VERSION: ${ZS_NODE_VERSION:-24}
+      ZS_RUNNER_LOG_DESTINATION: ${ZS_RUNNER_LOG_DESTINATION:-stdio}
       ZS_GIT_USER_NAME: "${ZS_GIT_USER_NAME:-zs runner}"
       ZS_GIT_USER_EMAIL: "${ZS_GIT_USER_EMAIL:-zs-runner@local}"
     volumes:

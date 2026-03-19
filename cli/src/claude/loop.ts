@@ -42,7 +42,7 @@ interface LoopOptions {
 export async function loop(opts: LoopOptions) {
 
     // Get log path for debug display
-    const logPath = logger.logFilePath;
+    const logPath = logger.getLogPath();
     const startedBy = opts.startedBy ?? 'terminal';
     const startingMode = opts.startingMode ?? 'local';
     const modelMode: SessionModelMode = opts.model === 'sonnet' || opts.model === 'opus'

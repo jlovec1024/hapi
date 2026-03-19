@@ -141,6 +141,7 @@ ENV ZS_HOME=/data/runner
 ENV ZS_API_URL=http://zs-hub:80
 ENV ZS_GO_VERSION=1.24.3
 ENV ZS_NODE_VERSION=24
+ENV ZS_RUNNER_LOG_DESTINATION=stdio
 ENV CLAUDE_TEMPLATE_DIR=/opt/zhushen/claude-default
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

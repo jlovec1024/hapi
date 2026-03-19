@@ -20,7 +20,7 @@ export class CursorSession extends AgentSessionBase<EnhancedMode> {
         api: ApiClient;
         client: ApiSessionClient;
         path: string;
-        logPath: string;
+        logPath?: string;
         sessionId: string | null;
         messageQueue: MessageQueue2<EnhancedMode>;
         onModeChange: (mode: 'local' | 'remote') => void;

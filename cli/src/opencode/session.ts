@@ -20,7 +20,7 @@ export class OpencodeSession extends AgentSessionBase<OpencodeMode> {
         api: ApiClient;
         client: ApiSessionClient;
         path: string;
-        logPath: string;
+        logPath?: string;
         sessionId: string | null;
         messageQueue: MessageQueue2<OpencodeMode>;
         onModeChange: (mode: 'local' | 'remote') => void;

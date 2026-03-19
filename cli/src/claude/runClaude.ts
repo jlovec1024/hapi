@@ -109,9 +109,11 @@ export async function runClaude(options: StartOptions = {}): Promise<void> {
     logger.debug(`[START] Generated hook settings file: ${hookSettingsPath}`);
 
     // Print log file path
-    const logPath = logger.logFilePath;
+    const logPath = logger.getLogPath();
     logger.infoDeveloper(`Session: ${sessionInfo.id}`);
-    logger.infoDeveloper(`Logs: ${logPath}`);
+    if (logPath) {
+        logger.infoDeveloper(`Logs: ${logPath}`);
+    }
 
     const lifecycle = createRunnerLifecycle({
         session,

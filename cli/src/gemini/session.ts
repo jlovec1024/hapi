@@ -21,7 +21,7 @@ export class GeminiSession extends AgentSessionBase<GeminiMode> {
         api: ApiClient;
         client: ApiSessionClient;
         path: string;
-        logPath: string;
+        logPath?: string;
         sessionId: string | null;
         messageQueue: MessageQueue2<GeminiMode>;
         onModeChange: (mode: 'local' | 'remote') => void;
