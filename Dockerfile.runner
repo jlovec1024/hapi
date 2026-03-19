@@ -99,6 +99,7 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash \
+        bash-completion \
         curl \
         git \
         ca-certificates \
@@ -121,6 +122,18 @@ RUN apt-get update \
         procps \
         tree \
         rsync \
+        less \
+        vim-tiny \
+        unzip \
+        zip \
+        file \
+        dnsutils \
+        iputils-ping \
+        netcat-openbsd \
+        lsof \
+        psmisc \
+        ripgrep \
+        tmux \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=tooling /opt/nvm /opt/nvm
