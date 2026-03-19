@@ -3,19 +3,11 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
-const harness = vi.hoisted(() => ({
-    homeDir: ''
-}))
+type SlashCommandsModule = typeof import('./slashCommands')
 
-vi.mock('node:os', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('node:os')>()
-    return {
-        ...actual,
-        homedir: vi.fn(() => harness.homeDir)
-    }
-})
+const originalHome = process.env.HOME
 
-const { listSlashCommands } = await import('./slashCommands')
+let listSlashCommands: SlashCommandsModule['listSlashCommands']
 
 describe('listSlashCommands', () => {
     let sandboxDir: string
@@ -24,8 +16,13 @@ describe('listSlashCommands', () => {
 
     beforeEach(async () => {
         sandboxDir = await mkdtemp(join(tmpdir(), 'zs-slash-commands-'))
-        harness.homeDir = join(sandboxDir, 'home')
-        homeClaudeDir = join(harness.homeDir, '.claude')
+        process.env.HOME = join(sandboxDir, 'home')
+        delete process.env.CLAUDE_CONFIG_DIR
+        vi.resetModules()
+
+        ;({ listSlashCommands } = await import('./slashCommands'))
+
+        homeClaudeDir = join(process.env.HOME, '.claude')
         projectDir = join(sandboxDir, 'project')
 
         await mkdir(join(homeClaudeDir, 'commands'), { recursive: true })
@@ -33,6 +30,12 @@ describe('listSlashCommands', () => {
     })
 
     afterEach(async () => {
+        delete process.env.CLAUDE_CONFIG_DIR
+        if (originalHome === undefined) {
+            delete process.env.HOME
+        } else {
+            process.env.HOME = originalHome
+        }
         await rm(sandboxDir, { recursive: true, force: true })
     })
 

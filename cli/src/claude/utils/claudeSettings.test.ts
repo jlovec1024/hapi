@@ -8,18 +8,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { existsSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-const harness = vi.hoisted(() => ({
-  homeDir: '/tmp/zs-claude-settings-test-home'
-}));
-
-vi.mock('node:os', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:os')>();
-  return {
-    ...actual,
-    homedir: vi.fn(() => harness.homeDir)
-  };
-});
-
 vi.mock('@/ui/logger', () => ({
   logger: {
     debug: vi.fn(),
@@ -29,18 +17,37 @@ vi.mock('@/ui/logger', () => ({
   }
 }));
 
-const { readClaudeSettings, shouldIncludeCoAuthoredBy } = await import('./claudeSettings');
+type ClaudeSettingsModule = typeof import('./claudeSettings');
+
+const testHomeDir = '/tmp/zs-claude-settings-test-home';
+const originalHome = process.env.HOME;
+
+let readClaudeSettings: ClaudeSettingsModule['readClaudeSettings'];
+let shouldIncludeCoAuthoredBy: ClaudeSettingsModule['shouldIncludeCoAuthoredBy'];
 
 describe('Claude Settings', () => {
   let testClaudeDir: string;
 
-  beforeEach(() => {
-    testClaudeDir = join(harness.homeDir, '.claude');
+  beforeEach(async () => {
+    process.env.HOME = testHomeDir;
+    delete process.env.CLAUDE_CONFIG_DIR;
+    vi.resetModules();
+
+    ({ readClaudeSettings, shouldIncludeCoAuthoredBy } = await import('./claudeSettings'));
+
+    testClaudeDir = join(testHomeDir, '.claude');
     mkdirSync(testClaudeDir, { recursive: true });
     rmSync(join(testClaudeDir, 'settings.json'), { force: true });
   });
 
   afterEach(() => {
+    delete process.env.CLAUDE_CONFIG_DIR;
+    if (originalHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = originalHome;
+    }
+
     if (existsSync(testClaudeDir)) {
       rmSync(testClaudeDir, { recursive: true, force: true });
     }
