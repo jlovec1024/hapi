@@ -65,13 +65,15 @@ compose 默认使用独立命名卷，并统一挂载到容器内 `/data` 体系
 
 - hub 默认 `ZS_HOME=/data/hub`
 - runner 默认 `ZS_HOME=/data/runner`
-- Claude Code 配置目录默认 `CLAUDE_CONFIG_DIR=/data/claude/.claude`
-- `/root/.claude.json` 会被统一映射到 `/data/claude/.claude.json`
+- `/data/claude` 是 Claude 配置的默认持久化根目录
+- 启动时会将当前用户的 `~/.claude` 软链接到 `/data/claude/.claude`
+- 启动时会将当前用户的 `~/.claude.json` 软链接到 `/data/claude/.claude.json`
 
 首次启动 runner 时：
 
-- 若 `/data/claude/.claude` 为空，会从镜像内置模板复制最小 Claude 配置；
-- 若 `/data/claude/.claude.json` 不存在，会自动生成模板文件；
+- 入口脚本会先确保 `/data/claude` 存在；
+- 再将镜像内置模板 `/opt/zhushen/claude-default` 增量补齐到 `/data/claude`；
+- 若当前用户 home 下已存在真实的 `~/.claude` 或 `~/.claude.json`，会先备份为 `.bak`（若重名则追加时间戳）后再改为软链接；
 - 只建立 Claude 配置骨架，不会主动把 token / API 写入 `settings.json`。
 
 模板目录位于 `docker/claude-default`，当前结构为：

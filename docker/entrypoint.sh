@@ -65,27 +65,75 @@ ensure_goenv_runtime() {
     fi
 }
 
+backup_existing_path_if_needed() {
+    path_to_check="$1"
+    expected_target="$2"
+
+    if [ -L "${path_to_check}" ]; then
+        current_target="$(readlink "${path_to_check}")"
+        if [ "${current_target}" = "${expected_target}" ]; then
+            return
+        fi
+
+        echo "[entrypoint] WARN: replacing unexpected symlink ${path_to_check} -> ${current_target}" >&2
+        rm -f "${path_to_check}"
+        return
+    fi
+
+    if [ -e "${path_to_check}" ]; then
+        backup_path="${path_to_check}.bak"
+        timestamp="$(date +%Y%m%d%H%M%S)"
+        if [ -e "${backup_path}" ] || [ -L "${backup_path}" ]; then
+            backup_path="${backup_path}.${timestamp}"
+        fi
+        echo "[entrypoint] WARN: moving existing path ${path_to_check} to ${backup_path} before creating symlink" >&2
+        mv "${path_to_check}" "${backup_path}"
+    fi
+}
+
+ensure_symlink() {
+    link_path="$1"
+    target_path="$2"
+
+    backup_existing_path_if_needed "${link_path}" "${target_path}"
+    ln -sfn "${target_path}" "${link_path}"
+}
+
 ensure_claude_config() {
     claude_template_dir="${CLAUDE_TEMPLATE_DIR:-/opt/zhushen/claude-default}"
+    claude_data_root="${CLAUDE_DATA_ROOT:-/data/claude}"
     resolved_home="$(resolve_user_home)"
     claude_config_dir="${resolved_home}/.claude"
     claude_legacy_config_path="${resolved_home}/.claude.json"
+    claude_data_config_dir="${claude_data_root}/.claude"
+    claude_data_legacy_config_path="${claude_data_root}/.claude.json"
 
     export HOME="${resolved_home}"
     export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${resolved_home}/.config}"
+    export CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-${claude_config_dir}}"
 
-    mkdir -p "${resolved_home}" "${claude_config_dir}" "${XDG_CONFIG_HOME}"
+    mkdir -p "${resolved_home}" "${XDG_CONFIG_HOME}" "${claude_data_root}"
 
     if [ ! -d "${claude_template_dir}/.claude" ]; then
         echo "[entrypoint] ERROR: Claude template directory missing: ${claude_template_dir}/.claude" >&2
         exit 1
     fi
 
-    seed_dir_if_needed "${claude_template_dir}/.claude" "${claude_config_dir}"
-
-    if [ ! -f "${claude_legacy_config_path}" ]; then
-        cp -a "${claude_template_dir}/.claude.json" "${claude_legacy_config_path}"
+    if [ ! -f "${claude_template_dir}/.claude.json" ]; then
+        echo "[entrypoint] ERROR: Claude legacy template missing: ${claude_template_dir}/.claude.json" >&2
+        exit 1
     fi
+
+    mkdir -p "${claude_data_config_dir}"
+    seed_dir_if_needed "${claude_template_dir}/.claude" "${claude_data_config_dir}"
+
+    if [ ! -f "${claude_data_legacy_config_path}" ]; then
+        cp -a "${claude_template_dir}/.claude.json" "${claude_data_legacy_config_path}"
+    fi
+
+    ensure_symlink "${claude_config_dir}" "${claude_data_config_dir}"
+    ensure_symlink "${claude_legacy_config_path}" "${claude_data_legacy_config_path}"
+    export CLAUDE_CONFIG_DIR="${claude_config_dir}"
 }
 
 ensure_runtime_versions() {
