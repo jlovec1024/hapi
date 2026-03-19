@@ -378,31 +378,51 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     }
   });
 
+  it('should not persist runnerLogPath when runner log destination is stdio', async () => {
+    const previousValue = process.env.ZS_RUNNER_LOG_DESTINATION;
+
+    try {
+      process.env.ZS_RUNNER_LOG_DESTINATION = 'stdio';
+      const { logger: stdioLogger } = await import('@/ui/logger');
+      expect(stdioLogger.isWritingRunnerLogsToStdio()).toBe(true);
+
+      const runnerState = await readRunnerState();
+      expect(runnerState).toBeDefined();
+      expect(runnerState?.runnerLogPath).toBeUndefined();
+    } finally {
+      if (previousValue === undefined) {
+        delete process.env.ZS_RUNNER_LOG_DESTINATION;
+      } else {
+        process.env.ZS_RUNNER_LOG_DESTINATION = previousValue;
+      }
+    }
+  });
+
   it('should die with logs when SIGKILL is sent', async () => {
     // SIGKILL test - runner should die immediately
     const logsDir = configuration.logsDir;
     const { readdirSync } = await import('fs');
-    
+
     // Get initial log files
     const initialLogs = readdirSync(logsDir).filter(f => f.endsWith('-runner.log'));
-    
+
     // Send SIGKILL to runner (force kill)
     await killProcess(runnerPid, true);
-    
+
     // Wait for process to die
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     // Check if process is dead
     const isDead = !isProcessAlive(runnerPid);
     expect(isDead).toBe(true);
-    
+
     // Check that log file exists (it was created when runner started)
     const finalLogs = readdirSync(logsDir).filter(f => f.endsWith('-runner.log'));
     expect(finalLogs.length).toBeGreaterThanOrEqual(initialLogs.length);
-    
+
     // The runner won't have time to write cleanup logs with SIGKILL
     console.log('[TEST] Runner killed with SIGKILL - no cleanup logs expected');
-    
+
     // Clean up state file manually since runner couldn't do it
     await clearRunnerState();
   });
@@ -467,6 +487,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
       }
     }
   });
+
 
   it('should not remove runner lock when only stale state is cleared', async () => {
     writeFileSync(configuration.runnerLockFile, String(runnerPid), 'utf8');

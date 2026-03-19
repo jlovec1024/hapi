@@ -19,9 +19,12 @@ interface Settings {
   cliApiToken?: string
   // API URL for server connections (priority: env ZS_API_URL > this > default)
   apiUrl?: string
+  runnerLogDestination?: RunnerLogDestination
   // Legacy field name (for migration, read-only)
   serverUrl?: string
 }
+
+export type RunnerLogDestination = 'file' | 'stdio'
 
 const defaultSettings: Settings = {}
 

@@ -10,11 +10,34 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import packageJson from '../package.json'
 import { getCliArgs } from '@/utils/cliArgs'
+import { readFileSync } from 'node:fs'
+import type { RunnerLogDestination } from '@/persistence'
+
+function isRunnerLogDestination(value: string | undefined): value is RunnerLogDestination {
+    return value === 'file' || value === 'stdio'
+}
+
+function readRunnerLogDestinationFromSettings(settingsFile: string): RunnerLogDestination | undefined {
+    if (!existsSync(settingsFile)) {
+        return undefined
+    }
+
+    try {
+        const content = readFileSync(settingsFile, 'utf8')
+        const parsed = JSON.parse(content) as { runnerLogDestination?: unknown }
+        return typeof parsed.runnerLogDestination === 'string' && isRunnerLogDestination(parsed.runnerLogDestination)
+            ? parsed.runnerLogDestination
+            : undefined
+    } catch {
+        return undefined
+    }
+}
 
 class Configuration {
     private _apiUrl: string
     private _cliApiToken: string
     public readonly isRunnerProcess: boolean
+    public readonly runnerLogDestination: RunnerLogDestination
 
     // Directories and paths (from persistence)
     public readonly happyHomeDir: string
@@ -50,6 +73,12 @@ class Configuration {
         this.privateKeyFile = join(this.happyHomeDir, 'access.key')
         this.runnerStateFile = join(this.happyHomeDir, 'runner.state.json')
         this.runnerLockFile = join(this.happyHomeDir, 'runner.state.json.lock')
+
+        const envRunnerLogDestination = process.env.ZS_RUNNER_LOG_DESTINATION?.toLowerCase()
+        const settingsRunnerLogDestination = readRunnerLogDestinationFromSettings(this.settingsFile)
+        this.runnerLogDestination = isRunnerLogDestination(envRunnerLogDestination)
+            ? envRunnerLogDestination
+            : settingsRunnerLogDestination ?? 'file'
 
         this.isExperimentalEnabled = ['true', '1', 'yes'].includes(process.env.ZS_EXPERIMENTAL?.toLowerCase() || '')
 

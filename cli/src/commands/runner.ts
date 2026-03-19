@@ -14,6 +14,7 @@ import { runDoctorCommand } from '@/ui/doctor'
 import { initializeToken } from '@/ui/tokenInit'
 import { readRunnerState } from '@/persistence'
 import { isProcessAlive } from '@/utils/process'
+import { configuration } from '@/configuration'
 import type { CommandDefinition } from './types'
 
 /**
@@ -151,6 +152,11 @@ export const runnerCommand: CommandDefinition = {
         }
 
         if (runnerSubcommand === 'logs') {
+            if (configuration.runnerLogDestination === 'stdio') {
+                console.log('Runner is configured to log to stdio. Check the runner process or container stdout/stderr.')
+                process.exit(0)
+            }
+
             const latest = await getLatestRunnerLog()
             if (!latest) {
                 console.log('No runner logs found')
@@ -169,6 +175,7 @@ ${chalk.bold('Usage:')}
   zs runner restart            Restart the runner (stop + start + show status)
   zs runner status             Show runner status
   zs runner list               List active sessions
+  zs runner logs               Print the latest runner log path
 
   If you want to kill all zs related processes run
   ${chalk.cyan('zs doctor clean')}

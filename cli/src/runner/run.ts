@@ -661,7 +661,7 @@ export async function startRunner(): Promise<void> {
       startTime: new Date().toLocaleString(),
       startedWithCliVersion: packageJson.version,
       startedWithCliMtimeMs,
-      runnerLogPath: logger.logFilePath
+      runnerLogPath: logger.getLogPath()
     };
     writeRunnerState(fileState);
     logger.debug('[RUNNER RUN] Runner state written');

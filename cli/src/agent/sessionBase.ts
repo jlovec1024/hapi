@@ -7,7 +7,7 @@ export type AgentSessionBaseOptions<Mode> = {
     api: ApiClient;
     client: ApiSessionClient;
     path: string;
-    logPath: string;
+    logPath?: string;
     sessionId: string | null;
     messageQueue: MessageQueue2<Mode>;
     onModeChange: (mode: 'local' | 'remote') => void;
@@ -21,7 +21,7 @@ export type AgentSessionBaseOptions<Mode> = {
 
 export class AgentSessionBase<Mode> {
     readonly path: string;
-    readonly logPath: string;
+    readonly logPath?: string;
     readonly api: ApiClient;
     readonly client: ApiSessionClient;
     readonly queue: MessageQueue2<Mode>;

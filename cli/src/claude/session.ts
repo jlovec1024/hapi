@@ -26,7 +26,7 @@ export class Session extends AgentSessionBase<EnhancedMode> {
         api: ApiClient;
         client: ApiSessionClient;
         path: string;
-        logPath: string;
+        logPath?: string;
         sessionId: string | null;
         claudeEnvVars?: Record<string, string>;
         claudeArgs?: string[];
