@@ -2,7 +2,6 @@ import type { ToolViewComponent, ToolViewProps } from '@/components/ToolCard/vie
 import { isObject, safeStringify } from '@zs/protocol'
 import { CodeBlock } from '@/components/CodeBlock'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
-import { LongContentCollapse } from '@/components/LongContentCollapse'
 import { ChecklistList, extractTodoChecklist } from '@/components/ToolCard/checklist'
 import { useTranslation } from '@/lib/use-translation'
 import { basename, resolveDisplayPath } from '@/utils/path'
@@ -141,11 +140,9 @@ function renderFollowupText(props: ToolViewProps) {
     return (
         <div className="mt-3">
             <div className="mb-1 text-xs font-medium text-[var(--app-hint)]">{t('tool.skillInstructions')}</div>
-            <LongContentCollapse text={text}>
-                <div className="text-sm text-[var(--app-fg)]">
-                    <MarkdownRenderer content={text} />
-                </div>
-            </LongContentCollapse>
+            <div className="text-sm text-[var(--app-fg)]">
+                <MarkdownRenderer content={text} />
+            </div>
         </div>
     )
 }

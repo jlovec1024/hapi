@@ -193,10 +193,6 @@ export default {
   // Code block
   'code.copy': '复制',
 
-  // Long content collapse
-  'content.collapse.close': '收起长消息',
-  'content.collapse.openWithHidden': '展开长消息（已隐藏部分）',
-
   // File preview
   'file.binary': '这似乎是二进制文件，无法显示。',
   'file.imagePreviewFailed': '图片预览加载失败。',

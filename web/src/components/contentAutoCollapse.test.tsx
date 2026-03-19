@@ -1,20 +1,17 @@
 import { beforeAll, beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ToolCallBlock } from '@/chat/types'
 import { CodeBlock } from '@/components/CodeBlock'
 import { CliOutputBlock } from '@/components/CliOutputBlock'
 import { getToolResultViewComponent } from '@/components/ToolCard/views/_results'
-import { LongContentCollapse } from '@/components/LongContentCollapse'
 import { I18nProvider } from '@/lib/i18n-context'
-import { LONG_CONTENT_COLLAPSE_THRESHOLD } from '@/lib/contentLimits'
 import zhCN from '@/lib/locales/zh-CN'
 
 vi.mock('@/components/MarkdownRenderer', () => ({
     MarkdownRenderer: ({ content }: { content: string }) => <div>{content}</div>
 }))
 
-const COLLAPSE_LABEL = zhCN['content.collapse.close']
-const EXPAND_LABEL = zhCN['content.collapse.openWithHidden']
+const REMOVED_COLLAPSE_LABELS = ['收起长消息', '展开长消息（已隐藏部分）']
 
 beforeAll(() => {
     Object.defineProperty(window, 'matchMedia', {
@@ -71,54 +68,39 @@ function makeToolBlock(overrides: Partial<ToolCallBlock['tool']> = {}): ToolCall
     }
 }
 
-describe('Long content auto collapse', () => {
-    it('does not collapse at threshold boundary', () => {
-        const boundaryText = 'a'.repeat(LONG_CONTENT_COLLAPSE_THRESHOLD)
+function expectCollapseButtonsRemoved() {
+    for (const label of REMOVED_COLLAPSE_LABELS) {
+        expect(screen.queryByRole('button', { name: label })).not.toBeInTheDocument()
+    }
+}
 
-        renderWithI18n(
-            <LongContentCollapse text={boundaryText}>
-                <div>boundary-content</div>
-            </LongContentCollapse>
-        )
-
-        expect(screen.queryByRole('button', { name: EXPAND_LABEL })).not.toBeInTheDocument()
-        expect(screen.getByText('boundary-content')).toBeInTheDocument()
-    })
-
-    it('auto-collapses code block when content exceeds threshold', () => {
-        const longCode = 'a'.repeat(LONG_CONTENT_COLLAPSE_THRESHOLD + 1)
+describe('Long content display', () => {
+    it('shows long code blocks without collapse controls', () => {
+        const longCode = 'a'.repeat(1200)
 
         renderWithI18n(<CodeBlock code={longCode} language="text" />)
 
-        const toggleButton = screen.getByRole('button', { name: EXPAND_LABEL })
-        expect(toggleButton).toHaveAttribute('aria-expanded', 'false')
-
-        fireEvent.click(toggleButton)
-
-        expect(screen.getByRole('button', { name: COLLAPSE_LABEL })).toHaveAttribute('aria-expanded', 'true')
+        expect(screen.getByText(longCode)).toBeInTheDocument()
+        expectCollapseButtonsRemoved()
     })
 
-    it('auto-collapses cli output when content exceeds threshold', async () => {
-        const longStdout = 'a'.repeat(LONG_CONTENT_COLLAPSE_THRESHOLD + 100)
+    it('shows long cli output without collapse controls', async () => {
+        const longStdout = 'a'.repeat(1100)
         const text = `<command-name>echo hi</command-name>\n<local-command-stdout>${longStdout}</local-command-stdout>`
 
         renderWithI18n(<CliOutputBlock text={text} />)
 
         fireEvent.click(screen.getByRole('button', { name: 'echo hi' }))
 
-        const expandButton = await screen.findByRole('button', { name: EXPAND_LABEL })
-        expect(expandButton).toHaveAttribute('aria-expanded', 'false')
-
-        fireEvent.click(expandButton)
-
-        expect(screen.getByRole('button', { name: COLLAPSE_LABEL })).toHaveAttribute('aria-expanded', 'true')
+        expect(await screen.findByText(longStdout, { exact: false })).toBeInTheDocument()
+        expectCollapseButtonsRemoved()
     })
 
-    it('auto-collapses skill followup text inside tool result views', () => {
+    it('shows long skill followup text without collapse controls', () => {
         const ResultView = getToolResultViewComponent('Skill')
-        const longFollowup = '请先阅读规范。\n\n' + 'a'.repeat(LONG_CONTENT_COLLAPSE_THRESHOLD + 50)
+        const longFollowup = '请先阅读规范。\n\n' + 'a'.repeat(1050)
 
-        const { container } = renderWithI18n(
+        renderWithI18n(
             <ResultView
                 block={makeToolBlock({ followupText: longFollowup })}
                 metadata={null}
@@ -126,12 +108,8 @@ describe('Long content auto collapse', () => {
         )
 
         expect(screen.getByText(zhCN['tool.skillInstructions'])).toBeInTheDocument()
-        const toggleButton = within(container).getByRole('button', { name: EXPAND_LABEL })
-        expect(toggleButton).toHaveAttribute('aria-expanded', 'false')
-
-        fireEvent.click(toggleButton)
-
-        expect(within(container).getByRole('button', { name: COLLAPSE_LABEL })).toHaveAttribute('aria-expanded', 'true')
+        expect(screen.getByText(/请先阅读规范。/)).toBeInTheDocument()
+        expectCollapseButtonsRemoved()
     })
 })
 

@@ -191,10 +191,6 @@ export default {
   // Code block
   'code.copy': 'Copy',
 
-  // Long content collapse
-  'content.collapse.close': 'Collapse long content',
-  'content.collapse.openWithHidden': 'Expand long content (partially hidden)',
-
   // File preview
   'file.binary': 'This looks like a binary file. It cannot be displayed.',
   'file.imagePreviewFailed': 'Failed to load image preview.',

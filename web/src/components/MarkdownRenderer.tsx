@@ -1,11 +1,10 @@
 import type { MarkdownTextPrimitiveProps } from '@assistant-ui/react-markdown'
 import { MarkdownTextPrimitive } from '@assistant-ui/react-markdown'
 import { TextMessagePartProvider } from '@assistant-ui/react'
-import { LongContentCollapse } from '@/components/LongContentCollapse'
 import { MARKDOWN_PLUGINS, defaultComponents } from '@/components/assistant-ui/markdown-text'
 import { cn } from '@/lib/utils'
 
-interface MarkdownRendererProps {
+type MarkdownRendererProps = {
     content: string
     components?: MarkdownTextPrimitiveProps['components']
 }
@@ -16,15 +15,13 @@ function MarkdownContent(props: MarkdownRendererProps) {
         : defaultComponents
 
     return (
-        <LongContentCollapse text={props.content}>
-            <TextMessagePartProvider text={props.content}>
-                <MarkdownTextPrimitive
-                    remarkPlugins={MARKDOWN_PLUGINS}
-                    components={mergedComponents}
-                    className={cn('aui-md min-w-0 max-w-full break-words text-base')}
-                />
-            </TextMessagePartProvider>
-        </LongContentCollapse>
+        <TextMessagePartProvider text={props.content}>
+            <MarkdownTextPrimitive
+                remarkPlugins={MARKDOWN_PLUGINS}
+                components={mergedComponents}
+                className={cn('aui-md min-w-0 max-w-full break-words text-base')}
+            />
+        </TextMessagePartProvider>
     )
 }
 
