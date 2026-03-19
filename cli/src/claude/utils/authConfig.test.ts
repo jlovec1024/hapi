@@ -1,21 +1,41 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { homedir, tmpdir } from 'node:os';
-import { checkClaudeAuthConfig, formatClaudeAuthConfigError } from './authConfig';
+
+const harness = vi.hoisted(() => ({
+  homeDir: '/tmp/zs-auth-config-test-home'
+}));
+
+vi.mock('node:os', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:os')>();
+  return {
+    ...actual,
+    homedir: vi.fn(() => harness.homeDir)
+  };
+});
+
+vi.mock('@/ui/logger', () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }
+}));
+
+const { checkClaudeAuthConfig, formatClaudeAuthConfigError } = await import('./authConfig');
 
 describe('checkClaudeAuthConfig', () => {
   let testClaudeDir: string;
-  let originalClaudeConfigDir: string | undefined;
   let legacyConfigBackupPath: string | null = null;
-  const legacyConfigPath = join(homedir(), '.claude.json');
+  let legacyConfigPath: string;
 
   beforeEach(() => {
-    testClaudeDir = join(tmpdir(), `test-claude-auth-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-    mkdirSync(testClaudeDir, { recursive: true });
+    testClaudeDir = join(harness.homeDir, '.claude');
+    legacyConfigPath = join(harness.homeDir, '.claude.json');
 
-    originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR;
-    process.env.CLAUDE_CONFIG_DIR = testClaudeDir;
+    mkdirSync(testClaudeDir, { recursive: true });
+    rmSync(join(testClaudeDir, 'settings.json'), { force: true });
 
     if (existsSync(legacyConfigPath)) {
       legacyConfigBackupPath = `${legacyConfigPath}.bak-${Date.now()}`;
@@ -24,15 +44,12 @@ describe('checkClaudeAuthConfig', () => {
     } else {
       legacyConfigBackupPath = null;
     }
+
+    delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
+    delete process.env.ANTHROPIC_API_KEY;
   });
 
   afterEach(() => {
-    if (originalClaudeConfigDir !== undefined) {
-      process.env.CLAUDE_CONFIG_DIR = originalClaudeConfigDir;
-    } else {
-      delete process.env.CLAUDE_CONFIG_DIR;
-    }
-
     delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
     delete process.env.ANTHROPIC_API_KEY;
 

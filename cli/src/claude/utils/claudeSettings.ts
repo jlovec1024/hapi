@@ -12,18 +12,18 @@ import { logger } from '@/ui/logger';
 
 export interface ClaudeSettings {
   includeCoAuthoredBy?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-export function getClaudeConfigDir(env: NodeJS.ProcessEnv = process.env): string {
-  return env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude');
+export function getClaudeConfigDir(): string {
+  return join(homedir(), '.claude');
 }
 
 /**
  * Get the path to Claude's settings.json file
  */
-export function getClaudeSettingsPath(env: NodeJS.ProcessEnv = process.env): string {
-  return join(getClaudeConfigDir(env), 'settings.json');
+export function getClaudeSettingsPath(_env: NodeJS.ProcessEnv = process.env): string {
+  return join(getClaudeConfigDir(), 'settings.json');
 }
 
 export function getClaudeLegacyConfigPath(): string {

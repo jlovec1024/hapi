@@ -85,10 +85,8 @@ function parseFrontmatter(fileContent: string): { description?: string; content:
  */
 function getUserCommandsDir(agent: string): string | null {
     switch (agent) {
-        case 'claude': {
-            const configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude');
-            return join(configDir, 'commands');
-        }
+        case 'claude':
+            return join(homedir(), '.claude', 'commands');
         case 'codex': {
             const codexHome = process.env.CODEX_HOME ?? join(homedir(), '.codex');
             return join(codexHome, 'prompts');
@@ -222,8 +220,7 @@ async function scanPluginCommands(agent: string): Promise<SlashCommand[]> {
         return [];
     }
 
-    const configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude');
-    const installedPluginsPath = join(configDir, 'plugins', 'installed_plugins.json');
+    const installedPluginsPath = join(homedir(), '.claude', 'plugins', 'installed_plugins.json');
 
     try {
         const content = await readFile(installedPluginsPath, 'utf-8');

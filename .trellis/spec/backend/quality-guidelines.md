@@ -363,7 +363,7 @@ notifications/
     - `content?: string`
     - `pluginName?: string`
 - 环境变量/路径契约：
-  - Global user commands (Claude): `${CLAUDE_CONFIG_DIR ?? ~/.claude}/commands`
+  - Global user commands (Claude): `~/.claude/commands`
   - Project commands (Claude): `<projectDir>/.claude/commands`
   - Global user commands (Codex): `${CODEX_HOME ?? ~/.codex}/prompts`
   - Project commands (Codex): `<projectDir>/.codex/prompts`
@@ -1673,7 +1673,7 @@ zs --help
 - 触发条件：Docker CLI 镜像切换为由 zcf 驱动的 Claude 配置，并支持运行时 env 覆盖。
 - 为什么需要 code-spec 深度：
   - Infra integration changed (`Dockerfile.runner` build phase + `docker/entrypoint.sh` runtime phase).
-  - New executable env contract (`ZCF_*`, `CLAUDE_CONFIG_DIR`) controls mounted config behavior.
+  - New executable env contract (`ZCF_*`) controls mounted config behavior.
   - Runtime override semantics must be testable to avoid accidental config loss or silent non-override.
 
 ### 2. 签名
@@ -1684,15 +1684,15 @@ zs --help
   - Default export path: `/usr/local/share/claude-default`
 - Runtime signature (`docker/entrypoint.sh`):
   - Bootstrap when mounted config dir is empty:
-    - copy `/usr/local/share/claude-default/.` -> `${CLAUDE_CONFIG_DIR}`
+    - copy `/usr/local/share/claude-default/.` -> `${HOME}/.claude`
   - Runtime override command:
     - `HOME=/root zcf init --skip-prompt --config-action merge --code-type claude-code --install-cometix-line false --workflows skip --mcp-services skip --output-styles skip --api-type <skip|api_key> ...`
   - Post-merge explicit override:
-    - write `${CLAUDE_CONFIG_DIR}/settings.json` for explicitly provided `ZCF_*` keys.
+    - write `${HOME}/.claude/settings.json` for explicitly provided `ZCF_*` keys.
 
 ### 3. 契约
 - Path/env contract:
-  - `CLAUDE_CONFIG_DIR` (optional, default `/root/.claude`)
+  - Claude config path is fixed to `${HOME}/.claude`
   - image defaults path fixed at `/usr/local/share/claude-default`
 - Runtime override trigger contract (any non-empty value triggers override):
   - `ZCF_API_KEY`
@@ -1712,7 +1712,7 @@ zs --help
   - Non-empty mount dir + `ZCF_*` trigger -> run zcf merge then force-set explicitly provided fields.
 
 ### 4. 校验与错误矩阵
-- Missing `${CLAUDE_CONFIG_DIR}/settings.json` after merge -> skip explicit JSON patch (no hard crash beyond zcf phase).
+- Missing `${HOME}/.claude/settings.json` after merge -> skip explicit JSON patch (no hard crash beyond zcf phase).
 - Model/API URL provided without `ZCF_API_KEY` -> warn and keep `api-type=skip`.
 - Mounted directory non-empty, no trigger vars -> no zcf init invocation.
 - Empty mount + default dir exists -> must log bootstrap message and copy defaults once.
@@ -1753,7 +1753,7 @@ docker run --rm -e ZCF_DEFAULT_OUTPUT_STYLE=engineer-professional -v "$PWD/.clau
 #### 正确示例
 ```sh
 # 保持 merge 的非破坏性行为，然后显式补丁写入传入的配置项
-# 在 `${CLAUDE_CONFIG_DIR}/settings.json` 中写入，以确保运行时覆盖结果可预测。
+# 在 `${HOME}/.claude/settings.json` 中写入，以确保运行时覆盖结果可预测。
 docker run --rm -e ZCF_DEFAULT_OUTPUT_STYLE=engineer-professional -v "$PWD/.claude:/root/.claude" zhushen-runner:zcf
 # 断言 settings.json.outputStyle == engineer-professional
 ```

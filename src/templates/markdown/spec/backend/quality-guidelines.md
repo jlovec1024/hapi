@@ -365,7 +365,7 @@ notifications/
     - `content?: string`
     - `pluginName?: string`
 - Env/path contract:
-  - Global user commands (Claude): `${CLAUDE_CONFIG_DIR ?? ~/.claude}/commands`
+  - Global user commands (Claude): `~/.claude/commands`
   - Project commands (Claude): `<projectDir>/.claude/commands`
   - Global user commands (Codex): `${CODEX_HOME ?? ~/.codex}/prompts`
   - Project commands (Codex): `<projectDir>/.codex/prompts`

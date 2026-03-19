@@ -110,7 +110,6 @@ ensure_claude_config() {
 
     export HOME="${resolved_home}"
     export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${resolved_home}/.config}"
-    export CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-${claude_config_dir}}"
 
     mkdir -p "${resolved_home}" "${XDG_CONFIG_HOME}" "${claude_data_root}"
 
@@ -133,7 +132,6 @@ ensure_claude_config() {
 
     ensure_symlink "${claude_config_dir}" "${claude_data_config_dir}"
     ensure_symlink "${claude_legacy_config_path}" "${claude_data_legacy_config_path}"
-    export CLAUDE_CONFIG_DIR="${claude_config_dir}"
 }
 
 ensure_runtime_versions() {

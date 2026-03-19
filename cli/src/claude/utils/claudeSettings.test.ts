@@ -1,38 +1,46 @@
 /**
  * Tests for Claude settings reading functionality
- * 
+ *
  * Tests reading Claude's settings.json file and respecting the includeCoAuthoredBy setting
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { existsSync, writeFileSync, unlinkSync, mkdirSync, rmSync } from 'node:fs';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { existsSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
-import { readClaudeSettings, shouldIncludeCoAuthoredBy } from './claudeSettings';
+
+const harness = vi.hoisted(() => ({
+  homeDir: '/tmp/zs-claude-settings-test-home'
+}));
+
+vi.mock('node:os', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:os')>();
+  return {
+    ...actual,
+    homedir: vi.fn(() => harness.homeDir)
+  };
+});
+
+vi.mock('@/ui/logger', () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }
+}));
+
+const { readClaudeSettings, shouldIncludeCoAuthoredBy } = await import('./claudeSettings');
 
 describe('Claude Settings', () => {
   let testClaudeDir: string;
-  let originalClaudeConfigDir: string | undefined;
 
   beforeEach(() => {
-    // Create a temporary directory for testing
-    testClaudeDir = join(tmpdir(), `test-claude-${Date.now()}`);
+    testClaudeDir = join(harness.homeDir, '.claude');
     mkdirSync(testClaudeDir, { recursive: true });
-    
-    // Set environment variable to point to test directory
-    originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR;
-    process.env.CLAUDE_CONFIG_DIR = testClaudeDir;
+    rmSync(join(testClaudeDir, 'settings.json'), { force: true });
   });
 
   afterEach(() => {
-    // Restore original environment variable
-    if (originalClaudeConfigDir !== undefined) {
-      process.env.CLAUDE_CONFIG_DIR = originalClaudeConfigDir;
-    } else {
-      delete process.env.CLAUDE_CONFIG_DIR;
-    }
-    
-    // Clean up test directory
     if (existsSync(testClaudeDir)) {
       rmSync(testClaudeDir, { recursive: true, force: true });
     }
