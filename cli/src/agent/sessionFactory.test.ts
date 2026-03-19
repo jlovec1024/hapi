@@ -1,60 +1,60 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mockCreate = vi.fn()
-const mockGetOrCreateMachine = vi.fn()
-const mockGetOrCreateSession = vi.fn()
-const mockSessionSyncClient = vi.fn()
-const mockNotifyRunnerSessionStarted = vi.fn()
-const mockReadSettings = vi.fn()
-const mockEnsureGitSafeDirectoryForSession = vi.fn()
+const mockCreate = mock()
+const mockGetOrCreateMachine = mock()
+const mockGetOrCreateSession = mock()
+const mockSessionSyncClient = mock()
+const mockNotifyRunnerSessionStarted = mock()
+const mockReadSettings = mock()
+const mockEnsureGitSafeDirectoryForSession = mock()
 
-vi.mock('@/api/api', () => ({
+mock.module('@/api/api', () => ({
     ApiClient: {
         create: mockCreate
     }
 }))
 
-vi.mock('@/runner/controlClient', () => ({
+mock.module('@/runner/controlClient', () => ({
     notifyRunnerSessionStarted: mockNotifyRunnerSessionStarted
 }))
 
-vi.mock('@/persistence', () => ({
+mock.module('@/persistence', () => ({
     readSettings: mockReadSettings
 }))
 
-vi.mock('@/configuration', () => ({
+mock.module('@/configuration', () => ({
     configuration: {
         zhushenHomeDir: '/zhushen-home'
     }
 }))
 
-vi.mock('@/ui/logger', () => ({
+mock.module('@/ui/logger', () => ({
     logger: {
-        debug: vi.fn()
+        debug: mock()
     }
 }))
 
-vi.mock('@/projectPath', () => ({
-    runtimePath: vi.fn(() => '/runtime')
+mock.module('@/projectPath', () => ({
+    runtimePath: mock(() => '/runtime')
 }))
 
-vi.mock('@/utils/worktreeEnv', () => ({
-    readWorktreeEnv: vi.fn(() => null)
+mock.module('@/utils/worktreeEnv', () => ({
+    readWorktreeEnv: mock(() => null)
 }))
 
-vi.mock('@/utils/gitSafeDirectory', () => ({
+mock.module('@/utils/gitSafeDirectory', () => ({
     ensureGitSafeDirectoryForSession: mockEnsureGitSafeDirectoryForSession
 }))
 
-vi.mock('node:os', () => ({
+mock.module('node:os', () => ({
     default: {
-        hostname: vi.fn(() => 'test-host'),
-        platform: vi.fn(() => 'linux'),
-        homedir: vi.fn(() => '/home/test')
+        hostname: mock(() => 'test-host'),
+        platform: mock(() => 'linux'),
+        homedir: mock(() => '/home/test')
     }
 }))
 
-vi.mock('../../package.json', () => ({
+mock.module('../../package.json', () => ({
     default: {
         version: '1.0.0',
         bugs: 'https://example.invalid/bugs'
@@ -63,7 +63,14 @@ vi.mock('../../package.json', () => ({
 
 describe('bootstrapSession', () => {
     beforeEach(() => {
-        vi.clearAllMocks()
+        mock.restore()
+        mockCreate.mockReset()
+        mockGetOrCreateMachine.mockReset()
+        mockGetOrCreateSession.mockReset()
+        mockSessionSyncClient.mockReset()
+        mockNotifyRunnerSessionStarted.mockReset()
+        mockReadSettings.mockReset()
+        mockEnsureGitSafeDirectoryForSession.mockReset()
 
         const apiClient = {
             getOrCreateMachine: mockGetOrCreateMachine,

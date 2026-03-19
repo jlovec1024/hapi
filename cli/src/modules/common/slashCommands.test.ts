@@ -1,9 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 type SlashCommandsModule = typeof import('./slashCommands')
+
+async function importFreshSlashCommandsModule(): Promise<SlashCommandsModule> {
+    return import(`./slashCommands?test=${Date.now()}-${Math.random()}`)
+}
 
 const originalHome = process.env.HOME
 
@@ -18,9 +22,9 @@ describe('listSlashCommands', () => {
         sandboxDir = await mkdtemp(join(tmpdir(), 'zs-slash-commands-'))
         process.env.HOME = join(sandboxDir, 'home')
         delete process.env.CLAUDE_CONFIG_DIR
-        vi.resetModules()
 
-        ;({ listSlashCommands } = await import('./slashCommands'))
+
+        ;({ listSlashCommands } = await importFreshSlashCommandsModule())
 
         homeClaudeDir = join(process.env.HOME, '.claude')
         projectDir = join(sandboxDir, 'project')
@@ -40,11 +44,13 @@ describe('listSlashCommands', () => {
     })
 
     it('keeps backward-compatible behavior when projectDir is not provided', async () => {
+        await mkdir(homeClaudeDir, { recursive: true })
         await writeFile(
             join(homeClaudeDir, 'commands', 'global-only.md'),
             ['---', 'description: Global only', '---', '', 'Global command body'].join('\n')
         )
 
+        ;({ listSlashCommands } = await importFreshSlashCommandsModule())
         const commands = await listSlashCommands('claude')
         const command = commands.find(cmd => cmd.name === 'global-only')
 

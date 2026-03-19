@@ -43,8 +43,11 @@
     "prepack": "bun run prepare-npm-packages",
     "tools:unpack": "bun run scripts/unpack-tools.ts",
     "update-homebrew-formula": "bun run scripts/update-homebrew-formula.ts",
-    "test": "bun run tools:unpack && vitest run",
-    "test:win": "vitest run",
+    "test": "bun run tools:unpack && bun test",
+    "test:ink": "bun run tools:unpack && bun x vitest@4.0.16 run src/ui/ink/useSwitchControls.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism",
+    "test:win": "bun test",
+    "test:integration": "bun run tools:unpack && bun test src/runner/runner.integration.test.ts",
+    "test:integration-test-env": "bun run tools:unpack && bun --env-file .env.integration-test test src/runner/runner.integration.test.ts",
     "dev": "bun src/index.ts",
     "dev:local-server": "bun --env-file .env.dev-local-server src/index.ts",
     "dev:integration-test-env": "bun --env-file .env.integration-test src/index.ts",
@@ -72,7 +75,6 @@
   "devDependencies": {
     "@types/node": ">=25",
     "bun-types": "^1.3.5",
-    "dotenv": "^17.2.3",
     "typescript": "^5",
     "vitest": "^4.0.16"
   },

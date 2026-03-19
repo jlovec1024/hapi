@@ -1,62 +1,85 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mockReadRunnerState = vi.fn();
-const mockClearRunnerState = vi.fn();
-const mockClearRunnerLock = vi.fn();
-const mockIsProcessAlive = vi.fn();
-const originalFetch = globalThis.fetch;
+const mockReadRunnerState = mock()
+const mockClearRunnerState = mock()
+const mockClearRunnerLock = mock()
+const mockIsProcessAlive = mock()
+const originalFetch = globalThis.fetch
+const originalAbortSignalTimeout = AbortSignal.timeout
+const mockAbortSignalTimeout = mock(() => new AbortController().signal)
 
-vi.mock('@/ui/logger', () => ({
+mock.module('@/api/types', () => ({}))
+
+mock.module('@/ui/logger', () => ({
   logger: {
-    debug: vi.fn(),
-    debugLargeJson: vi.fn()
+    debug: mock(),
+    debugLargeJson: mock()
   }
-}));
+}))
 
-vi.mock('@/persistence', () => ({
+mock.module('@/persistence', () => ({
   readRunnerState: mockReadRunnerState,
   clearRunnerState: mockClearRunnerState,
-  clearRunnerLock: mockClearRunnerLock
-}));
+  clearRunnerLock: mockClearRunnerLock,
+  writeRunnerState: mock(),
+  acquireRunnerLock: mock(),
+  releaseRunnerLock: mock()
+}))
 
-vi.mock('@/utils/process', () => ({
+mock.module('@/utils/process', () => ({
   isProcessAlive: mockIsProcessAlive,
-  killProcess: vi.fn()
-}));
+  killProcess: mock(),
+  isWindows: mock(() => false),
+  killProcessByChildProcess: mock()
+}))
 
-vi.mock('../../package.json', () => ({
+mock.module('@/projectPath', () => ({
+  isBunCompiled: mock(() => false),
+  projectPath: mock(() => '/project')
+}))
+
+mock.module('../../package.json', () => ({
   default: {
     version: '1.0.0'
   }
-}));
+}))
 
 describe('isRunnerRunningCurrentlyInstalledZhushenVersion degraded handling', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mock.restore()
+    mockReadRunnerState.mockReset()
+    mockClearRunnerState.mockReset()
+    mockClearRunnerLock.mockReset()
+    mockIsProcessAlive.mockReset()
+    mockAbortSignalTimeout.mockReset()
+
     mockReadRunnerState.mockResolvedValue({
       pid: 123,
       httpPort: 4312,
       startedWithCliVersion: '1.0.0',
       startedWithCliMtimeMs: 111
-    });
-    mockIsProcessAlive.mockReturnValue(true);
-    globalThis.fetch = vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED')) as unknown as typeof fetch;
-  });
+    })
+    mockIsProcessAlive.mockReturnValue(true)
+    mockAbortSignalTimeout.mockReturnValue(new AbortController().signal)
+    AbortSignal.timeout = mockAbortSignalTimeout
+    globalThis.fetch = mock().mockRejectedValue(new Error('connect ECONNREFUSED')) as unknown as typeof fetch
+  })
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
-  });
+    globalThis.fetch = originalFetch
+    AbortSignal.timeout = originalAbortSignalTimeout
+  })
 
   it('returns false for degraded runner state so callers do not treat control-plane loss as reusable health', async () => {
-    const module = await import('./controlClient');
+    const module = await import('./controlClient')
 
-    await expect(module.isRunnerRunningCurrentlyInstalledZhushenVersion()).resolves.toBe(false);
-  });
+    await expect(module.isRunnerRunningCurrentlyInstalledZhushenVersion()).resolves.toBe(false)
+  })
 
   it('returns false for missing runner state', async () => {
-    const module = await import('./controlClient');
-    mockReadRunnerState.mockResolvedValue(null);
+    const module = await import('./controlClient')
+    mockReadRunnerState.mockResolvedValue(null)
 
-    await expect(module.isRunnerRunningCurrentlyInstalledZhushenVersion()).resolves.toBe(false);
-  });
-});
+    await expect(module.isRunnerRunningCurrentlyInstalledZhushenVersion()).resolves.toBe(false)
+  })
+})

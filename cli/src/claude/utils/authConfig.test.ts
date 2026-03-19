@@ -1,20 +1,24 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-vi.mock('@/ui/logger', () => ({
+const testHomeDir = '/tmp/zs-auth-config-test-home';
+const originalHome = process.env.HOME;
+
+mock.module('@/ui/logger', () => ({
   logger: {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: () => {},
   }
 }));
 
 type AuthConfigModule = typeof import('./authConfig');
 
-const testHomeDir = '/tmp/zs-auth-config-test-home';
-const originalHome = process.env.HOME;
+async function importFreshAuthConfigModule(): Promise<AuthConfigModule> {
+  return import(`./authConfig?test=${Date.now()}-${Math.random()}`);
+}
 
 let checkClaudeAuthConfig: AuthConfigModule['checkClaudeAuthConfig'];
 let formatClaudeAuthConfigError: AuthConfigModule['formatClaudeAuthConfigError'];
@@ -27,9 +31,8 @@ describe('checkClaudeAuthConfig', () => {
   beforeEach(async () => {
     process.env.HOME = testHomeDir;
     delete process.env.CLAUDE_CONFIG_DIR;
-    vi.resetModules();
 
-    ({ checkClaudeAuthConfig, formatClaudeAuthConfigError } = await import('./authConfig'));
+    ({ checkClaudeAuthConfig, formatClaudeAuthConfigError } = await importFreshAuthConfigModule());
 
     testClaudeDir = join(testHomeDir, '.claude');
     legacyConfigPath = join(testHomeDir, '.claude.json');

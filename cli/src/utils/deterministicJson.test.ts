@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 import { deterministicStringify, hashObject, deepEqual, objectKey } from './deterministicJson';
 
 describe('deterministicStringify', () => {

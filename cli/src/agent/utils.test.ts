@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 import { deriveToolName, deriveToolNameWithSource, isPlaceholderToolName } from './utils';
 
 describe('agent tool name helpers', () => {

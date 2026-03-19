@@ -4,23 +4,27 @@
  * Tests reading Claude's settings.json file and respecting the includeCoAuthoredBy setting
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { existsSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-vi.mock('@/ui/logger', () => ({
+const testHomeDir = '/tmp/zs-claude-settings-test-home';
+const originalHome = process.env.HOME;
+
+mock.module('@/ui/logger', () => ({
   logger: {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: () => {},
   }
 }));
 
 type ClaudeSettingsModule = typeof import('./claudeSettings');
 
-const testHomeDir = '/tmp/zs-claude-settings-test-home';
-const originalHome = process.env.HOME;
+async function importFreshClaudeSettingsModule(): Promise<ClaudeSettingsModule> {
+  return import(`./claudeSettings?test=${Date.now()}-${Math.random()}`);
+}
 
 let readClaudeSettings: ClaudeSettingsModule['readClaudeSettings'];
 let shouldIncludeCoAuthoredBy: ClaudeSettingsModule['shouldIncludeCoAuthoredBy'];
@@ -31,9 +35,8 @@ describe('Claude Settings', () => {
   beforeEach(async () => {
     process.env.HOME = testHomeDir;
     delete process.env.CLAUDE_CONFIG_DIR;
-    vi.resetModules();
 
-    ({ readClaudeSettings, shouldIncludeCoAuthoredBy } = await import('./claudeSettings'));
+    ({ readClaudeSettings, shouldIncludeCoAuthoredBy } = await importFreshClaudeSettingsModule());
 
     testClaudeDir = join(testHomeDir, '.claude');
     mkdirSync(testClaudeDir, { recursive: true });

@@ -13,11 +13,11 @@
  * - ZS_API_URL=http://localhost:3006 (local zhushen-hub)
  * - CLI_API_TOKEN=jlovec (must match local hub)
  *
- * ZS_HOME is isolated automatically in vitest.config.ts per process/worktree.
+ * ZS_HOME is isolated automatically by cli/test-preload.ts per process/worktree.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { execSync, spawn } from 'child_process';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import { spawn } from 'child_process';
 import { existsSync, rmSync, unlinkSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
 import { homedir, tmpdir } from 'os';
 import path, { join } from 'path';
@@ -53,11 +53,10 @@ async function waitFor(
 }
 
 // Check if dev hub is running and properly configured
-async function isServerHealthy(): Promise<boolean> {
+async function getIntegrationSkipReason(): Promise<string | null> {
   try {
     if (!configuration.cliApiToken) {
-      console.log('[TEST] Missing CLI_API_TOKEN (required for direct-connect integration tests)');
-      return false;
+      return '[TEST] Missing CLI_API_TOKEN (required for direct-connect integration tests)';
     }
 
     const url = `${configuration.apiUrl}/cli/machines/__healthcheck__`;
@@ -67,26 +66,31 @@ async function isServerHealthy(): Promise<boolean> {
     });
 
     if (response.status === 401) {
-      console.log('[TEST] Bot health check failed: invalid CLI_API_TOKEN');
-      return false;
+      return '[TEST] Bot health check failed: invalid CLI_API_TOKEN';
     }
     if (response.status === 503) {
-      console.log('[TEST] Bot health check failed: bot not ready (503)');
-      return false;
+      return '[TEST] Bot health check failed: bot not ready (503)';
     }
-    
-    return true;
+
+    return null;
   } catch (error) {
     console.log('[TEST] Bot not reachable:', error);
-    return false;
+    return '[TEST] Bot not reachable';
   }
 }
 
-describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout: 20_000 }, () => {
+let integrationSkipReasonPromise: Promise<string | null> | undefined;
+
+async function shouldSkipIntegrationTest(): Promise<string | null> {
+  integrationSkipReasonPromise ??= getIntegrationSkipReason();
+  return integrationSkipReasonPromise;
+}
+
+describe('Runner Integration Tests', () => {
   let runnerPid: number;
   let shouldCleanupIsolatedHome = false;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     const defaultHome = join(homedir(), '.zhushen');
     const apiUrl = configuration.apiUrl.toLowerCase();
     const isLocalApi = apiUrl.startsWith('http://localhost:') || apiUrl.startsWith('http://127.0.0.1:');
@@ -99,10 +103,18 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     }
 
     if (!isLocalApi) {
-      throw new Error(
+      integrationSkipReasonPromise = Promise.resolve(
         `[TEST] Refusing to run runner integration tests against non-local API URL: ${configuration.apiUrl}. ` +
           'Use local http://localhost:<port> hub for integration tests.'
       );
+      console.log(await shouldSkipIntegrationTest());
+      return;
+    }
+
+    const skipReason = await shouldSkipIntegrationTest();
+    if (skipReason) {
+      console.log(skipReason);
+      return;
     }
 
     const isolatedHomePrefix = `${join(tmpdir(), 'zs-integration-test-')}`;
@@ -118,6 +130,11 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
   });
 
   beforeEach(async () => {
+    const skipReason = await shouldSkipIntegrationTest();
+    if (skipReason) {
+      return;
+    }
+
     // First ensure no runner is running by checking PID in metadata file
     await stopRunner()
 
@@ -144,15 +161,104 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
   }, 20_000);
 
   afterEach(async () => {
+    const skipReason = await shouldSkipIntegrationTest();
+    if (skipReason) {
+      return;
+    }
+
     await stopRunner()
   }, 10_000);
 
-  it('should list sessions (initially empty)', async () => {
+  function integrationTest(name: string, fn: () => Promise<void>): void {
+    test(name, async () => {
+      const skipReason = await shouldSkipIntegrationTest();
+      if (skipReason) {
+        console.log(`${skipReason}; skipping \"${name}\"`);
+        return;
+      }
+
+      await fn();
+    });
+  }
+
+  function integrationTestWithTimeout(name: string, timeout: number, fn: () => Promise<void>): void {
+    test(name, async () => {
+      const skipReason = await shouldSkipIntegrationTest();
+      if (skipReason) {
+        console.log(`${skipReason}; skipping \"${name}\"`);
+        return;
+      }
+
+      await fn();
+    }, timeout);
+  }
+
+  integrationTest('should list sessions (initially empty)', async () => {
+
+    // First ensure no runner is running by checking PID in metadata file
+    await stopRunner()
+
+    // Start fresh runner for this test
+    // This will return and start a background process - we don't need to wait for it
+    void spawnZhushenCLI(['runner', 'start'], {
+      stdio: 'ignore'
+    });
+
+    // Wait for runner to write its state file (it needs to auth, setup, and start server)
+    await waitFor(async () => {
+      const state = await readRunnerState();
+      return state !== null;
+    }, 10_000, 250); // Wait up to 10 seconds, checking every 250ms
+
+    const runnerState = await readRunnerState();
+    if (!runnerState) {
+      throw new Error('Runner failed to start within timeout');
+    }
+    runnerPid = runnerState.pid;
+
+    console.log(`[TEST] Runner started for test: PID=${runnerPid}`);
+    console.log(`[TEST] Runner log file: ${runnerState?.runnerLogPath}`);
+  }, 20_000);
+
+  afterEach(async () => {
+    const skipReason = await shouldSkipIntegrationTest();
+    if (skipReason) {
+      return;
+    }
+
+    await stopRunner()
+  }, 10_000);
+
+  function integrationTest(name: string, fn: () => Promise<void>): void {
+    test(name, async () => {
+      const skipReason = await shouldSkipIntegrationTest();
+      if (skipReason) {
+        console.log(`${skipReason}; skipping \"${name}\"`);
+        return;
+      }
+
+      await fn();
+    });
+  }
+
+  function integrationTestWithTimeout(name: string, timeout: number, fn: () => Promise<void>): void {
+    test(name, async () => {
+      const skipReason = await shouldSkipIntegrationTest();
+      if (skipReason) {
+        console.log(`${skipReason}; skipping \"${name}\"`);
+        return;
+      }
+
+      await fn();
+    }, timeout);
+  }
+
+  integrationTest('should list sessions (initially empty)', async () => {
     const sessions = await listRunnerSessions();
     expect(sessions).toEqual([]);
   });
 
-  it('should track session-started webhook from terminal session', async () => {
+  integrationTest('should track session-started webhook from terminal session', async () => {
     // Simulate a terminal-started session reporting to runner
     const mockMetadata: Metadata = {
       path: '/test/path',
@@ -178,7 +284,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     expect(tracked.pid).toBe(99999);
   });
 
-  it('should spawn & stop a session via HTTP (not testing RPC route, but similar enough)', async () => {
+  integrationTest('should spawn & stop a session via HTTP (not testing RPC route, but similar enough)', async () => {
     const response = await spawnRunnerSession('/tmp', 'spawned-test-456');
 
     expect(response).toHaveProperty('success', true);
@@ -203,7 +309,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     await stopRunnerSession(spawnedSession.zhushenSessionId);
   });
 
-  it('stress test: spawn / stop', { timeout: 60_000 }, async () => {
+  integrationTestWithTimeout('stress test: spawn / stop', 60_000, async () => {
     const promises = [];
     const sessionCount = 20;
     for (let i = 0; i < sessionCount; i++) {
@@ -238,14 +344,14 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     }, 10_000, 200);
   });
 
-  it('should handle runner stop request gracefully', async () => {    
+  integrationTest('should handle runner stop request gracefully', async () => {    
     await stopRunnerHttp();
 
     // Verify metadata file is cleaned up
     await waitFor(async () => !existsSync(configuration.runnerStateFile), 1000);
   });
 
-  it('should track both runner-spawned and terminal sessions', async () => {
+  integrationTest('should track both runner-spawned and terminal sessions', async () => {
     const terminalPid = 88888;
     const terminalSessionId = 'terminal-session-bbb';
 
@@ -294,7 +400,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     await stopRunnerSession(runnerSession.zhushenSessionId);
   });
 
-  it('should update session metadata when webhook is called', async () => {
+  integrationTest('should update session metadata when webhook is called', async () => {
     // Spawn a session
     const spawnResponse = await spawnRunnerSession('/tmp');
     expect(spawnResponse.success).toBe(true);
@@ -313,7 +419,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     await stopRunnerSession(spawnResponse.sessionId);
   });
 
-  it('should not allow starting a second runner', async () => {
+  integrationTest('should not allow starting a second runner', async () => {
     // Runner is already running from beforeEach
     // Try to start another runner
     const secondChild = spawn('bun', ['src/index.ts', 'runner', 'start-sync'], {
@@ -339,7 +445,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     expect(output).toContain('already running');
   });
 
-  it('should handle concurrent session operations', async () => {
+  integrationTest('should handle concurrent session operations', async () => {
     // Spawn multiple sessions concurrently
     const promises = [];
     for (let i = 0; i < 3; i++) {
@@ -378,7 +484,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     }
   });
 
-  it('should not persist runnerLogPath when runner log destination is stdio', async () => {
+  integrationTest('should not persist runnerLogPath when runner log destination is stdio', async () => {
     const previousValue = process.env.ZS_RUNNER_LOG_DESTINATION;
 
     try {
@@ -398,7 +504,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     }
   });
 
-  it('should die with logs when SIGKILL is sent', async () => {
+  integrationTest('should die with logs when SIGKILL is sent', async () => {
     // SIGKILL test - runner should die immediately
     const logsDir = configuration.logsDir;
     const { readdirSync } = await import('fs');
@@ -427,7 +533,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     await clearRunnerState();
   });
 
-  it('should preserve runner state when process is alive but control port is temporarily unreachable', async () => {
+  integrationTest('should preserve runner state when process is alive but control port is temporarily unreachable', async () => {
     const initialState = await readRunnerState();
     expect(initialState).toBeDefined();
     expect(isProcessAlive(initialState!.pid)).toBe(true);
@@ -456,7 +562,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     }
   });
 
-  it('should treat same-PID unreachable runner state as stale metadata', async () => {
+  integrationTest('should treat same-PID unreachable runner state as stale metadata', async () => {
     const originalState = readFileSync(configuration.runnerStateFile, 'utf8');
 
     writeFileSync(configuration.runnerLockFile, String(process.pid), 'utf8');
@@ -489,7 +595,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
   });
 
 
-  it('should not remove runner lock when only stale state is cleared', async () => {
+  integrationTest('should not remove runner lock when only stale state is cleared', async () => {
     writeFileSync(configuration.runnerLockFile, String(runnerPid), 'utf8');
     expect(existsSync(configuration.runnerLockFile)).toBe(true);
 
@@ -501,7 +607,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     expect(existsSync(configuration.runnerLockFile)).toBe(false);
   });
 
-  it('should die with cleanup logs when a graceful shutdown is requested', async () => {
+  integrationTest('should die with cleanup logs when a graceful shutdown is requested', async () => {
     // Graceful shutdown test - runner should cleanup gracefully
     const logFile = await getLatestRunnerLog();
     if (!logFile) {
@@ -543,7 +649,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
    * This test verifies the detection contract itself without depending on a full
    * self-restart handoff, which is timing-sensitive under integration-test process control.
    */
-  it('should detect runner version mismatch in development mode', async () => {
+  integrationTest('should detect runner version mismatch in development mode', async () => {
     const packagePath = path.join(process.cwd(), 'package.json');
     const packageJsonOriginalRawText = readFileSync(packagePath, 'utf8');
     const originalPackage = JSON.parse(packageJsonOriginalRawText);
@@ -575,7 +681,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     }
   });
 
-  it('should restart runner when it is already running', async () => {
+  integrationTest('should restart runner when it is already running', async () => {
     // Runner is already running from beforeEach and restart must replace it with a new PID
     const initialState = await readRunnerState();
     expect(initialState).toBeDefined();
@@ -601,7 +707,7 @@ describe.skipIf(!await isServerHealthy())('Runner Integration Tests', { timeout:
     runnerPid = newState!.pid;
   });
 
-  it('should restart runner when it is not running', async () => {
+  integrationTest('should restart runner when it is not running', async () => {
     // Stop the runner first so no runner is running
     await stopRunner();
 
