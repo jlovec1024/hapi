@@ -1,12 +1,12 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
-import { HappyUserMessage } from './UserMessage'
+import { ZhushenUserMessage } from './UserMessage'
 
 // Create mock functions using vi.hoisted
-const { mockUseAssistantState, mockUseHappyChatContext, mockGetHappyChatMetadata, mockGetMessageTextContent } = vi.hoisted(() => ({
+const { mockUseAssistantState, mockUseZhushenChatContext, mockGetZhushenChatMetadata, mockGetMessageTextContent } = vi.hoisted(() => ({
     mockUseAssistantState: vi.fn(),
-    mockUseHappyChatContext: vi.fn(),
-    mockGetHappyChatMetadata: vi.fn(),
+    mockUseZhushenChatContext: vi.fn(),
+    mockGetZhushenChatMetadata: vi.fn(),
     mockGetMessageTextContent: vi.fn(),
 }))
 
@@ -22,7 +22,7 @@ vi.mock('@assistant-ui/react', () => ({
 
 // Mock context
 vi.mock('@/components/AssistantChat/context', () => ({
-    useHappyChatContext: mockUseHappyChatContext,
+    useZhushenChatContext: mockUseZhushenChatContext,
 }))
 
 // Mock components
@@ -50,16 +50,16 @@ vi.mock('@/components/CliOutputBlock', () => ({
 
 // Mock helper functions
 vi.mock('@/lib/assistant-runtime', () => ({
-    getHappyChatMetadata: mockGetHappyChatMetadata,
+    getZhushenChatMetadata: mockGetZhushenChatMetadata,
     getMessageTextContent: mockGetMessageTextContent,
 }))
 
-describe('HappyUserMessage', () => {
+describe('ZhushenUserMessage', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        mockGetHappyChatMetadata.mockReturnValue(null)
+        mockGetZhushenChatMetadata.mockReturnValue(null)
         mockGetMessageTextContent.mockReturnValue('Hello')
-        mockUseHappyChatContext.mockReturnValue({ onRetryMessage: vi.fn() })
+        mockUseZhushenChatContext.mockReturnValue({ onRetryMessage: vi.fn() })
     })
 
     afterEach(() => {
@@ -73,19 +73,19 @@ describe('HappyUserMessage', () => {
         })
         mockGetMessageTextContent.mockReturnValue('Hello world')
 
-        render(<HappyUserMessage />)
+        render(<ZhushenUserMessage />)
         expect(screen.getByTestId('rainbow-text')).toHaveTextContent('Hello world')
     })
 
     it('renders CLI output message', () => {
-        mockGetHappyChatMetadata.mockReturnValue({ kind: 'cli-output' })
+        mockGetZhushenChatMetadata.mockReturnValue({ kind: 'cli-output' })
         mockGetMessageTextContent.mockReturnValue('$ npm test')
         mockUseAssistantState.mockImplementation((selector) => {
             const message = { role: 'user' }
             return selector({ message })
         })
 
-        render(<HappyUserMessage />)
+        render(<ZhushenUserMessage />)
         expect(screen.getByTestId('cli-output')).toHaveTextContent('$ npm test')
     })
 
@@ -94,40 +94,40 @@ describe('HappyUserMessage', () => {
             { id: 'att-1', filename: 'test.txt', mimeType: 'text/plain', size: 100, path: '/uploads/test.txt' },
         ]
 
-        mockGetHappyChatMetadata.mockReturnValue({ attachments: mockAttachments })
+        mockGetZhushenChatMetadata.mockReturnValue({ attachments: mockAttachments })
         mockGetMessageTextContent.mockReturnValue('Check this file')
         mockUseAssistantState.mockImplementation((selector) => {
             const message = { role: 'user' }
             return selector({ message })
         })
 
-        render(<HappyUserMessage />)
+        render(<ZhushenUserMessage />)
         expect(screen.getByTestId('attachments')).toHaveTextContent('Attachments: 1')
     })
 
     it('renders status indicator for sending message', () => {
-        mockGetHappyChatMetadata.mockReturnValue({ status: 'sending' })
+        mockGetZhushenChatMetadata.mockReturnValue({ status: 'sending' })
         mockGetMessageTextContent.mockReturnValue('Sending...')
         mockUseAssistantState.mockImplementation((selector) => {
             const message = { role: 'user' }
             return selector({ message })
         })
 
-        render(<HappyUserMessage />)
+        render(<ZhushenUserMessage />)
         expect(screen.getByTestId('status-indicator')).toHaveAttribute('data-status', 'sending')
     })
 
     it('renders retry button for failed message', () => {
         const mockRetry = vi.fn()
-        mockUseHappyChatContext.mockReturnValue({ onRetryMessage: mockRetry })
-        mockGetHappyChatMetadata.mockReturnValue({ status: 'failed', localId: 'local-123' })
+        mockUseZhushenChatContext.mockReturnValue({ onRetryMessage: mockRetry })
+        mockGetZhushenChatMetadata.mockReturnValue({ status: 'failed', localId: 'local-123' })
         mockGetMessageTextContent.mockReturnValue('Failed message')
         mockUseAssistantState.mockImplementation((selector) => {
             const message = { role: 'user' }
             return selector({ message })
         })
 
-        render(<HappyUserMessage />)
+        render(<ZhushenUserMessage />)
         const statusIndicators = screen.getAllByTestId('status-indicator')
         const failedIndicator = statusIndicators.find(el => el.getAttribute('data-status') === 'failed')
         expect(failedIndicator).toBeDefined()
@@ -142,7 +142,7 @@ describe('HappyUserMessage', () => {
             return selector({ message })
         })
 
-        const { container } = render(<HappyUserMessage />)
+        const { container } = render(<ZhushenUserMessage />)
         expect(container.firstChild).toBeNull()
     })
 })

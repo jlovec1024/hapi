@@ -24,13 +24,13 @@ describe('useAuthSource', () => {
     })
 
     it('loads token from localStorage', () => {
-        localStorage.setItem('hapi_access_token::https://example.com', 'stored-token')
+        localStorage.setItem('zhushen_access_token::https://example.com', 'stored-token')
         const { result } = renderHook(() => useAuthSource('https://example.com'))
         expect(result.current.authSource).toEqual({ type: 'accessToken', token: 'stored-token' })
     })
 
     it('prioritizes URL token over localStorage', () => {
-        localStorage.setItem('hapi_access_token::https://example.com', 'stored-token')
+        localStorage.setItem('zhushen_access_token::https://example.com', 'stored-token')
         window.location.search = '?token=url-token'
         const { result } = renderHook(() => useAuthSource('https://example.com'))
         expect(result.current.authSource?.token).toBe('url-token')
@@ -45,11 +45,11 @@ describe('useAuthSource', () => {
             expect(result.current.authSource).toEqual({ type: 'accessToken', token: 'new-token' })
         })
 
-        expect(localStorage.getItem('hapi_access_token::https://example.com')).toBe('new-token')
+        expect(localStorage.getItem('zhushen_access_token::https://example.com')).toBe('new-token')
     })
 
     it('clearAuth removes state and localStorage', async () => {
-        localStorage.setItem('hapi_access_token::https://example.com', 'token')
+        localStorage.setItem('zhushen_access_token::https://example.com', 'token')
         const { result } = renderHook(() => useAuthSource('https://example.com'))
 
         await waitFor(() => {
@@ -62,7 +62,7 @@ describe('useAuthSource', () => {
             expect(result.current.authSource).toBe(null)
         })
 
-        expect(localStorage.getItem('hapi_access_token::https://example.com')).toBe(null)
+        expect(localStorage.getItem('zhushen_access_token::https://example.com')).toBe(null)
     })
 
     it('uses different storage keys for different baseUrls', () => {
@@ -72,8 +72,8 @@ describe('useAuthSource', () => {
         result1.current.setAccessToken('token1')
         result2.current.setAccessToken('token2')
 
-        expect(localStorage.getItem('hapi_access_token::https://server1.com')).toBe('token1')
-        expect(localStorage.getItem('hapi_access_token::https://server2.com')).toBe('token2')
+        expect(localStorage.getItem('zhushen_access_token::https://server1.com')).toBe('token1')
+        expect(localStorage.getItem('zhushen_access_token::https://server2.com')).toBe('token2')
     })
 
     it('resets state when baseUrl changes', async () => {

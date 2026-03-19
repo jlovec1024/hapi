@@ -8,7 +8,7 @@ import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 import { LazyRainbowText } from '@/components/LazyRainbowText'
 import { MessageStatusIndicator } from './MessageStatusIndicator'
 import { ToolCard } from '@/components/ToolCard/ToolCard'
-import { useHappyChatContext } from '@/components/AssistantChat/context'
+import { useZhushenChatContext } from '@/components/AssistantChat/context'
 import { CliOutputBlock } from '@/components/CliOutputBlock'
 
 function isToolCallBlock(value: unknown): value is ToolCallBlock {
@@ -104,7 +104,7 @@ function detectParallelTasks(blocks: ChatBlock[]): Array<ChatBlock | ChatBlock[]
 function ParallelTasksGrid(props: {
     tasks: ToolCallBlock[]
 }) {
-    const ctx = useHappyChatContext()
+    const ctx = useZhushenChatContext()
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -125,7 +125,7 @@ function ParallelTasksGrid(props: {
                             <>
                                 {taskChildren.pending.length > 0 ? (
                                     <div className="mt-2 pl-3">
-                                        <HappyNestedBlockList blocks={taskChildren.pending} />
+                                        <ZhushenNestedBlockList blocks={taskChildren.pending} />
                                     </div>
                                 ) : null}
                                 {taskChildren.rest.length > 0 ? (
@@ -134,7 +134,7 @@ function ParallelTasksGrid(props: {
                                             Task details ({taskChildren.rest.length})
                                         </summary>
                                         <div className="mt-2 pl-3">
-                                            <HappyNestedBlockList blocks={taskChildren.rest} />
+                                            <ZhushenNestedBlockList blocks={taskChildren.rest} />
                                         </div>
                                     </details>
                                 ) : null}
@@ -147,10 +147,10 @@ function ParallelTasksGrid(props: {
     )
 }
 
-function HappyNestedBlockList(props: {
+function ZhushenNestedBlockList(props: {
     blocks: ChatBlock[]
 }) {
-    const ctx = useHappyChatContext()
+    const ctx = useZhushenChatContext()
 
     // 检测并行 Task 并分组
     const groupedBlocks = detectParallelTasks(props.blocks)
@@ -244,7 +244,7 @@ function HappyNestedBlockList(props: {
                                     <>
                                         {taskChildren && taskChildren.pending.length > 0 ? (
                                             <div className="mt-2 pl-3">
-                                                <HappyNestedBlockList blocks={taskChildren.pending} />
+                                                <ZhushenNestedBlockList blocks={taskChildren.pending} />
                                             </div>
                                         ) : null}
                                         {taskChildren && taskChildren.rest.length > 0 ? (
@@ -253,14 +253,14 @@ function HappyNestedBlockList(props: {
                                                     Task details ({taskChildren.rest.length})
                                                 </summary>
                                                 <div className="mt-2 pl-3">
-                                                    <HappyNestedBlockList blocks={taskChildren.rest} />
+                                                    <ZhushenNestedBlockList blocks={taskChildren.rest} />
                                                 </div>
                                             </details>
                                         ) : null}
                                     </>
                                 ) : (
                                     <div className="mt-2 pl-3">
-                                        <HappyNestedBlockList blocks={block.children} />
+                                        <ZhushenNestedBlockList blocks={block.children} />
                                     </div>
                                 )
                             ) : null}
@@ -274,8 +274,8 @@ function HappyNestedBlockList(props: {
     )
 }
 
-export function HappyToolMessage(props: ToolCallMessagePartProps) {
-    const ctx = useHappyChatContext()
+export function ZhushenToolMessage(props: ToolCallMessagePartProps) {
+    const ctx = useZhushenChatContext()
     const artifact = props.artifact
 
     if (!isToolCallBlock(artifact)) {
@@ -334,7 +334,7 @@ export function HappyToolMessage(props: ToolCallMessagePartProps) {
                     <>
                         {taskChildren && taskChildren.pending.length > 0 ? (
                             <div className="mt-2 pl-3">
-                                <HappyNestedBlockList blocks={taskChildren.pending} />
+                                <ZhushenNestedBlockList blocks={taskChildren.pending} />
                             </div>
                         ) : null}
                         {taskChildren && taskChildren.rest.length > 0 ? (
@@ -343,14 +343,14 @@ export function HappyToolMessage(props: ToolCallMessagePartProps) {
                                     Task details ({taskChildren.rest.length})
                                 </summary>
                                 <div className="mt-2 pl-3">
-                                    <HappyNestedBlockList blocks={taskChildren.rest} />
+                                    <ZhushenNestedBlockList blocks={taskChildren.rest} />
                                 </div>
                             </details>
                         ) : null}
                     </>
                 ) : (
                     <div className="mt-2 pl-3">
-                        <HappyNestedBlockList blocks={block.children} />
+                        <ZhushenNestedBlockList blocks={block.children} />
                     </div>
                 )
             ) : null}

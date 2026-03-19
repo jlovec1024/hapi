@@ -16,9 +16,9 @@ const CO_AUTHORED_CREDITS = (() => trimIdent(`
 
     <main commit message>
 
-    via [Zhushen](https://hapi.run)
+    via [Zhushen](https://app.zhushen.run)
 
-    Co-Authored-By: Zhushen <noreply@hapi.run>
+    Co-Authored-By: Zhushen <noreply@app.zhushen.run>
 `))();
 
 /**

@@ -30,7 +30,7 @@ vi.mock('../../package.json', () => ({
   }
 }));
 
-describe('isRunnerRunningCurrentlyInstalledHappyVersion degraded handling', () => {
+describe('isRunnerRunningCurrentlyInstalledZhushenVersion degraded handling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReadRunnerState.mockResolvedValue({
@@ -50,13 +50,13 @@ describe('isRunnerRunningCurrentlyInstalledHappyVersion degraded handling', () =
   it('returns false for degraded runner state so callers do not treat control-plane loss as reusable health', async () => {
     const module = await import('./controlClient');
 
-    await expect(module.isRunnerRunningCurrentlyInstalledHappyVersion()).resolves.toBe(false);
+    await expect(module.isRunnerRunningCurrentlyInstalledZhushenVersion()).resolves.toBe(false);
   });
 
   it('returns false for missing runner state', async () => {
     const module = await import('./controlClient');
     mockReadRunnerState.mockResolvedValue(null);
 
-    await expect(module.isRunnerRunningCurrentlyInstalledHappyVersion()).resolves.toBe(false);
+    await expect(module.isRunnerRunningCurrentlyInstalledZhushenVersion()).resolves.toBe(false);
   });
 });

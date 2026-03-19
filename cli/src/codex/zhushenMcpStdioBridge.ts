@@ -1,8 +1,8 @@
 /**
- * HAPI MCP STDIO Bridge
+ * Zhushen MCP STDIO Bridge
  *
  * Minimal STDIO MCP server exposing a single tool `change_title`.
- * On invocation it forwards the tool call to an existing HAPI HTTP MCP server
+ * On invocation it forwards the tool call to an existing Zhushen HTTP MCP server
  * using the StreamableHTTPClientTransport.
  *
  * Configure the target HTTP MCP URL via env var `ZS_HTTP_MCP_URL` or
@@ -29,7 +29,7 @@ function parseArgs(argv: string[]): { url: string | null } {
   return { url };
 }
 
-export async function runHappyMcpStdioBridge(argv: string[]): Promise<void> {
+export async function runZhushenMcpStdioBridge(argv: string[]): Promise<void> {
   try {
     // Resolve target HTTP MCP URL
     const { url: urlFromArgs } = parseArgs(argv);
@@ -60,7 +60,7 @@ export async function runHappyMcpStdioBridge(argv: string[]): Promise<void> {
 
     // Create STDIO MCP server
     const server = new McpServer({
-      name: 'HAPI MCP Bridge',
+      name: 'Zhushen MCP Bridge',
       version: '1.0.0',
     });
 

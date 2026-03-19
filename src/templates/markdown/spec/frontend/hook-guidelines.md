@@ -6,7 +6,7 @@
 
 ## Overview
 
-HAPI Web uses React hooks extensively for state management and side effects. Custom hooks encapsulate business logic, keeping components focused on presentation. Data fetching uses TanStack Query (React Query) with a clear separation between queries and mutations.
+Zhushen Web uses React hooks extensively for state management and side effects. Custom hooks encapsulate business logic, keeping components focused on presentation. Data fetching uses TanStack Query (React Query) with a clear separation between queries and mutations.
 
 **Key patterns**:
 - Custom hooks for reusable logic (platform detection, clipboard, auth)

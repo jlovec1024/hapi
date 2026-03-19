@@ -77,14 +77,14 @@ describe('useServerUrl', () => {
         })
 
         it('loads serverUrl from localStorage', () => {
-            localStorage.setItem('hapi_hub_url', 'https://example.com')
+            localStorage.setItem('zhushen_hub_url', 'https://example.com')
             const { result } = renderHook(() => useServerUrl())
             expect(result.current.serverUrl).toBe('https://example.com')
             expect(result.current.baseUrl).toBe('https://example.com')
         })
 
         it('prioritizes URL param over localStorage', () => {
-            localStorage.setItem('hapi_hub_url', 'https://stored.com')
+            localStorage.setItem('zhushen_hub_url', 'https://stored.com')
             window.location.search = '?hub=https://param.com'
             const { result } = renderHook(() => useServerUrl())
             expect(result.current.serverUrl).toBe('https://param.com')
@@ -102,7 +102,7 @@ describe('useServerUrl', () => {
                 expect(result.current.serverUrl).toBe('https://new.com')
             })
 
-            expect(localStorage.getItem('hapi_hub_url')).toBe('https://new.com')
+            expect(localStorage.getItem('zhushen_hub_url')).toBe('https://new.com')
         })
 
         it('setServerUrl returns error for invalid URL', () => {
@@ -112,7 +112,7 @@ describe('useServerUrl', () => {
         })
 
         it('clearServerUrl removes state and localStorage', async () => {
-            localStorage.setItem('hapi_hub_url', 'https://example.com')
+            localStorage.setItem('zhushen_hub_url', 'https://example.com')
             const { result } = renderHook(() => useServerUrl())
             expect(result.current.serverUrl).toBe('https://example.com')
 
@@ -124,14 +124,14 @@ describe('useServerUrl', () => {
                 expect(result.current.serverUrl).toBe(null)
             })
 
-            expect(localStorage.getItem('hapi_hub_url')).toBe(null)
+            expect(localStorage.getItem('zhushen_hub_url')).toBe(null)
         })
 
         it('removes invalid stored URL', () => {
-            localStorage.setItem('hapi_hub_url', 'invalid-url')
+            localStorage.setItem('zhushen_hub_url', 'invalid-url')
             const { result } = renderHook(() => useServerUrl())
             expect(result.current.serverUrl).toBe(null)
-            expect(localStorage.getItem('hapi_hub_url')).toBe(null)
+            expect(localStorage.getItem('zhushen_hub_url')).toBe(null)
         })
     })
 })

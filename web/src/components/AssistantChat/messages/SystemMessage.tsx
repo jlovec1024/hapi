@@ -1,13 +1,13 @@
 import { useAssistantState } from '@assistant-ui/react'
 import { getEventPresentation } from '@/chat/presentation'
-import { getHappyChatMetadata, getMessageTextContent } from '@/lib/assistant-runtime'
+import { getZhushenChatMetadata, getMessageTextContent } from '@/lib/assistant-runtime'
 
-export function HappySystemMessage() {
+export function ZhushenSystemMessage() {
     const role = useAssistantState(({ message }) => message.role)
     const text = useAssistantState(({ message }) => message.role === 'system' ? getMessageTextContent(message) : '')
     const icon = useAssistantState(({ message }) => {
         if (message.role !== 'system') return null
-        const metadata = getHappyChatMetadata(message)
+        const metadata = getZhushenChatMetadata(message)
         const event = metadata?.kind === 'event' ? metadata.event : undefined
         return event ? getEventPresentation(event).icon : null
     })

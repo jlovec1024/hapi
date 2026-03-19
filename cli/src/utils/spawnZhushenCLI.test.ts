@@ -40,7 +40,7 @@ function getSpawnCommandArgsOrThrow(): { command: string; args: string[]; option
   return { command, args, options };
 }
 
-describe('spawnHappyCLI windowsHide behavior', () => {
+describe('spawnZhushenCLI windowsHide behavior', () => {
   beforeAll(() => {
     if (!originalPlatformDescriptor?.configurable) {
       throw new Error('process.platform is not configurable in this runtime');
@@ -66,9 +66,9 @@ describe('spawnHappyCLI windowsHide behavior', () => {
 
   it('sets windowsHide=true when platform is win32 and detached=true', async () => {
     setPlatform('win32');
-    const { spawnHappyCLI } = await import('./spawnHappyCLI');
+    const { spawnZhushenCLI } = await import('./spawnZhushenCLI');
 
-    spawnHappyCLI(['runner', 'start-sync'], {
+    spawnZhushenCLI(['runner', 'start-sync'], {
       detached: true,
       stdio: 'ignore'
     });
@@ -80,9 +80,9 @@ describe('spawnHappyCLI windowsHide behavior', () => {
 
   it('does not set windowsHide when platform is win32 but detached is false', async () => {
     setPlatform('win32');
-    const { spawnHappyCLI } = await import('./spawnHappyCLI');
+    const { spawnZhushenCLI } = await import('./spawnZhushenCLI');
 
-    spawnHappyCLI(['runner', 'start-sync'], {
+    spawnZhushenCLI(['runner', 'start-sync'], {
       detached: false,
       stdio: 'ignore'
     });
@@ -94,9 +94,9 @@ describe('spawnHappyCLI windowsHide behavior', () => {
 
   it('does not set windowsHide on non-win32 even when detached=true', async () => {
     setPlatform('linux');
-    const { spawnHappyCLI } = await import('./spawnHappyCLI');
+    const { spawnZhushenCLI } = await import('./spawnZhushenCLI');
 
-    spawnHappyCLI(['runner', 'start-sync'], {
+    spawnZhushenCLI(['runner', 'start-sync'], {
       detached: true,
       stdio: 'ignore'
     });
@@ -107,7 +107,7 @@ describe('spawnHappyCLI windowsHide behavior', () => {
   });
 });
 
-describe('spawnHappyCLI cwd propagation for bun runtime', () => {
+describe('spawnZhushenCLI cwd propagation for bun runtime', () => {
   beforeAll(() => {
     if (!originalVersionsDescriptor?.configurable) {
       throw new Error('process.versions is not configurable in this runtime');
@@ -126,9 +126,9 @@ describe('spawnHappyCLI cwd propagation for bun runtime', () => {
 
   it('keeps bun execution rooted at the project while forwarding requested cwd via env', async () => {
     setVersions({ ...process.versions, bun: '1.3.5' });
-    const { spawnHappyCLI } = await import('./spawnHappyCLI');
+    const { spawnZhushenCLI } = await import('./spawnZhushenCLI');
 
-    spawnHappyCLI(['runner', 'start-sync'], {
+    spawnZhushenCLI(['runner', 'start-sync'], {
       cwd: '/tmp/session-dir',
       stdio: 'ignore'
     });

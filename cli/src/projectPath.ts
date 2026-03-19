@@ -18,7 +18,7 @@ export function runtimePath(): string {
         return projectPath();
     }
 
-    return join(configuration.happyHomeDir, 'runtime', packageJson.version);
+    return join(configuration.zhushenHomeDir, 'runtime', packageJson.version);
 }
 
 export function isBunCompiled(): boolean {

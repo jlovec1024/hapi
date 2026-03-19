@@ -76,7 +76,7 @@ describe('CreateSessionPanel', () => {
                 metadata: {
                     host: 'test-host',
                     platform: 'linux',
-                    happyCliVersion: '1.0.0',
+                    zhushenCliVersion: '1.0.0',
                     displayName: 'Test Machine'
                 }
             }],
@@ -110,7 +110,7 @@ describe('CreateSessionPanel', () => {
                 metadata: {
                     host: 'host-1',
                     platform: 'linux',
-                    happyCliVersion: '1.0.0',
+                    zhushenCliVersion: '1.0.0',
                     displayName: 'Machine 1'
                 }
             },
@@ -120,7 +120,7 @@ describe('CreateSessionPanel', () => {
                 metadata: {
                     host: 'host-2',
                     platform: 'darwin',
-                    happyCliVersion: '1.0.0',
+                    zhushenCliVersion: '1.0.0',
                     displayName: 'Machine 2'
                 }
             }

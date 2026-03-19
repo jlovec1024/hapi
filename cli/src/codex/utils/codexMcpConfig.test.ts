@@ -55,13 +55,13 @@ describe('codexMcpConfig', () => {
 
     describe('buildDeveloperInstructionsArg', () => {
         it('builds developer instructions arg', () => {
-            const instructions = 'Call functions.hapi__change_title to set title.';
+            const instructions = 'Call functions.zhushen__change_title to set title.';
 
             const args = buildDeveloperInstructionsArg(instructions);
 
             expect(args).toEqual([
                 '-c',
-                'developer_instructions="Call functions.hapi__change_title to set title."'
+                'developer_instructions="Call functions.zhushen__change_title to set title."'
             ]);
         });
 

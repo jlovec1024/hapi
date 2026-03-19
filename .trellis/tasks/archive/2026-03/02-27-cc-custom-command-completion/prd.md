@@ -299,7 +299,7 @@ async function scanProjectCommands(agent: string, projectDir: string): Promise<S
 2. **启动会话**
    ```bash
    cd /tmp/test-project
-   hapi claude
+   zhushen claude
    ```
 
 3. **验证命令列表**

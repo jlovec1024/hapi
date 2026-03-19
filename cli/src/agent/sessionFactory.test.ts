@@ -24,7 +24,7 @@ vi.mock('@/persistence', () => ({
 
 vi.mock('@/configuration', () => ({
     configuration: {
-        happyHomeDir: '/happy-home'
+        zhushenHomeDir: '/zhushen-home'
     }
 }))
 

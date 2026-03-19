@@ -11,7 +11,7 @@ import { createModeChangeHandler, createRunnerLifecycle, setControlledByUser } f
 import { isPermissionModeAllowedForFlavor } from '@zs/protocol';
 import { PermissionModeSchema } from '@zs/protocol/schemas';
 import { formatMessageWithAttachments } from '@/utils/attachmentFormatter';
-import { getSpawnedCliWorkingDirectory } from '@/utils/spawnHappyCLI';
+import { getSpawnedCliWorkingDirectory } from '@/utils/spawnZhushenCLI';
 
 export { emitReadyIfIdle } from './utils/emitReadyIfIdle';
 

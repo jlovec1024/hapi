@@ -1,7 +1,7 @@
 /**
  * Auto-start hub module
  *
- * Automatically starts the HAPI hub when CLI is launched
+ * Automatically starts the Zhushen hub when CLI is launched
  * if specific conditions are met:
  * 1. ZS_API_URL is not set (using default localhost:3006)
  * 2. cliApiToken exists in settings.json (hub was previously started)
@@ -12,7 +12,7 @@ import chalk from 'chalk'
 import { createConnection } from 'node:net'
 import { configuration } from '@/configuration'
 import { readSettings } from '@/persistence'
-import { spawnHappyCLI } from '@/utils/spawnHappyCLI'
+import { spawnZhushenCLI } from '@/utils/spawnZhushenCLI'
 import { logger } from '@/ui/logger'
 
 const DEFAULT_SERVER_PORT = 3006
@@ -125,7 +125,7 @@ async function shouldAutoStartServer(): Promise<boolean> {
  * Start hub as a child process (will exit when CLI exits)
  */
 function startServerAsChild(): void {
-    const serverProcess = spawnHappyCLI(['hub'], {
+    const serverProcess = spawnZhushenCLI(['hub'], {
         detached: false,
         stdio: 'ignore',
         env: process.env
@@ -150,7 +150,7 @@ export async function maybeAutoStartServer(): Promise<void> {
         }
 
         logger.debug('[AUTO-START] Starting hub automatically...')
-        console.log(chalk.gray('Starting HAPI hub in background...'))
+        console.log(chalk.gray('Starting Zhushen hub in background...'))
 
         startServerAsChild()
 
@@ -162,7 +162,7 @@ export async function maybeAutoStartServer(): Promise<void> {
             return
         }
 
-        console.log(chalk.green('HAPI hub started'))
+        console.log(chalk.green('Zhushen hub started'))
     } catch (error) {
         logger.debug('[AUTO-START] Error during hub auto-start', error)
         console.log(chalk.yellow('Warning: Failed to auto-start hub'))

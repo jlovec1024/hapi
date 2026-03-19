@@ -66,7 +66,7 @@ export function createCliRoutes(getSyncEngine: () => SyncEngine | null): Hono<Cl
     const app = new Hono<CliEnv>()
 
     app.use('*', async (c, next) => {
-        c.header('X-Hapi-Protocol-Version', String(PROTOCOL_VERSION))
+        c.header('X-Zhushen-Protocol-Version', String(PROTOCOL_VERSION))
 
         const raw = c.req.header('authorization')
         if (!raw) {

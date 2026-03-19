@@ -1,12 +1,12 @@
 import { MessagePrimitive, useAssistantState } from '@assistant-ui/react'
 import { MarkdownText } from '@/components/assistant-ui/markdown-text'
 import { Reasoning, ReasoningGroup } from '@/components/assistant-ui/reasoning'
-import { HappyToolMessage } from '@/components/AssistantChat/messages/ToolMessage'
+import { ZhushenToolMessage } from '@/components/AssistantChat/messages/ToolMessage'
 import { CliOutputBlock } from '@/components/CliOutputBlock'
-import { getHappyChatMetadata, getMessageTextContent } from '@/lib/assistant-runtime'
+import { getZhushenChatMetadata, getMessageTextContent } from '@/lib/assistant-runtime'
 
 const TOOL_COMPONENTS = {
-    Fallback: HappyToolMessage
+    Fallback: ZhushenToolMessage
 } as const
 
 const MESSAGE_PART_COMPONENTS = {
@@ -16,10 +16,10 @@ const MESSAGE_PART_COMPONENTS = {
     tools: TOOL_COMPONENTS
 } as const
 
-export function HappyAssistantMessage() {
-    const isCliOutput = useAssistantState(({ message }) => getHappyChatMetadata(message)?.kind === 'cli-output')
+export function ZhushenAssistantMessage() {
+    const isCliOutput = useAssistantState(({ message }) => getZhushenChatMetadata(message)?.kind === 'cli-output')
     const cliText = useAssistantState(({ message }) => {
-        if (getHappyChatMetadata(message)?.kind !== 'cli-output') return ''
+        if (getZhushenChatMetadata(message)?.kind !== 'cli-output') return ''
         return getMessageTextContent(message)
     })
     const toolOnly = useAssistantState(({ message }) => {

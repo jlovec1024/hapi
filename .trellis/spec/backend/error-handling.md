@@ -6,7 +6,7 @@
 
 ## 概述
 
-HAPI Hub 遵循务实的错误处理方法：
+Zhushen Hub 遵循务实的错误处理方法：
 
 - **HTTP API**：返回 `{ error: string }` JSON 并使用适当的 HTTP 状态码
 - **Socket.IO**：静默忽略无效事件（除非需要，否则不向客户端传播错误）
@@ -699,7 +699,7 @@ if (shouldDowngradeBypass) {
 // 返回时携带警告
 return {
   type: 'success',
-  sessionId: completedSession.happySessionId!,
+  sessionId: completedSession.zhushenSessionId!,
   ...(warnings.length > 0 ? { warnings } : {})
 };
 ```

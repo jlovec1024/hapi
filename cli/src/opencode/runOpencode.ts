@@ -12,7 +12,7 @@ import { isPermissionModeAllowedForFlavor } from '@zs/protocol';
 import { PermissionModeSchema } from '@zs/protocol/schemas';
 import { startOpencodeHookServer } from './utils/startOpencodeHookServer';
 import { formatMessageWithAttachments } from '@/utils/attachmentFormatter';
-import { getSpawnedCliWorkingDirectory } from '@/utils/spawnHappyCLI';
+import { getSpawnedCliWorkingDirectory } from '@/utils/spawnZhushenCLI';
 
 export async function runOpencode(opts: {
     startedBy?: 'runner' | 'terminal';

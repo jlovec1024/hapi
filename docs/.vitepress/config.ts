@@ -14,7 +14,7 @@ export default defineConfig({
 
     nav: [
       { text: 'Quick Start', link: '/guide/quick-start' },
-      { text: 'App', link: 'https://app.hapi.run', target: '_blank' }
+      { text: 'App', link: 'https://app.zhushen.run', target: '_blank' }
     ],
 
     sidebar: [
@@ -27,7 +27,7 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/jlovec1024/hapi' }
+      { icon: 'github', link: 'https://github.com/jlovec1024/zhushen' }
     ],
 
     footer: {

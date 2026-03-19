@@ -6,7 +6,7 @@
 
 ## 概述
 
-HAPI Web 采用基于功能的组织方式，在 UI 组件、业务逻辑（hooks）与工具函数之间保持清晰分离。该结构强调：
+Zhushen Web 采用基于功能的组织方式，在 UI 组件、业务逻辑（hooks）与工具函数之间保持清晰分离。该结构强调：
 
 - **组件隔离**：UI 组件按功能/领域拆分
 - **基于 Hook 的逻辑**：业务逻辑放在自定义 hooks 中，而不是组件里
@@ -283,8 +283,8 @@ pages/<page-name>/
 **组件文件结构**：
 ```
 components/AssistantChat/
-├── HappyThread.tsx         # 主线程组件
-├── HappyComposer.tsx       # 消息编辑器
+├── ZhushenThread.tsx       # 主线程组件
+├── ZhushenComposer.tsx     # 消息编辑器
 ├── context.tsx             # 共享上下文
 ├── messages/               # 各类消息组件
 │   ├── AssistantMessage.tsx
@@ -316,7 +316,7 @@ components/AssistantChat/
 
 ### 文件
 
-- **组件**：PascalCase（例如 `HappyThread.tsx`、`Button.tsx`）
+- **组件**：PascalCase（例如 `ZhushenThread.tsx`、`Button.tsx`）
 - **Hooks**：带 `use` 前缀的 camelCase（例如 `useAuth.ts`、`useCopyToClipboard.ts`）
 - **工具函数**：camelCase（例如 `utils.ts`、`clipboard.ts`）
 - **类型**：camelCase（例如 `api.ts`、`session.ts`）

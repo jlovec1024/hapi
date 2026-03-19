@@ -15,7 +15,7 @@ interface Settings {
   // All machine operations use this ID
   machineId?: string
   machineIdConfirmedByServer?: boolean
-  runnerAutoStartWhenRunningHappy?: boolean
+  runnerAutoStartWhenRunningZhushen?: boolean
   cliApiToken?: string
   // API URL for server connections (priority: env ZS_API_URL > this > default)
   apiUrl?: string
@@ -56,8 +56,8 @@ export async function readSettings(): Promise<Settings> {
 }
 
 export async function writeSettings(settings: Settings): Promise<void> {
-  if (!existsSync(configuration.happyHomeDir)) {
-    await mkdir(configuration.happyHomeDir, { recursive: true })
+  if (!existsSync(configuration.zhushenHomeDir)) {
+    await mkdir(configuration.zhushenHomeDir, { recursive: true })
   }
 
   await writeFile(configuration.settingsFile, JSON.stringify(settings, null, 2))
@@ -76,8 +76,8 @@ export async function updateSettings(
   const MAX_LOCK_ATTEMPTS = 50;        // Maximum number of attempts (5 seconds total)
   const STALE_LOCK_TIMEOUT_MS = 10000; // Consider lock stale after 10 seconds
 
-  if (!existsSync(configuration.happyHomeDir)) {
-    await mkdir(configuration.happyHomeDir, { recursive: true });
+  if (!existsSync(configuration.zhushenHomeDir)) {
+    await mkdir(configuration.zhushenHomeDir, { recursive: true });
   }
 
   const lockFile = configuration.settingsFile + '.lock';
@@ -138,8 +138,8 @@ export async function updateSettings(
 //
 
 export async function writeCredentialsDataKey(credentials: { publicKey: Uint8Array, machineKey: Uint8Array, token: string }): Promise<void> {
-  if (!existsSync(configuration.happyHomeDir)) {
-    await mkdir(configuration.happyHomeDir, { recursive: true })
+  if (!existsSync(configuration.zhushenHomeDir)) {
+    await mkdir(configuration.zhushenHomeDir, { recursive: true })
   }
   await writeFile(configuration.privateKeyFile, JSON.stringify({
     encryption: { publicKey: Buffer.from(credentials.publicKey).toString('base64'), machineKey: Buffer.from(credentials.machineKey).toString('base64') },

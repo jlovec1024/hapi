@@ -38,10 +38,10 @@ export function buildMachineMetadata(): MachineMetadata {
     return {
         host: process.env.ZS_HOSTNAME || os.hostname(),
         platform: os.platform(),
-        happyCliVersion: packageJson.version,
+        zhushenCliVersion: packageJson.version,
         homeDir: os.homedir(),
-        happyHomeDir: configuration.happyHomeDir,
-        happyLibDir: runtimePath()
+        zhushenHomeDir: configuration.zhushenHomeDir,
+        zhushenLibDir: runtimePath()
     }
 }
 
@@ -52,7 +52,7 @@ export function buildSessionMetadata(options: {
     machineId: string
     now?: number
 }): Metadata {
-    const happyLibDir = runtimePath()
+    const zhushenLibDir = runtimePath()
     const worktreeInfo = readWorktreeEnv()
     const now = options.now ?? Date.now()
 
@@ -63,9 +63,9 @@ export function buildSessionMetadata(options: {
         os: os.platform(),
         machineId: options.machineId,
         homeDir: os.homedir(),
-        happyHomeDir: configuration.happyHomeDir,
-        happyLibDir,
-        happyToolsDir: resolve(happyLibDir, 'tools', 'unpacked'),
+        zhushenHomeDir: configuration.zhushenHomeDir,
+        zhushenLibDir,
+        zhushenToolsDir: resolve(zhushenLibDir, 'tools', 'unpacked'),
         startedFromRunner: options.startedBy === 'runner',
         hostPid: process.pid,
         startedBy: options.startedBy,

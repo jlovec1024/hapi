@@ -95,6 +95,6 @@ describe('zs binary launcher error reporting', () => {
         expect(lines).toContain('Try reinstalling with the official npm registry:');
         expect(lines).toContain('  npm install -g @jlovec/zhushen --registry=https://registry.npmjs.org');
         expect(lines).toContain('Or download the binary manually from:');
-        expect(lines).toContain('  https://github.com/jlovec1024/hapi/releases');
+        expect(lines).toContain('  https://github.com/jlovec1024/zhushen/releases');
     });
 });

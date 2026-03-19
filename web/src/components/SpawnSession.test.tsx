@@ -88,7 +88,7 @@ describe('SpawnSession', () => {
             metadata: {
                 host: 'localhost',
                 platform: 'linux',
-                happyCliVersion: '1.0.0',
+                zhushenCliVersion: '1.0.0',
                 homeDir: '/home/testuser',
             },
             runnerState: null,
@@ -115,7 +115,7 @@ describe('SpawnSession', () => {
             metadata: {
                 host: 'localhost',
                 platform: 'linux',
-                happyCliVersion: '1.0.0',
+                zhushenCliVersion: '1.0.0',
             },
             runnerState: null,
         }

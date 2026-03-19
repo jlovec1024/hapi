@@ -8,7 +8,7 @@
 
 - 现有补全数据源在前端由 `useSlashCommands` 提供，底层用 React Query 拉取 `/api/sessions/:id/slash-commands`（`web/src/hooks/queries/useSlashCommands.ts:68`，`web/src/api/client.ts:387`）。
 - 当前 query 配置为 `staleTime: Infinity`，即默认不会自动过期刷新（`web/src/hooks/queries/useSlashCommands.ts:77`）。
-- 输入框补全触发链路是：`HappyComposer` 的 `inputState` -> `useActiveWord` -> `useActiveSuggestions` -> `autocompleteSuggestions`（`web/src/components/AssistantChat/HappyComposer.tsx:148`、`web/src/hooks/useActiveSuggestions.ts:68`）。
+- 输入框补全触发链路是：`ZhushenComposer` 的 `inputState` -> `useActiveWord` -> `useActiveSuggestions` -> `autocompleteSuggestions`（`web/src/components/AssistantChat/ZhushenComposer.tsx:148`、`web/src/hooks/useActiveSuggestions.ts:68`）。
 - `getAutocompleteSuggestions` 目前只分流 `$` 与其他前缀，不包含“遇到 `/` 时主动刷新命令列表”的逻辑（`web/src/router.tsx:276`）。
 - 旧任务已实现 project command 扫描（CLI 层），命令来源包含 `project`，因此“命令内容本身”可变但前端当前没有按输入事件触发刷新（`cli/src/modules/common/slashCommands.ts:274`、`web/src/hooks/queries/useSlashCommands.ts:89`）。
 
@@ -58,7 +58,7 @@
 - 关键候选改动点：
   - `web/src/hooks/queries/useSlashCommands.ts`（查询缓存与可达性/补偿语义）
   - `web/src/router.tsx`（`autocompleteSuggestions` 入口与 session 关联）
-  - `web/src/components/AssistantChat/HappyComposer.tsx`（输入触发与 slash-entry 识别）
+  - `web/src/components/AssistantChat/ZhushenComposer.tsx`（输入触发与 slash-entry 识别）
   - `web/src/hooks/useActiveSuggestions.ts`（异步建议更新行为）
 - 当前约束：
   - `staleTime: Infinity` + `retry: false` 使“失败后长期降级”风险较高（`web/src/hooks/queries/useSlashCommands.ts:77,79`）。
@@ -107,7 +107,7 @@
 ### Input/composer-level states
 
 - `isSending`：前端是否有发送中的 mutation（`web/src/hooks/mutations/useSendMessage.ts:172`，用于禁用 composer，`web/src/components/SessionChat.tsx:310`）。
-- `activeWord`：当前光标命中的补全触发词（`web/src/components/AssistantChat/HappyComposer.tsx:148`）。
+- `activeWord`：当前光标命中的补全触发词（`web/src/components/AssistantChat/ZhushenComposer.tsx:148`）。
 - `suggestions`：由 `useActiveSuggestions` 异步维护（`web/src/hooks/useActiveSuggestions.ts:68`）。
 
 ### Data/cache-level states
@@ -171,7 +171,7 @@
   - 暴露 `refetchCommands` 与 `isFetchingCommands`（在现有 query 上封装）。
 - `web/src/router.tsx`
   - 维持 `getAutocompleteSuggestions` 职责单一，仅分流建议来源。
-- `web/src/components/AssistantChat/HappyComposer.tsx`
+- `web/src/components/AssistantChat/ZhushenComposer.tsx`
   - 新增 slash entry 检测（比较上一个 `activeWord` 与当前值）。
   - 在满足状态规则时调用 `refetchCommands`（fire-and-forget，不阻塞输入）。
 - `web/src/hooks/useActiveSuggestions.ts`
@@ -246,7 +246,7 @@
    - 结果：此时只能 builtin；若后续没有“可用后首次 slash 必补偿获取”规则，会形成漏刷。
 
 3. **补全触发词未被识别为 activeWord**
-   - 现状：只有 `activeWord` 命中前缀逻辑才进入 suggestions handler（`web/src/components/AssistantChat/HappyComposer.tsx:149-153`，`web/src/utils/findActiveWord.ts:119`）。
+   - 现状：只有 `activeWord` 命中前缀逻辑才进入 suggestions handler（`web/src/components/AssistantChat/ZhushenComposer.tsx:149-153`，`web/src/utils/findActiveWord.ts:119`）。
    - 结果：某些输入/光标状态下即使看到 `/` 字符，也可能未进入 slash 查询链路。
 
 ### B. 本地缓存的远端命令列表可能无效/陈旧
@@ -290,7 +290,7 @@
 
 2. **新增 slash-entry 主动补偿刷新链路**
    - 之前：输入 `/` 仅走本地 suggestions 计算，不触发远端命令刷新。
-   - 当前：`HappyComposer` 检测“首次进入 slash 上下文”后触发 `onSlashEntry`（`web/src/components/AssistantChat/HappyComposer.tsx:156-165`），由路由层调用 `refetchCommands`（`web/src/router.tsx:285-287`）。
+   - 当前：`ZhushenComposer` 检测“首次进入 slash 上下文”后触发 `onSlashEntry`（`web/src/components/AssistantChat/ZhushenComposer.tsx:156-165`），由路由层调用 `refetchCommands`（`web/src/router.tsx:285-287`）。
    - 影响：降低“长期只看到 builtin”但无补偿重试的风险。
 
 3. **useSlashCommands 引入会话级刷新状态语义**
@@ -348,7 +348,7 @@
    - 因此会停留在 builtin 降级状态，直到后续有补偿触发。
 
 3. **补偿触发存在竞态缺口（slash-entry + fetching 门槛）**
-   - `HappyComposer` 仅在“非 slash -> slash”边沿触发 `onSlashEntry`，且要求 `!isFetchingSlashCommands`（`web/src/components/AssistantChat/HappyComposer.tsx:156-165`）。
+   - `ZhushenComposer` 仅在“非 slash -> slash”边沿触发 `onSlashEntry`，且要求 `!isFetchingSlashCommands`（`web/src/components/AssistantChat/ZhushenComposer.tsx:156-165`）。
    - 若用户首次输入 `/` 时 query 正在 fetching，则这次不会触发补偿；若该 in-flight 请求失败且用户未退出再进入 slash，上述边沿不会再次出现。
 
 #### 用户可见效果

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetRunnerAvailability = vi.fn();
-const mockIsRunnerRunningCurrentlyInstalledHappyVersion = vi.fn();
+const mockIsRunnerRunningCurrentlyInstalledZhushenVersion = vi.fn();
 const mockStopRunner = vi.fn();
 
 vi.mock('@/api/api', () => ({ ApiClient: vi.fn() }));
@@ -13,7 +13,7 @@ vi.mock('@/ui/logger', () => ({
 }));
 vi.mock('@/ui/auth', () => ({ authAndSetupMachineIfNeeded: vi.fn() }));
 vi.mock('@/ui/doctor', () => ({ getEnvironmentInfo: vi.fn(() => ({})) }));
-vi.mock('@/utils/spawnHappyCLI', () => ({ spawnHappyCLI: vi.fn() }));
+vi.mock('@/utils/spawnZhushenCLI', () => ({ spawnZhushenCLI: vi.fn() }));
 vi.mock('@/persistence', () => ({
   writeRunnerState: vi.fn(),
   readRunnerState: vi.fn(),
@@ -32,7 +32,7 @@ vi.mock('./controlClient', () => ({
   cleanupRunnerState: vi.fn(),
   getInstalledCliMtimeMs: vi.fn(),
   getRunnerAvailability: mockGetRunnerAvailability,
-  isRunnerRunningCurrentlyInstalledHappyVersion: mockIsRunnerRunningCurrentlyInstalledHappyVersion,
+  isRunnerRunningCurrentlyInstalledZhushenVersion: mockIsRunnerRunningCurrentlyInstalledZhushenVersion,
   stopRunner: mockStopRunner
 }));
 vi.mock('./controlServer', () => ({ startRunnerControlServer: vi.fn() }));
@@ -54,7 +54,7 @@ describe('startRunner degraded handling', () => {
         startedWithCliVersion: '1.0.0'
       }
     });
-    mockIsRunnerRunningCurrentlyInstalledHappyVersion.mockResolvedValue(false);
+    mockIsRunnerRunningCurrentlyInstalledZhushenVersion.mockResolvedValue(false);
 
     const exitSignal = new Error('EXIT:0');
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null | undefined) => {
@@ -65,7 +65,7 @@ describe('startRunner degraded handling', () => {
       const { startRunner } = await import('./run');
       await expect(startRunner()).rejects.toThrow('EXIT:0');
       expect(mockStopRunner).not.toHaveBeenCalled();
-      expect(mockIsRunnerRunningCurrentlyInstalledHappyVersion).not.toHaveBeenCalled();
+      expect(mockIsRunnerRunningCurrentlyInstalledZhushenVersion).not.toHaveBeenCalled();
     } finally {
       exitSpy.mockRestore();
     }

@@ -34,7 +34,7 @@ export default defineConfig({
     },
     server: {
         host: true,
-        allowedHosts: ['hapidev.weishu.me'],
+        allowedHosts: ['zhushendev.weishu.me'],
         proxy: {
             '/api': {
                 target: hubTarget,
@@ -55,8 +55,8 @@ export default defineConfig({
             srcDir: 'src',
             filename: 'sw.ts',
             manifest: {
-                name: 'HAPI',
-                short_name: 'HAPI',
+                name: 'Zhushen',
+                short_name: 'Zhushen',
                 description: 'AI-powered development assistant',
                 theme_color: '#ffffff',
                 background_color: '#ffffff',

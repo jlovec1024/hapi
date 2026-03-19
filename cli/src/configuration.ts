@@ -40,7 +40,7 @@ class Configuration {
     public readonly runnerLogDestination: RunnerLogDestination
 
     // Directories and paths (from persistence)
-    public readonly happyHomeDir: string
+    public readonly zhushenHomeDir: string
     public readonly logsDir: string
     public readonly settingsFile: string
     public readonly privateKeyFile: string
@@ -63,16 +63,16 @@ class Configuration {
         if (process.env.ZS_HOME) {
             // Expand ~ to home directory if present
             const expandedPath = process.env.ZS_HOME.replace(/^~/, homedir())
-            this.happyHomeDir = expandedPath
+            this.zhushenHomeDir = expandedPath
         } else {
-            this.happyHomeDir = join(homedir(), '.zhushen')
+            this.zhushenHomeDir = join(homedir(), '.zhushen')
         }
 
-        this.logsDir = join(this.happyHomeDir, 'logs')
-        this.settingsFile = join(this.happyHomeDir, 'settings.json')
-        this.privateKeyFile = join(this.happyHomeDir, 'access.key')
-        this.runnerStateFile = join(this.happyHomeDir, 'runner.state.json')
-        this.runnerLockFile = join(this.happyHomeDir, 'runner.state.json.lock')
+        this.logsDir = join(this.zhushenHomeDir, 'logs')
+        this.settingsFile = join(this.zhushenHomeDir, 'settings.json')
+        this.privateKeyFile = join(this.zhushenHomeDir, 'access.key')
+        this.runnerStateFile = join(this.zhushenHomeDir, 'runner.state.json')
+        this.runnerLockFile = join(this.zhushenHomeDir, 'runner.state.json.lock')
 
         const envRunnerLogDestination = process.env.ZS_RUNNER_LOG_DESTINATION?.toLowerCase()
         const settingsRunnerLogDestination = readRunnerLogDestinationFromSettings(this.settingsFile)
@@ -84,8 +84,8 @@ class Configuration {
 
         this.currentCliVersion = packageJson.version
 
-        if (!existsSync(this.happyHomeDir)) {
-            mkdirSync(this.happyHomeDir, { recursive: true })
+        if (!existsSync(this.zhushenHomeDir)) {
+            mkdirSync(this.zhushenHomeDir, { recursive: true })
         }
         // Ensure directories exist
         if (!existsSync(this.logsDir)) {

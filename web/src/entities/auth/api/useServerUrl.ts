@@ -4,7 +4,7 @@ export type ServerUrlResult =
     | { ok: true; value: string }
     | { ok: false; error: string }
 
-const HUB_URL_KEY = 'hapi_hub_url'
+const HUB_URL_KEY = 'zhushen_hub_url'
 
 export function normalizeServerUrl(input: string): ServerUrlResult {
     const trimmed = input.trim()

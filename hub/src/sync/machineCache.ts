@@ -6,11 +6,11 @@ import { EventPublisher } from './eventPublisher'
 const machineMetadataSchema = z.object({
     host: z.string().optional(),
     platform: z.string().optional(),
-    happyCliVersion: z.string().optional(),
+    zhushenCliVersion: z.string().optional(),
     displayName: z.string().optional(),
     homeDir: z.string().optional(),
-    happyHomeDir: z.string().optional(),
-    happyLibDir: z.string().optional()
+    zhushenHomeDir: z.string().optional(),
+    zhushenLibDir: z.string().optional()
 })
 
 export interface Machine {
@@ -24,11 +24,11 @@ export interface Machine {
     metadata: {
         host: string
         platform: string
-        happyCliVersion: string
+        zhushenCliVersion: string
         displayName?: string
         homeDir?: string
-        happyHomeDir?: string
-        happyLibDir?: string
+        zhushenHomeDir?: string
+        zhushenLibDir?: string
     } | null
     metadataVersion: number
     runnerState: unknown | null
@@ -96,12 +96,12 @@ export class MachineCache {
             const data = parsed.data
             const host = typeof data.host === 'string' ? data.host : 'unknown'
             const platform = typeof data.platform === 'string' ? data.platform : 'unknown'
-            const happyCliVersion = typeof data.happyCliVersion === 'string' ? data.happyCliVersion : 'unknown'
+            const zhushenCliVersion = typeof data.zhushenCliVersion === 'string' ? data.zhushenCliVersion : 'unknown'
             const displayName = typeof data.displayName === 'string' ? data.displayName : undefined
             const homeDir = typeof data.homeDir === 'string' ? data.homeDir : undefined
-            const happyHomeDir = typeof data.happyHomeDir === 'string' ? data.happyHomeDir : undefined
-            const happyLibDir = typeof data.happyLibDir === 'string' ? data.happyLibDir : undefined
-            return { host, platform, happyCliVersion, displayName, homeDir, happyHomeDir, happyLibDir }
+            const zhushenHomeDir = typeof data.zhushenHomeDir === 'string' ? data.zhushenHomeDir : undefined
+            const zhushenLibDir = typeof data.zhushenLibDir === 'string' ? data.zhushenLibDir : undefined
+            return { host, platform, zhushenCliVersion, displayName, homeDir, zhushenHomeDir, zhushenLibDir }
         })()
 
         const storedActiveAt = stored.activeAt ?? stored.createdAt

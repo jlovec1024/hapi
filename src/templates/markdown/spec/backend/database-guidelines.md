@@ -6,7 +6,7 @@
 
 ## Overview
 
-HAPI Hub uses **SQLite** with Bun's native SQLite driver. The database layer follows a clean architecture with:
+Zhushen Hub uses **SQLite** with Bun's native SQLite driver. The database layer follows a clean architecture with:
 
 - **WAL mode** for better concurrency
 - **Strict mode** for type safety

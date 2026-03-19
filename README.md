@@ -101,9 +101,9 @@ docker/claude-default/
 - [工作原理](docs/guide/how-it-works.md)
 - [应用](docs/guide/pwa.md)
 - [Cursor Agent](docs/guide/cursor.md)
-- [为什么选择主神](docs/guide/why-hapi.md)
+- [为什么选择主神](docs/guide/why-zhushen.md)
 - [常见问题](docs/guide/faq.md)
 
 ## 致谢
 
-主神（zhushen）的灵感来源于《无限恐怖》中的"主神空间"。项目前身为 [HAPI](https://github.com/jlovec1024/hapi)，即"哈皮"，是 [Happy](https://github.com/slopus/happy) 的中文音译。感谢原项目 hapi 和 Happy 的贡献。
+主神（zhushen）的灵感来源于《无限恐怖》中的"主神空间"。项目长期围绕本地优先、自托管的 AI 代理协作体验持续演进，也感谢社区中相关开源项目带来的启发。

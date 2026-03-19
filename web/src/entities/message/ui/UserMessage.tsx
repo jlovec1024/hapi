@@ -1,30 +1,30 @@
 import { MessagePrimitive, useAssistantState } from '@assistant-ui/react'
 import { LazyRainbowText } from '@/components/LazyRainbowText'
-import { useHappyChatContext } from '@/components/AssistantChat/context'
-import { getHappyChatMetadata, getMessageTextContent } from '@/lib/assistant-runtime'
+import { useZhushenChatContext } from '@/components/AssistantChat/context'
+import { getZhushenChatMetadata, getMessageTextContent } from '@/lib/assistant-runtime'
 import { MessageStatusIndicator } from './MessageStatusIndicator'
 import { MessageAttachments } from './MessageAttachments'
 import { CliOutputBlock } from '@/components/CliOutputBlock'
 
-export function HappyUserMessage() {
-    const ctx = useHappyChatContext()
+export function ZhushenUserMessage() {
+    const ctx = useZhushenChatContext()
     const role = useAssistantState(({ message }) => message.role)
     const text = useAssistantState(({ message }) => message.role === 'user' ? getMessageTextContent(message) : '')
     const status = useAssistantState(({ message }) => {
         if (message.role !== 'user') return undefined
-        return getHappyChatMetadata(message)?.status
+        return getZhushenChatMetadata(message)?.status
     })
     const localId = useAssistantState(({ message }) => {
         if (message.role !== 'user') return null
-        return getHappyChatMetadata(message)?.localId ?? null
+        return getZhushenChatMetadata(message)?.localId ?? null
     })
     const attachments = useAssistantState(({ message }) => {
         if (message.role !== 'user') return undefined
-        return getHappyChatMetadata(message)?.attachments
+        return getZhushenChatMetadata(message)?.attachments
     })
-    const isCliOutput = useAssistantState(({ message }) => getHappyChatMetadata(message)?.kind === 'cli-output')
+    const isCliOutput = useAssistantState(({ message }) => getZhushenChatMetadata(message)?.kind === 'cli-output')
     const cliText = useAssistantState(({ message }) => {
-        if (getHappyChatMetadata(message)?.kind !== 'cli-output') return ''
+        if (getZhushenChatMetadata(message)?.kind !== 'cli-output') return ''
         return getMessageTextContent(message)
     })
 

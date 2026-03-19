@@ -6,7 +6,7 @@
 
 ## Overview
 
-HAPI Hub uses **simple console logging** (no logging library). Logs are written to stdout/stderr and captured by the process manager or container runtime.
+Zhushen Hub uses **simple console logging** (no logging library). Logs are written to stdout/stderr and captured by the process manager or container runtime.
 
 **Key characteristics**:
 - `console.log()` for informational messages
@@ -31,10 +31,10 @@ Use for:
 - **User-facing events** - QR code display, URLs to open
 
 ```typescript
-console.log('HAPI Hub starting...')
-console.log('[Hub] HAPI_LISTEN_PORT: 3000 (environment)')
+console.log('Zhushen Hub starting...')
+console.log('[Hub] ZHUSHEN_LISTEN_PORT: 3000 (environment)')
 console.log('[Web] Hub listening on :3000')
-console.log('HAPI Hub is ready!')
+console.log('Zhushen Hub is ready!')
 ```
 
 **Format**: `[Component] Message` or plain message for startup banners.
@@ -79,10 +79,10 @@ console.error('[Tunnel] Failed to start:', error instanceof Error ? error.messag
 Log all configuration on startup with source information:
 
 ```typescript
-console.log('HAPI Hub starting...')
-console.log(`[Hub] HAPI_LISTEN_HOST: ${config.listenHost} (${formatSource(config.sources.listenHost)})`)
-console.log(`[Hub] HAPI_LISTEN_PORT: ${config.listenPort} (${formatSource(config.sources.listenPort)})`)
-console.log(`[Hub] HAPI_PUBLIC_URL: ${config.publicUrl} (${formatSource(config.sources.publicUrl)})`)
+console.log('Zhushen Hub starting...')
+console.log(`[Hub] ZHUSHEN_LISTEN_HOST: ${config.listenHost} (${formatSource(config.sources.listenHost)})`)
+console.log(`[Hub] ZHUSHEN_LISTEN_PORT: ${config.listenPort} (${formatSource(config.sources.listenPort)})`)
+console.log(`[Hub] ZHUSHEN_PUBLIC_URL: ${config.publicUrl} (${formatSource(config.sources.publicUrl)})`)
 ```
 
 **Why**: Makes debugging configuration issues easy - you can see where each value came from.
@@ -286,7 +286,7 @@ console.error('[Tunnel] Failed:', error instanceof Error ? error.message : error
 
 In production, logs are captured by:
 - **Docker**: `docker logs <container>`
-- **systemd**: `journalctl -u hapi-hub`
+- **systemd**: `journalctl -u zhushen-hub`
 - **PM2**: `pm2 logs`
 
 ### Log Rotation

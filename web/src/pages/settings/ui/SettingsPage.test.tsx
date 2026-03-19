@@ -78,8 +78,8 @@ describe('SettingsPage', () => {
 
     it('displays website link', () => {
         render(<SettingsPage />)
-        const links = screen.getAllByRole('link', { name: 'hapi.run' })
-        expect(links[0]).toHaveAttribute('href', 'https://hapi.run')
+        const links = screen.getAllByRole('link', { name: 'app.zhushen.run' })
+        expect(links[0]).toHaveAttribute('href', 'https://app.zhushen.run')
         expect(links[0]).toHaveAttribute('target', '_blank')
         expect(links[0]).toHaveAttribute('rel', 'noopener noreferrer')
     })

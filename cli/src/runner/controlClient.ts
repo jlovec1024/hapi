@@ -202,7 +202,7 @@ export async function checkIfRunnerRunningAndCleanupStaleState(): Promise<boolea
  * 
  * @returns true if versions match, false if versions differ or no runner running
  */
-export async function isRunnerRunningCurrentlyInstalledHappyVersion(): Promise<boolean> {
+export async function isRunnerRunningCurrentlyInstalledZhushenVersion(): Promise<boolean> {
   logger.debug('[RUNNER CONTROL] Checking if runner is running same version');
   const availability = await getRunnerAvailability();
 
@@ -234,13 +234,13 @@ export async function isRunnerRunningCurrentlyInstalledHappyVersion(): Promise<b
     // If reading package.json doesn't work correctly after npm upgrades,
     // we can revert to spawning a process (but should add timeout and cleanup!)
     /*
-    const { spawnHappyCLI } = await import('@/utils/spawnHappyCLI');
-    const happyProcess = spawnHappyCLI(['--version'], { stdio: 'pipe' });
+    const { spawnZhushenCLI } = await import('@/utils/spawnZhushenCLI');
+    const zhushenProcess = spawnZhushenCLI(['--version'], { stdio: 'pipe' });
     let version: string | null = null;
-    happyProcess.stdout?.on('data', (data) => {
+    zhushenProcess.stdout?.on('data', (data) => {
       version = data.toString().trim();
     });
-    await new Promise(resolve => happyProcess.stdout?.on('close', resolve));
+    await new Promise(resolve => zhushenProcess.stdout?.on('close', resolve));
     logger.debug(`[RUNNER CONTROL] Current CLI version: ${version}, Runner started with version: ${state.startedWithCliVersion}`);
     return version === state.startedWithCliVersion;
     */

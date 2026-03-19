@@ -8,7 +8,7 @@ body:
       value: |
         Thank you for submitting a bug report! It helps make Zhushen better for everyone.
 
-        If you need help or support using Zhushen, and are not reporting a bug, please post on [Zhushen/discussions](https://github.com/jlovec1024/hapi/discussions), where you can ask questions or engage with others on ideas for how to improve Zhushen.
+        If you need help or support using Zhushen, and are not reporting a bug, please post on [Zhushen/discussions](https://github.com/jlovec1024/zhushen/discussions), where you can ask questions or engage with others on ideas for how to improve Zhushen.
 
         You are already an engineer who uses coding agents; you should know how to describe issues clearly. Issues that lack a clear description will be closed.
 

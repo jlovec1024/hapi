@@ -9,13 +9,13 @@ import { logger } from '@/ui/logger';
 import { authAndSetupMachineIfNeeded } from '@/ui/auth';
 import packageJson from '../../package.json';
 import { getEnvironmentInfo } from '@/ui/doctor';
-import { spawnHappyCLI } from '@/utils/spawnHappyCLI';
+import { spawnZhushenCLI } from '@/utils/spawnZhushenCLI';
 import { writeRunnerState, RunnerLocallyPersistedState, readRunnerState, acquireRunnerLock, releaseRunnerLock } from '@/persistence';
 import { isProcessAlive, isWindows, killProcess, killProcessByChildProcess } from '@/utils/process';
 import { withRetry } from '@/utils/time';
 import { isRetryableConnectionError } from '@/utils/errorUtils';
 
-import { cleanupRunnerState, getInstalledCliMtimeMs, getRunnerAvailability, isRunnerRunningCurrentlyInstalledHappyVersion, stopRunner } from './controlClient';
+import { cleanupRunnerState, getInstalledCliMtimeMs, getRunnerAvailability, isRunnerRunningCurrentlyInstalledZhushenVersion, stopRunner } from './controlClient';
 import { startRunnerControlServer } from './controlServer';
 import { createWorktree, removeWorktree, type WorktreeInfo } from './worktree';
 import { join } from 'path';
@@ -104,7 +104,7 @@ export async function startRunner(): Promise<void> {
     process.exit(0);
   }
 
-  const runningRunnerVersionMatches = await isRunnerRunningCurrentlyInstalledHappyVersion();
+  const runningRunnerVersionMatches = await isRunnerRunningCurrentlyInstalledZhushenVersion();
   if (!runningRunnerVersionMatches) {
     logger.debug('[RUNNER RUN] Runner version mismatch detected, restarting runner with current CLI version');
     await stopRunner();
@@ -153,8 +153,8 @@ export async function startRunner(): Promise<void> {
     // Helper functions
     const getCurrentChildren = () => Array.from(pidToTrackedSession.values());
 
-    // Handle webhook from HAPI session reporting itself
-    const onHappySessionWebhook = (sessionId: string, sessionMetadata: Metadata) => {
+    // Handle webhook from Zhushen session reporting itself
+    const onZhushenSessionWebhook = (sessionId: string, sessionMetadata: Metadata) => {
       logger.debugLargeJson(`[RUNNER RUN] Session reported`, sessionMetadata);
 
       const pid = sessionMetadata.hostPid;
@@ -171,8 +171,8 @@ export async function startRunner(): Promise<void> {
 
       if (existingSession && existingSession.startedBy === 'runner') {
         // Update runner-spawned session with reported data
-        existingSession.happySessionId = sessionId;
-        existingSession.happySessionMetadataFromLocalWebhook = sessionMetadata;
+        existingSession.zhushenSessionId = sessionId;
+        existingSession.zhushenSessionMetadataFromLocalWebhook = sessionMetadata;
         logger.debug(`[RUNNER RUN] Updated runner-spawned session ${sessionId} with metadata`);
 
         // Resolve any awaiter for this PID
@@ -187,8 +187,8 @@ export async function startRunner(): Promise<void> {
         // New session started externally
         const trackedSession: TrackedSession = {
           startedBy: 'zs directly - likely by user from terminal',
-          happySessionId: sessionId,
-          happySessionMetadataFromLocalWebhook: sessionMetadata,
+          zhushenSessionId: sessionId,
+          zhushenSessionMetadataFromLocalWebhook: sessionMetadata,
           pid
         };
         pidToTrackedSession.set(pid, trackedSession);
@@ -208,7 +208,7 @@ export async function startRunner(): Promise<void> {
       let directoryCreated = false;
       let spawnDirectory = directory;
       let worktreeInfo: WorktreeInfo | null = null;
-      let happyProcess: ReturnType<typeof spawnHappyCLI> | null = null;
+      let zhushenProcess: ReturnType<typeof spawnZhushenCLI> | null = null;
 
       if (sessionType === 'simple') {
         try {
@@ -299,7 +299,7 @@ export async function startRunner(): Promise<void> {
         if (!worktreeInfo) {
           return;
         }
-        const pid = happyProcess?.pid;
+        const pid = zhushenProcess?.pid;
         if (pid && isProcessAlive(pid)) {
           logger.debug(`[RUNNER RUN] Skipping worktree cleanup after ${reason}; child still running`, {
             pid,
@@ -418,7 +418,7 @@ export async function startRunner(): Promise<void> {
           logger.debug('[RUNNER RUN] Child stderr tail', trimmed);
         };
 
-        happyProcess = spawnHappyCLI(args, {
+        zhushenProcess = spawnZhushenCLI(args, {
           cwd: spawnDirectory,
           detached: true,  // Sessions stay alive when runner stops
           stdio: ['ignore', 'pipe', 'pipe'],  // Capture stdout/stderr for debugging
@@ -428,7 +428,7 @@ export async function startRunner(): Promise<void> {
           }
         });
 
-        happyProcess.stderr?.on('data', (data) => {
+        zhushenProcess.stderr?.on('data', (data) => {
           stderrTail = appendTail(stderrTail, data);
         });
 
@@ -436,16 +436,16 @@ export async function startRunner(): Promise<void> {
         const captureSpawnErrorBeforePidCheck = (error: Error) => {
           spawnErrorBeforePidCheck = error;
         };
-        happyProcess.once('error', captureSpawnErrorBeforePidCheck);
+        zhushenProcess.once('error', captureSpawnErrorBeforePidCheck);
 
-        if (!happyProcess.pid) {
+        if (!zhushenProcess.pid) {
           // Allow the async 'error' event to fire before we read it
           await new Promise((resolve) => setImmediate(resolve));
           const details = [`cwd=${spawnDirectory}`];
           if (spawnErrorBeforePidCheck) {
             details.push(formatSpawnError(spawnErrorBeforePidCheck));
           }
-          const errorMessage = `Failed to spawn HAPI process - no PID returned (${details.join('; ')})`;
+          const errorMessage = `Failed to spawn Zhushen process - no PID returned (${details.join('; ')})`;
           logger.debug('[RUNNER RUN] Failed to spawn process - no PID returned', spawnErrorBeforePidCheck ?? null);
           reportSpawnOutcomeToHub?.({
             type: 'error',
@@ -459,9 +459,9 @@ export async function startRunner(): Promise<void> {
             errorMessage
           };
         }
-        happyProcess.removeListener('error', captureSpawnErrorBeforePidCheck);
+        zhushenProcess.removeListener('error', captureSpawnErrorBeforePidCheck);
 
-        const pid = happyProcess.pid;
+        const pid = zhushenProcess.pid;
         logger.debug(`[RUNNER RUN] Spawned process with PID ${pid}`);
         let observedExitCode: number | null = null;
         let observedExitSignal: NodeJS.Signals | null = null;
@@ -496,14 +496,14 @@ export async function startRunner(): Promise<void> {
         const trackedSession: TrackedSession = {
           startedBy: 'runner',
           pid,
-          childProcess: happyProcess,
+          childProcess: zhushenProcess,
           directoryCreated,
           message: directoryCreated ? `The path '${directory}' did not exist. We created a new folder and spawned a new session there.` : undefined
         };
 
         pidToTrackedSession.set(pid, trackedSession);
 
-        happyProcess.on('exit', (code, signal) => {
+        zhushenProcess.on('exit', (code, signal) => {
           observedExitCode = typeof code === 'number' ? code : null;
           observedExitSignal = signal ?? null;
           logger.debug(`[RUNNER RUN] Child PID ${pid} exited with code ${code}, signal ${signal}`);
@@ -519,7 +519,7 @@ export async function startRunner(): Promise<void> {
           onChildExited(pid);
         });
 
-        happyProcess.on('error', (error) => {
+        zhushenProcess.on('error', (error) => {
           logger.debug(`[RUNNER RUN] Child process error:`, error);
           const errorAwaiter = pidToErrorAwaiter.get(pid);
           if (errorAwaiter) {
@@ -530,7 +530,7 @@ export async function startRunner(): Promise<void> {
           onChildExited(pid);
         });
 
-        // Wait for webhook to populate session with happySessionId
+        // Wait for webhook to populate session with zhushenSessionId
         logger.debug(`[RUNNER RUN] Waiting for session webhook for PID ${pid}`);
 
         const spawnResult = await new Promise<SpawnSessionResult>((resolve) => {
@@ -552,10 +552,10 @@ export async function startRunner(): Promise<void> {
           pidToAwaiter.set(pid, (completedSession) => {
             clearTimeout(timeout);
             pidToErrorAwaiter.delete(pid);
-            logger.debug(`[RUNNER RUN] Session ${completedSession.happySessionId} fully spawned with webhook`);
+            logger.debug(`[RUNNER RUN] Session ${completedSession.zhushenSessionId} fully spawned with webhook`);
             resolve({
               type: 'success',
-              sessionId: completedSession.happySessionId!,
+              sessionId: completedSession.zhushenSessionId!,
               ...(warnings.length > 0 ? { warnings } : {})
             });
           });
@@ -605,7 +605,7 @@ export async function startRunner(): Promise<void> {
 
       // Try to find by sessionId first
       for (const [pid, session] of pidToTrackedSession.entries()) {
-        if (session.happySessionId === sessionId ||
+        if (session.zhushenSessionId === sessionId ||
           (sessionId.startsWith('PID-') && pid === parseInt(sessionId.replace('PID-', '')))) {
 
           if (session.startedBy === 'runner' && session.childProcess) {
@@ -649,7 +649,7 @@ export async function startRunner(): Promise<void> {
       stopSession,
       spawnSession,
       requestShutdown: () => requestShutdown('zs-cli'),
-      onHappySessionWebhook
+      onZhushenSessionWebhook
     });
 
     const startedWithCliMtimeMs = getInstalledCliMtimeMs();
@@ -787,7 +787,7 @@ export async function startRunner(): Promise<void> {
         // intentionally stays alive briefly before exiting. `start-sync` can stop the stale runner
         // itself and acquire the lock once cleanup completes.
         try {
-          spawnHappyCLI(['runner', 'start-sync'], {
+          spawnZhushenCLI(['runner', 'start-sync'], {
             detached: true,
             stdio: 'ignore'
           });

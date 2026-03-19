@@ -23,7 +23,7 @@ describe('MachineList', () => {
             metadata: {
                 host: 'localhost',
                 platform: 'linux',
-                happyCliVersion: '1.0.0',
+                zhushenCliVersion: '1.0.0',
                 displayName: 'My Laptop',
             },
         },
@@ -33,7 +33,7 @@ describe('MachineList', () => {
             metadata: {
                 host: 'remote-server',
                 platform: 'darwin',
-                happyCliVersion: '1.0.0',
+                zhushenCliVersion: '1.0.0',
             },
         },
     ]
@@ -78,7 +78,7 @@ describe('MachineList', () => {
                 metadata: {
                     host: 'server-123',
                     platform: 'linux',
-                    happyCliVersion: '1.0.0',
+                    zhushenCliVersion: '1.0.0',
                 },
             },
         ]

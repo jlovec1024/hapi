@@ -319,12 +319,12 @@ export function SettingsPage() {
                         <div className="flex w-full items-center justify-between px-3 py-3">
                             <span className="text-[var(--app-fg)]">{t('settings.about.website')}</span>
                             <a
-                                href="https://hapi.run"
+                                href="https://app.zhushen.run"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-[var(--app-link)] hover:underline"
                             >
-                                hapi.run
+                                app.zhushen.run
                             </a>
                         </div>
                         <div className="flex w-full items-center justify-between px-3 py-3">

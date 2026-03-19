@@ -68,26 +68,26 @@ function generateFormula(version: string, shas: PlatformSha): string {
 
 class Zs < Formula
   desc "App for agentic coding - access coding agent anywhere"
-  homepage "https://github.com/jlovec1024/hapi"
+  homepage "https://github.com/jlovec1024/zhushen"
   version "${version}"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/jlovec1024/hapi/releases/download/v#{version}/zs-darwin-arm64.tar.gz"
+      url "https://github.com/jlovec1024/zhushen/releases/download/v#{version}/zs-darwin-arm64.tar.gz"
       sha256 "${shas.darwinArm64}"
     else
-      url "https://github.com/jlovec1024/hapi/releases/download/v#{version}/zs-darwin-x64.tar.gz"
+      url "https://github.com/jlovec1024/zhushen/releases/download/v#{version}/zs-darwin-x64.tar.gz"
       sha256 "${shas.darwinX64}"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/jlovec1024/hapi/releases/download/v#{version}/zs-linux-arm64.tar.gz"
+      url "https://github.com/jlovec1024/zhushen/releases/download/v#{version}/zs-linux-arm64.tar.gz"
       sha256 "${shas.linuxArm64}"
     else
-      url "https://github.com/jlovec1024/hapi/releases/download/v#{version}/zs-linux-x64.tar.gz"
+      url "https://github.com/jlovec1024/zhushen/releases/download/v#{version}/zs-linux-x64.tar.gz"
       sha256 "${shas.linuxX64}"
     end
   end

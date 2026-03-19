@@ -6,7 +6,7 @@
 
 ## 概述
 
-HAPI Web 通过以下方式维持高代码质量：
+Zhushen Web 通过以下方式维持高代码质量：
 
 - **TypeScript 严格模式** - 禁止隐式 any，启用严格 null 检查
 - **Vitest** 用于在 jsdom 环境中进行单元测试

@@ -64,7 +64,7 @@
 
 ### 其他
 
-- `zs mcp` - 启动 MCP stdio bridge。见 `src/codex/happyMcpStdioBridge.ts`。
+- `zs mcp` - 启动 MCP stdio bridge。见 `src/codex/zhushenMcpStdioBridge.ts`。
 - `zs hub` - 启动内置 hub（单二进制工作流）。
 - `zs server` - `zs hub` 的别名。
 

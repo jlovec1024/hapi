@@ -1,11 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { HappySystemMessage } from './SystemMessage'
+import { ZhushenSystemMessage } from './SystemMessage'
 
 // Create mock functions using vi.hoisted
-const { mockUseAssistantState, mockGetHappyChatMetadata, mockGetMessageTextContent, mockGetEventPresentation } = vi.hoisted(() => ({
+const { mockUseAssistantState, mockGetZhushenChatMetadata, mockGetMessageTextContent, mockGetEventPresentation } = vi.hoisted(() => ({
     mockUseAssistantState: vi.fn(),
-    mockGetHappyChatMetadata: vi.fn(),
+    mockGetZhushenChatMetadata: vi.fn(),
     mockGetMessageTextContent: vi.fn(),
     mockGetEventPresentation: vi.fn(),
 }))
@@ -17,7 +17,7 @@ vi.mock('@assistant-ui/react', () => ({
 
 // Mock helper functions
 vi.mock('@/lib/assistant-runtime', () => ({
-    getHappyChatMetadata: mockGetHappyChatMetadata,
+    getZhushenChatMetadata: mockGetZhushenChatMetadata,
     getMessageTextContent: mockGetMessageTextContent,
 }))
 
@@ -25,10 +25,10 @@ vi.mock('@/chat/presentation', () => ({
     getEventPresentation: mockGetEventPresentation,
 }))
 
-describe('HappySystemMessage', () => {
+describe('ZhushenSystemMessage', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        mockGetHappyChatMetadata.mockReturnValue(null)
+        mockGetZhushenChatMetadata.mockReturnValue(null)
         mockGetEventPresentation.mockReturnValue({ icon: '🔔', label: 'event' })
     })
 
@@ -39,12 +39,12 @@ describe('HappySystemMessage', () => {
         })
         mockGetMessageTextContent.mockReturnValue('System notification')
 
-        render(<HappySystemMessage />)
+        render(<ZhushenSystemMessage />)
         expect(screen.getByText('System notification')).toBeInTheDocument()
     })
 
     it('renders system message with event icon', () => {
-        mockGetHappyChatMetadata.mockReturnValue({
+        mockGetZhushenChatMetadata.mockReturnValue({
             kind: 'event',
             event: 'session-started',
         })
@@ -54,7 +54,7 @@ describe('HappySystemMessage', () => {
             return selector({ message })
         })
 
-        render(<HappySystemMessage />)
+        render(<ZhushenSystemMessage />)
         expect(screen.getByText('Session started')).toBeInTheDocument()
         expect(screen.getByText('🔔')).toBeInTheDocument()
     })
@@ -65,7 +65,7 @@ describe('HappySystemMessage', () => {
             return selector({ message })
         })
 
-        const { container } = render(<HappySystemMessage />)
+        const { container } = render(<ZhushenSystemMessage />)
         expect(container.firstChild).toBeNull()
     })
 
@@ -76,7 +76,7 @@ describe('HappySystemMessage', () => {
         })
         mockGetMessageTextContent.mockReturnValue('Test message')
 
-        const { container } = render(<HappySystemMessage />)
+        const { container } = render(<ZhushenSystemMessage />)
         const wrapper = container.querySelector('.py-1')
         expect(wrapper).toBeInTheDocument()
 

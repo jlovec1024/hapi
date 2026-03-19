@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import VsComparison from "./pages/VsComparison";
 
 
 
@@ -12,6 +13,7 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/comparison"} component={VsComparison} />
 
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
@@ -30,7 +32,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider
         defaultTheme="system"
-        storageKey="hapi-theme"
+        storageKey="zhushen-theme"
       >
         <TooltipProvider>
           <Toaster />

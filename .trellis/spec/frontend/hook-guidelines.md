@@ -6,7 +6,7 @@
 
 ## 概述
 
-HAPI Web 大量使用 React hooks 来管理状态与副作用。自定义 hooks 封装业务逻辑，使组件聚焦于表现层。数据获取使用 TanStack Query（React Query），并清晰区分 query 与 mutation。
+Zhushen Web 大量使用 React hooks 来管理状态与副作用。自定义 hooks 封装业务逻辑，使组件聚焦于表现层。数据获取使用 TanStack Query（React Query），并清晰区分 query 与 mutation。
 
 **关键模式**：
 - 使用自定义 hooks 封装可复用逻辑（平台检测、剪贴板、认证）

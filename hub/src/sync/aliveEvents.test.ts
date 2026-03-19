@@ -45,7 +45,7 @@ describe('alive incremental events', () => {
 
         const machine = cache.getOrCreateMachine(
             'machine-alive-test',
-            { host: 'localhost', platform: 'linux', happyCliVersion: '0.1.0' },
+            { host: 'localhost', platform: 'linux', zhushenCliVersion: '0.1.0' },
             null,
             'default'
         )

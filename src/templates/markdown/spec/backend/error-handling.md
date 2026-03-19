@@ -6,7 +6,7 @@
 
 ## Overview
 
-HAPI Hub follows a pragmatic error handling approach:
+Zhushen Hub follows a pragmatic error handling approach:
 
 - **HTTP API**: Return `{ error: string }` JSON with appropriate HTTP status codes
 - **Socket.IO**: Silently ignore invalid events (no error propagation to client unless needed)
@@ -311,7 +311,7 @@ if (result.type === 'error') {
 - HTTP route: `POST /api/machines/:id/spawn` (`hub/src/web/routes/machines.ts`)
 - Hub service: `SyncEngine.spawnSession(...)` (`hub/src/sync/syncEngine.ts`)
 - Hub RPC gateway: `RpcGateway.spawnSession(...)` (`hub/src/sync/rpcGateway.ts`)
-- CLI machine RPC handler: `'spawn-happy-session'` (`cli/src/api/apiMachine.ts`)
+- CLI machine RPC handler: `'spawn-zhushen-session'` (`cli/src/api/apiMachine.ts`)
 
 Expected Hub return type:
 ```ts
@@ -334,8 +334,8 @@ Promise<{ type: 'success'; sessionId: string } | { type: 'error'; message: strin
   - `{ error: string }` (serialized handler exception)
   - `{ type: 'requestToApproveDirectoryCreation'; directory: string }`
 - Env keys impacting runtime path correctness:
-  - `HAPI_HOME` (required for runner state/logs)
-  - `HAPI_API_URL` (required for machine sync)
+  - `ZHUSHEN_HOME` (required for runner state/logs)
+  - `ZHUSHEN_API_URL` (required for machine sync)
   - `CLI_API_TOKEN` (required auth)
 
 ### 4. Validation & Error Matrix

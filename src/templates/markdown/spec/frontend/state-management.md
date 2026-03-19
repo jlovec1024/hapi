@@ -6,7 +6,7 @@
 
 ## 概述
 
-HAPI Web 采用**混合式状态管理方案**：
+Zhushen Web 采用**混合式状态管理方案**：
 
 1. **本地组件状态**（`useState`、`useReducer`）用于仅影响 UI 的状态
 2. **TanStack Query** 用于服务端状态（API 数据、缓存、同步）
@@ -130,7 +130,7 @@ Context 用于向组件树下传递依赖，而不是承载频繁变化的状态
 
 ```typescript
 // components/AssistantChat/context.tsx
-export type HappyChatContextValue = {
+export type ZhushenChatContextValue = {
     api: ApiClient
     sessionId: string
     metadata: SessionMetadataSummary | null
@@ -138,8 +138,8 @@ export type HappyChatContextValue = {
     onRefresh: () => void
 }
 
-export function HappyChatProvider(props: { value: HappyChatContextValue; children: ReactNode }) {
-    return <HappyChatContext.Provider value={props.value}>{props.children}</HappyChatContext.Provider>
+export function ZhushenChatProvider(props: { value: ZhushenChatContextValue; children: ReactNode }) {
+    return <ZhushenChatContext.Provider value={props.value}>{props.children}</ZhushenChatContext.Provider>
 }
 ```
 

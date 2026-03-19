@@ -9,7 +9,7 @@ import chalk from 'chalk'
 import { configuration } from '@/configuration'
 import { readSettings } from '@/persistence'
 import { getRunnerAvailability } from '@/runner/controlClient'
-import { findRunawayHappyProcesses, findAllHappyProcesses } from '@/runner/doctor'
+import { findRunawayZhushenProcesses, findAllZhushenProcesses } from '@/runner/doctor'
 import { readRunnerState } from '@/persistence'
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
@@ -32,7 +32,7 @@ export function getEnvironmentInfo(): Record<string, any> {
         DEBUG: process.env.DEBUG,
         workingDirectory: process.cwd(),
         processArgv: process.argv,
-        happyDir: configuration?.happyHomeDir,
+        zhushenDir: configuration?.zhushenHomeDir,
         apiUrl: configuration?.apiUrl,
         logsDir: configuration?.logsDir,
         processPid: process.pid,
@@ -106,7 +106,7 @@ export async function runDoctorCommand(filter?: 'all' | 'runner'): Promise<void>
 
         // Configuration
         console.log(chalk.bold('⚙️  Configuration'));
-        console.log(`zs Home: ${chalk.blue(configuration.happyHomeDir)}`);
+        console.log(`zs Home: ${chalk.blue(configuration.zhushenHomeDir)}`);
         console.log(`Bot URL: ${chalk.blue(configuration.apiUrl)}`);
         console.log(`Logs Dir: ${chalk.blue(configuration.logsDir)}`);
 
@@ -186,7 +186,7 @@ export async function runDoctorCommand(filter?: 'all' | 'runner'): Promise<void>
         }
 
         // All zs processes
-        const allProcesses = await findAllHappyProcesses();
+        const allProcesses = await findAllZhushenProcesses();
         if (allProcesses.length > 0) {
             console.log(chalk.bold('\n🔍 All zs CLI Processes'));
 

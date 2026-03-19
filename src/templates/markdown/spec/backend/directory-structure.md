@@ -6,7 +6,7 @@
 
 ## Overview
 
-HAPI Hub is a Bun-based backend service that provides:
+Zhushen Hub is a Bun-based backend service that provides:
 - HTTP API server (Hono framework)
 - Socket.IO server for real-time CLI connections
 - SSE (Server-Sent Events) for web client updates

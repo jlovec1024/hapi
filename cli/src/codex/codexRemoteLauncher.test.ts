@@ -55,8 +55,8 @@ vi.mock('./codexAppServerClient', () => {
     return { CodexAppServerClient: MockCodexAppServerClient };
 });
 
-vi.mock('./utils/buildHapiMcpBridge', () => ({
-    buildHapiMcpBridge: async () => ({
+vi.mock('./utils/buildZhushenMcpBridge', () => ({
+    buildZhushenMcpBridge: async () => ({
         server: {
             stop: () => {}
         },

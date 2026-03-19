@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AuthSource } from './useAuth'
 
-const ACCESS_TOKEN_PREFIX = 'hapi_access_token::'
+const ACCESS_TOKEN_PREFIX = 'zhushen_access_token::'
 
 function getTokenFromUrlParams(): string | null {
     if (typeof window === 'undefined') return null

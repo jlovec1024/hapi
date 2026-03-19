@@ -5,11 +5,11 @@ import { safeStringify } from '@zs/protocol'
 import { renderEventLabel } from '@/chat/presentation'
 import type { ChatBlock, CliOutputBlock } from '@/chat/types'
 import type { AgentEvent, ToolCallBlock } from '@/chat/types'
-import type { AttachmentMetadata, MessageStatus as HappyMessageStatus, Session } from '@/types/api'
+import type { AttachmentMetadata, MessageStatus as ZhushenMessageStatus, Session } from '@/types/api'
 
-export type HappyChatMessageMetadata = {
+export type ZhushenChatMessageMetadata = {
     kind: 'user' | 'assistant' | 'tool' | 'event' | 'cli-output'
-    status?: HappyMessageStatus
+    status?: ZhushenMessageStatus
     localId?: string | null
     originalText?: string
     toolCallId?: string
@@ -23,8 +23,8 @@ type RuntimeMessageLike = {
     metadata?: { custom?: unknown }
 }
 
-export function getHappyChatMetadata(message: RuntimeMessageLike): Partial<HappyChatMessageMetadata> | undefined {
-    return message.metadata?.custom as Partial<HappyChatMessageMetadata> | undefined
+export function getZhushenChatMetadata(message: RuntimeMessageLike): Partial<ZhushenChatMessageMetadata> | undefined {
+    return message.metadata?.custom as Partial<ZhushenChatMessageMetadata> | undefined
 }
 
 export function getMessageTextContent(message: RuntimeMessageLike): string {
@@ -46,7 +46,7 @@ function toThreadMessageLike(block: ChatBlock): ThreadMessageLike {
                     localId: block.localId,
                     originalText: block.originalText,
                     attachments: block.attachments
-                } satisfies HappyChatMessageMetadata
+                } satisfies ZhushenChatMessageMetadata
             }
         }
     }
@@ -59,7 +59,7 @@ function toThreadMessageLike(block: ChatBlock): ThreadMessageLike {
             createdAt: new Date(block.createdAt),
             content: [{ type: 'text', text: block.text }],
             metadata: {
-                custom: { kind: 'assistant' } satisfies HappyChatMessageMetadata
+                custom: { kind: 'assistant' } satisfies ZhushenChatMessageMetadata
             }
         }
     }
@@ -72,7 +72,7 @@ function toThreadMessageLike(block: ChatBlock): ThreadMessageLike {
             createdAt: new Date(block.createdAt),
             content: [{ type: 'reasoning', text: block.text }],
             metadata: {
-                custom: { kind: 'assistant' } satisfies HappyChatMessageMetadata
+                custom: { kind: 'assistant' } satisfies ZhushenChatMessageMetadata
             }
         }
     }
@@ -85,7 +85,7 @@ function toThreadMessageLike(block: ChatBlock): ThreadMessageLike {
             createdAt: new Date(block.createdAt),
             content: [{ type: 'text', text: renderEventLabel(block.event) }],
             metadata: {
-                custom: { kind: 'event', event: block.event } satisfies HappyChatMessageMetadata
+                custom: { kind: 'event', event: block.event } satisfies ZhushenChatMessageMetadata
             }
         }
     }
@@ -98,7 +98,7 @@ function toThreadMessageLike(block: ChatBlock): ThreadMessageLike {
             createdAt: new Date(block.createdAt),
             content: [{ type: 'text', text: block.text }],
             metadata: {
-                custom: { kind: 'cli-output', source: block.source } satisfies HappyChatMessageMetadata
+                custom: { kind: 'cli-output', source: block.source } satisfies ZhushenChatMessageMetadata
             }
         }
     }
@@ -121,7 +121,7 @@ function toThreadMessageLike(block: ChatBlock): ThreadMessageLike {
             artifact: toolBlock
         }],
         metadata: {
-            custom: { kind: 'tool', toolCallId: toolBlock.id } satisfies HappyChatMessageMetadata
+            custom: { kind: 'tool', toolCallId: toolBlock.id } satisfies ZhushenChatMessageMetadata
         }
     }
 }
@@ -181,7 +181,7 @@ function extractMessageContent(message: AppendMessage): { text: string; attachme
     return { text, attachments }
 }
 
-export function useHappyRuntime(props: {
+export function useZhushenRuntime(props: {
     session: Session
     blocks: readonly ChatBlock[]
     isSending: boolean

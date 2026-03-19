@@ -16,13 +16,13 @@ export function startRunnerControlServer({
   stopSession,
   spawnSession,
   requestShutdown,
-  onHappySessionWebhook
+  onZhushenSessionWebhook
 }: {
   getChildren: () => TrackedSession[];
   stopSession: (sessionId: string) => boolean;
   spawnSession: (options: SpawnSessionOptions) => Promise<SpawnSessionResult>;
   requestShutdown: () => void;
-  onHappySessionWebhook: (sessionId: string, metadata: Metadata) => void;
+  onZhushenSessionWebhook: (sessionId: string, metadata: Metadata) => void;
 }): Promise<{ port: number; stop: () => Promise<void> }> {
   return new Promise((resolve) => {
     const app = fastify({
@@ -51,7 +51,7 @@ export function startRunnerControlServer({
       const { sessionId, metadata } = request.body;
 
       logger.debug(`[CONTROL SERVER] Session started: ${sessionId}`);
-      onHappySessionWebhook(sessionId, metadata);
+      onZhushenSessionWebhook(sessionId, metadata);
 
       return { status: 'ok' as const };
     });
@@ -63,7 +63,7 @@ export function startRunnerControlServer({
           200: z.object({
             children: z.array(z.object({
               startedBy: z.string(),
-              happySessionId: z.string(),
+              zhushenSessionId: z.string(),
               pid: z.number()
             }))
           })
@@ -74,10 +74,10 @@ export function startRunnerControlServer({
       logger.debug(`[CONTROL SERVER] Listing ${children.length} sessions`);
       return { 
         children: children
-          .filter(child => child.happySessionId !== undefined)
+          .filter(child => child.zhushenSessionId !== undefined)
           .map(child => ({
             startedBy: child.startedBy,
-            happySessionId: child.happySessionId!,
+            zhushenSessionId: child.zhushenSessionId!,
             pid: child.pid
           }))
       }

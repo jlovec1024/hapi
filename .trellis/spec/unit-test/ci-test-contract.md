@@ -88,7 +88,7 @@
 
 ### Runner 调试契约（执行 CWD 与业务工作目录）
 
-当修改 CLI 进程启动行为（`spawnHappyCLI`、agent 入口点、runner 子进程拉起）时：
+当修改 CLI 进程启动行为（`spawnZhushenCLI`、agent 入口点、runner 子进程拉起）时：
 
 - 要区分**执行/运行时解析上下文**与**业务工作目录**。
 - 在开发模式下，运行时必须从能正确解析 TS 入口、别名与资源的位置启动。
