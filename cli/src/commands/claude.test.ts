@@ -73,7 +73,9 @@ mock.module('@/utils/errorUtils', () => ({
     apiValidationError: mock((message: string) => new Error(message)),
     extractErrorInfo: mock(() => ({
         message: 'boom',
-        messageLower: 'boom'
+        messageLower: 'boom',
+        responseErrorText: '',
+        serverProtocolVersion: undefined
     })),
     isRetryableConnectionError: mock(() => false)
 }))

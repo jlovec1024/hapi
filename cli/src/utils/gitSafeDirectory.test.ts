@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
+import * as childProcess from 'node:child_process'
+import * as fsPromises from 'node:fs/promises'
 
 const mockExecFile = mock()
 const mockLstat = mock()
@@ -9,15 +11,10 @@ const mockLogger = {
     warn: mock()
 }
 
-mock.module('node:child_process', () => ({
-    execFile: mockExecFile
-}))
-
-mock.module('node:fs/promises', () => ({
-    lstat: mockLstat,
-    readFile: mockReadFile,
-    realpath: mockRealpath
-}))
+spyOn(childProcess, 'execFile').mockImplementation(mockExecFile as unknown as typeof childProcess.execFile)
+spyOn(fsPromises, 'lstat').mockImplementation(mockLstat as unknown as typeof fsPromises.lstat)
+spyOn(fsPromises, 'readFile').mockImplementation(mockReadFile as unknown as typeof fsPromises.readFile)
+spyOn(fsPromises, 'realpath').mockImplementation(mockRealpath as unknown as typeof fsPromises.realpath)
 
 mock.module('@/ui/logger', () => ({
     logger: mockLogger

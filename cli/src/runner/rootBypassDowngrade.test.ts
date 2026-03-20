@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
+import * as fsPromises from 'node:fs/promises'
 import type { SpawnSessionResult } from '@/modules/common/rpcTypes'
 
 const mockSpawnZhushenCLI = mock()
@@ -95,6 +96,10 @@ mock.module('@/utils/process', () => ({
   killProcessByChildProcess: mockKillProcessByChildProcess
 }))
 mock.module('@/utils/time', () => ({
+  delay: mock(async () => undefined),
+  exponentialBackoffDelay: mock(() => 0),
+  createBackoff: mock(() => mock(async <T>(callback: () => Promise<T>) => await callback())),
+  backoff: mock(async <T>(callback: () => Promise<T>) => await callback()),
   withRetry: mockWithRetry
 }))
 mock.module('@/utils/errorUtils', () => ({
@@ -102,7 +107,8 @@ mock.module('@/utils/errorUtils', () => ({
   extractErrorInfo: mock(() => ({
     message: 'boom',
     messageLower: 'boom',
-    responseErrorText: ''
+    responseErrorText: '',
+    serverProtocolVersion: undefined
   })),
   isRetryableConnectionError: mockIsRetryableConnectionError
 }))
@@ -149,11 +155,17 @@ mock.module('node:fs/promises', () => ({
   mkdir: mockMkdir,
   mkdtemp: mockMkdtemp,
   writeFile: mockWriteFile,
+  readdir: mock(async () => []),
+  readFile: mock(async () => ''),
+  rm: mock(async () => undefined),
   default: {
     access: mockAccess,
     mkdir: mockMkdir,
     mkdtemp: mockMkdtemp,
-    writeFile: mockWriteFile
+    writeFile: mockWriteFile,
+    readdir: mock(async () => []),
+    readFile: mock(async () => ''),
+    rm: mock(async () => undefined)
   }
 }))
 mock.module('os', () => ({

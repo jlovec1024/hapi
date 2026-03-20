@@ -1,11 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
 import type { SpawnOptions } from 'child_process'
+import * as childProcess from 'node:child_process'
 
 const spawnMock = mock((..._args: any[]) => ({ pid: 12345 } as any))
-
-mock.module('child_process', () => ({
-  spawn: spawnMock
-}))
+const spawnSpy = spyOn(childProcess, 'spawn').mockImplementation(spawnMock as unknown as typeof childProcess.spawn)
 
 mock.module('@/projectPath', () => ({
   projectPath: mock(() => '/mock/project'),

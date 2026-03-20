@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
+import * as fsPromises from 'node:fs/promises'
 
 const mockGetRunnerAvailability = mock()
 const mockIsRunnerRunningCurrentlyInstalledZhushenVersion = mock()
@@ -9,6 +10,13 @@ const mockAcquireRunnerLock = mock()
 const mockReleaseRunnerLock = mock(async () => undefined)
 const mockClearRunnerState = mock(async () => undefined)
 const mockClearRunnerLock = mock(async () => undefined)
+const mockAccess = mock()
+const mockMkdir = mock()
+const mockMkdtemp = mock()
+const mockWriteFile = mock()
+const mockReaddir = mock(async () => [])
+const mockReadFileFs = mock(async () => '')
+const mockRm = mock(async () => undefined)
 
 mock.module('@/api/api', () => ({ ApiClient: mock() }))
 mock.module('@/ui/logger', () => ({
@@ -50,7 +58,8 @@ mock.module('@/utils/errorUtils', () => ({
   extractErrorInfo: mock(() => ({
     message: 'boom',
     messageLower: 'boom',
-    responseErrorText: ''
+    responseErrorText: '',
+    serverProtocolVersion: undefined
   })),
   isRetryableConnectionError: mock(() => false)
 }))
@@ -68,15 +77,21 @@ mock.module('./controlClient', () => ({
   stopRunner: mockStopRunner
 }))
 mock.module('node:fs/promises', () => ({
-  access: mock(),
-  mkdir: mock(),
-  mkdtemp: mock(),
-  writeFile: mock(),
+  access: mockAccess,
+  mkdir: mockMkdir,
+  mkdtemp: mockMkdtemp,
+  writeFile: mockWriteFile,
+  readdir: mockReaddir,
+  readFile: mockReadFileFs,
+  rm: mockRm,
   default: {
-    access: mock(),
-    mkdir: mock(),
-    mkdtemp: mock(),
-    writeFile: mock()
+    access: mockAccess,
+    mkdir: mockMkdir,
+    mkdtemp: mockMkdtemp,
+    writeFile: mockWriteFile,
+    readdir: mockReaddir,
+    readFile: mockReadFileFs,
+    rm: mockRm
   }
 }))
 mock.module('./controlServer', () => ({ startRunnerControlServer: mock() }))
