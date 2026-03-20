@@ -93,10 +93,36 @@ runs:
 - [ ] 依赖已安装（`bun install` / `npm ci` / `pip install`）
 - [ ] 测试命令在 CI 环境中可执行
 - [ ] 测试失败会导致 workflow 失败（`set -e` 或检查退出码）
+- [ ] For full-suite commands that can overload a host, local narrow verification and CI/dedicated-machine full verification are explicitly separated
 
-#### AI Reviewer 的责任
+#### High-Load Test Command Contract
 
-如果 AI reviewer 无法运行测试，应该：
+When a test entrypoint (for example `bun test`) can consume significant CPU/memory or fan out many concurrent processes:
+
+- Do not run it by default on machines that host real services, shared runners, or business-critical automation.
+- Start with the cheapest low-risk checks first: inspect the diff, inspect failing stacks, run `bun run typecheck`, and run the narrowest necessary tests.
+- Treat the decision to run the full suite as a **host resource decision**, not only a functional-correctness decision.
+- If the command has already caused overload, cascading failures, or runner starvation in the past, document it as a **restricted command**.
+- **Do not treat “move it to CI” as a real fix. If a full-suite command can overload a developer machine, it can also overload a CI runner; CI is often just a different machine waiting to be saturated.**
+- Continue decomposing these commands by package, directory, test class, or resource tier until the default gate can finish reliably within a controlled resource budget.
+- If the repository still exposes only one heavy full-suite entrypoint, the fix is incomplete; add sustainable low-load default entrypoints and separate heavy-test-only entrypoints.
+- Treat “high load” as a claim that requires **code-level evidence**, not as a label attached to a test runner:
+  - first trace whether the root entrypoint actually fans into the heavy path (for example `package.json:27-30` → `cli/package.json:46-54`)
+  - then confirm whether the path contains real background processes, concurrency fan-out, synchronous heavy I/O, or long timeout waits
+  - if you cannot point to concrete files and lines, do not claim that the command can overload the host
+- In this repo, the currently confirmed high-load path is `bun run test` → `bun run test:cli` → `cli/package.json:test` / `test:integration*`, with evidence including:
+  - `cli/src/runner/runner.integration.test.ts:142-180`: every test stops any existing runner and starts a fresh real runner
+  - `cli/src/runner/runner.integration.test.ts:262-295`: one test spawns 20 sessions concurrently and then stops them concurrently
+  - `cli/src/runner/runner.integration.test.ts:372-396`: another test starts a second runner process to verify mutual exclusion
+  - `cli/src/runner/runner.integration.test.ts:457-595`: signal-handling tests exercise real `SIGKILL` / `SIGTERM` cleanup paths and waits
+  - `cli/src/runner/runner.integration.test.ts:634-684`: restart tests trigger runner replacement and PID rotation again
+  - `cli/src/runner/run.ts:421-549`: the code under test really calls `spawnZhushenCLI(... detached: true, stdio: ['ignore', 'pipe', 'pipe'])` and waits for webhook/timeout resolution
+  - `cli/scripts/unpack-tools.ts:47-103`: CLI test startup also performs synchronous tar extraction and chmod work
+- Review/debug output should say explicitly when the full suite was intentionally skipped locally because the host-load risk was unacceptable.
+
+#### AI Reviewer Responsibility
+
+If the AI reviewer cannot run tests, it should:
 
 ```markdown
 **Testing**

@@ -93,6 +93,32 @@ runs:
 - [ ] 依赖已安装（`bun install` / `npm ci` / `pip install`）
 - [ ] 测试命令在 CI 环境中可执行
 - [ ] 测试失败会导致 workflow 失败（`set -e` 或检查退出码）
+- [ ] 对于可能压垮宿主机的全量测试，已经明确区分**本地窄范围验证**与**CI/专用机器全量验证**
+
+#### 高负载测试命令契约
+
+当某个测试入口（例如 `bun test`）会显著占用 CPU、内存，或触发大量并发进程时：
+
+- 不要默认在承载真实服务、共享 runner、或关键自动化任务的机器上直接执行它。
+- 先做便宜且低风险的验证：读 diff、看失败栈、跑 `bun run typecheck`、跑最小必要范围测试。
+- 把“是否跑全量测试”当成**宿主机资源决策**，而不只是功能正确性决策。
+- 如果历史上已经发生过服务器过载、服务雪崩或 runner 被拖死，这个命令就应被文档化为**受限命令**。
+- **不要把“移到 CI 跑”当成问题已经解决。若全量测试会压垮开发机，它同样可能压垮 CI runner；CI 只是换了一台会被打挂的机器。**
+- 对这类命令必须继续向下拆分：按包、按目录、按测试类别、按资源级别分层，直到默认门禁可以在受控资源预算内稳定完成。
+- 如果仓库仍只有一个高负载全量入口，修复动作不完整；必须补出可持续使用的低负载默认入口与重测试专用入口。
+- 要把“高负载”落到**具体代码证据**，不要把锅直接甩给测试运行器：
+  - 先定位根入口是否串到重测试链路（例如 `package.json:27-30` → `cli/package.json:46-54`）
+  - 再确认是否存在真实后台进程、并发 fan-out、同步重 I/O、长超时等待这几类成本源
+  - 若结论无法指向具体文件与行号，就不能下“该命令会压垮宿主机”的判断
+- 本仓库当前已确认的高负载链路是 `bun run test` → `bun run test:cli` → `cli/package.json:test` / `test:integration*`，证据包括：
+  - `cli/src/runner/runner.integration.test.ts:142-180`：每个用例前后都执行 `stopRunner()`，并重新启动真实 runner
+  - `cli/src/runner/runner.integration.test.ts:262-295`：单测内部并发创建 20 个 session，再并发 stop
+  - `cli/src/runner/runner.integration.test.ts:372-396`：额外拉起第二个 runner 进程验证互斥
+  - `cli/src/runner/runner.integration.test.ts:457-595`：覆盖 `SIGKILL` / `SIGTERM` 清理路径，带真实进程终止与等待
+  - `cli/src/runner/runner.integration.test.ts:634-684`：`restart` 用例再次触发 runner 替换与 PID 轮换
+  - `cli/src/runner/run.ts:421-549`：被测路径实际 `spawnZhushenCLI(... detached: true, stdio: ['ignore', 'pipe', 'pipe'])`，并等待 webhook / 超时
+  - `cli/scripts/unpack-tools.ts:47-103`：CLI 测试前还会同步解压 `difftastic` / `ripgrep` 并执行 chmod
+- 评审与调试输出中要明确写出：本次未本地执行全量测试，是因为它会对宿主机产生不可接受的负载风险。
 
 #### AI Reviewer 的责任
 

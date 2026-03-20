@@ -34,8 +34,9 @@
 
 根据仓库脚本与工作流，目前可以确认：
 
-- 根测试命令：`bun run test`
-- 根类型检查命令：`bun run typecheck`
+- 根测试命令：`bun run test`（默认安全入口）
+- CLI 默认测试命令：`cd cli && bun run test`（等价于 `bun run test:safe`）
+- CLI 重测试命令：`cd cli && bun run test:integration`（显式执行 runner integration）
 - CI 会在 push / PR 时执行类型检查与测试，定义见 `.github/workflows/test.yml`
 - 当前存在的 Vitest 配置包括：
   - `cli/vitest.config.ts`
@@ -64,7 +65,8 @@
 - [ ] 断言聚焦于行为
 - [ ] 新增 / 修改逻辑具备测试，或有明确例外说明
 - [ ] `bun run typecheck` 通过
-- [ ] `bun run test` 通过
+- [ ] `bun run test` 通过（默认安全入口）
+- [ ] 若变更涉及 CLI runner lifecycle / integration / restart / signal / stress 路径，额外执行 `cd cli && bun run test:integration` 或提供不执行的资源风险说明
 
 ---
 

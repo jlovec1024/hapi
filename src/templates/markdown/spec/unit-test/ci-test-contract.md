@@ -25,7 +25,18 @@ From `.github/workflows/test.yml`:
   - `bun install`
   - `bun typecheck`
   - setup integration test env file for CLI
-  - `bun run test`
+  - `bun run test` (default safe entrypoint)
+- The current root test entrypoint `package.json:test` runs `test:cli`, `test:hub`, and `test:web` sequentially
+- `package.json:test:cli` now defaults to `cd cli && bun run test:safe`
+- `cli/package.json:test` now defaults to `bun run test:safe` instead of entering the heavy integration path directly
+- CLI runner integration now requires explicit `cli/package.json:test:integration` / `test:all`
+- **The confirmed high-load evidence comes mainly from the CLI runner integration path, not from “Bun” in the abstract**:
+  - `cli/src/runner/runner.integration.test.ts:148-171`: each test stops any existing runner and then starts a fresh real runner process via `spawnZhushenCLI(['runner', 'start'])`
+  - `cli/src/runner/runner.integration.test.ts:262-295`: `stress test: spawn / stop` spawns 20 sessions concurrently and then stops them concurrently
+  - `cli/src/runner/runner.integration.test.ts:372-396`: starts a second runner process to verify mutual exclusion behavior
+  - `cli/src/runner/runner.integration.test.ts:457-484` and `560-631`: exercises `SIGKILL`, `SIGTERM`, version mismatch, and restart-heavy flows
+  - `cli/src/runner/run.ts:421-549`: the implementation under test truly calls `spawnZhushenCLI(... detached: true, stdio: ['ignore', 'pipe', 'pipe'])` and waits for webhook/timeout resolution
+  - `cli/scripts/unpack-tools.ts:47-103`: every CLI test run also synchronously extracts two tar.gz tool archives (`difftastic`, `ripgrep`) and chmods unpacked files
 
 ---
 
@@ -34,6 +45,10 @@ From `.github/workflows/test.yml`:
 - Run local checks that match CI entry points when possible
 - Test-related changes must pass both typecheck and tests before merge
 - Required env setup must be documented and reproducible
+- If `bun test` / `bun run test` would create meaningful host load or interfere with business processes on the current machine, prefer **narrow local verification + full CI validation** instead of treating a local full-suite run as the only acceptable gate.
+- When the host serves real services, a shared runner, or has already shown resource alarms, default local verification should begin with `bun run typecheck` and targeted tests.
+- Any claim that a test command is “high load” must include code evidence: at minimum, document the entrypoint chain, the implicated test files, and the concrete resource-cost source (real processes, concurrency fan-out, synchronous I/O, or long waits) instead of inferring from the command name alone.
+- In this repository, the confirmed high-load path is the root `package.json:test` chain into `cli/package.json:test:integration` / `test:all` for CLI runner integration tests, not an assumption that every Bun/Vitest test in `hub` or `web` is equally dangerous.
 
 ---
 
@@ -44,7 +59,7 @@ From `.github/workflows/test.yml`:
 
 ### Monorepo Test Failure Triage (CLI Changes)
 
-When a CLI-focused change triggers `bun run test:cli` failures, triage in this order:
+When a CLI-focused change triggers failures in `bun run test:cli` (default safe entrypoint) or explicit `cd cli && bun run test:integration`, triage in this order:
 
 1. **Identify unrelated global failures first**
    - If a non-runner file like `src/agent/backends/acp/AcpSdkBackend.test.ts` fails before/alongside your target area, treat it as a separate baseline issue.

@@ -16,10 +16,26 @@ Zhushen Hub maintains quality through:
 
 **Build & test commands**:
 ```bash
-bun test           # Run tests
 bun run typecheck  # Type check
 bun run build      # Build for production
+bun run test       # Default safe test entrypoint (repo root)
+cd cli && bun run test:integration  # Explicit heavy CLI runner integration tests
 ```
+
+**Restricted test command contract**:
+
+- In this repository, `bun test` / `bun run test` is a **risk entrypoint that must be judged by the underlying test content**, not by command name alone.
+- The currently confirmed high-load source is the CLI runner integration path, not every Bun test equally:
+  - `cli/src/runner/runner.integration.test.ts:148-171`: each test stops any existing runner and starts a fresh real runner
+  - `cli/src/runner/runner.integration.test.ts:262-295`: spawns/stops 20 sessions concurrently
+  - `cli/src/runner/runner.integration.test.ts:372-396`: starts a second runner to verify mutual exclusion
+  - `cli/src/runner/run.ts:421-549`: the implementation under test really spawns detached child processes and waits for webhook completion
+  - `cli/scripts/unpack-tools.ts:47-103`: every CLI test run also performs synchronous tar extraction and chmod work
+- If the current machine hosts real services, a shared developer runner, or has already shown overload symptoms, **do not run full-suite entrypoints that include this path**.
+- Default triage order: inspect diff and failing stack first → run `bun run typecheck` → determine whether the change touches runner/integration paths → run the narrowest necessary test scope (single file, single package, or targeted path) → only widen scope when the resource budget is controlled.
+- Any “high-load” conclusion must be backed by code evidence rather than subjective blame on `bun test`: show how the entrypoint reaches the heavy path, which tests really create processes/concurrency/synchronous I/O, and why those costs accumulate on the host.
+- **Do not treat “run it in CI” as the final fix. If the default full-suite entrypoint still covers the high-load path above, the CI runner is just the next host to crash.**
+- Only run a full `bun test` entrypoint that includes this path when the operator explicitly accepts the resource impact and the machine is known to be safe for that load.
 
 ---
 

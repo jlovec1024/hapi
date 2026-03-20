@@ -16,10 +16,26 @@ Zhushen Hub 通过以下方式保障质量：
 
 **构建与测试命令**：
 ```bash
-bun test           # 运行测试
 bun run typecheck  # 类型检查
 bun run build      # 构建生产版本
+bun run test       # 默认安全测试入口（根仓库）
+cd cli && bun run test:integration  # 显式 CLI runner integration 重测试
 ```
+
+**受限测试命令约定**：
+
+- `bun test` / `bun run test` 在本仓库中视为**需要看具体测试内容的风险入口**，不能只按命令名做主观判断。
+- 当前已确认的高负载主因是 CLI runner integration 测试链路，而不是所有 Bun 测试都同样危险：
+  - `cli/src/runner/runner.integration.test.ts:148-171`：每个用例前后都启停真实 runner
+  - `cli/src/runner/runner.integration.test.ts:262-295`：并发创建/停止 20 个 session
+  - `cli/src/runner/runner.integration.test.ts:372-396`：拉起第二个 runner 验证互斥
+  - `cli/src/runner/run.ts:421-549`：被测逻辑会真实 spawn detached 子进程并等待 webhook
+  - `cli/scripts/unpack-tools.ts:47-103`：测试前额外进行同步 tar 解包与 chmod
+- 如果当前机器承载真实服务、共享开发 runner，或已经出现过负载过高问题，**不要直接执行包含上述链路的全量测试入口**。
+- 默认分诊顺序应为：先读 diff 与失败栈 → 运行 `bun run typecheck` → 判断是否涉及 runner/integration 路径 → 只运行最小必要范围的测试（如单文件、单包、单路径）→ 仅在资源预算可控时再扩大范围。
+- 对“高负载”结论必须给出代码支持，而不是对 `bun test` 做主观归因：至少说明入口脚本怎么串到重测试、哪几个测试真正创建了进程/并发/同步 I/O、以及为什么这些成本会叠加到宿主机。
+- **不要把“交给 CI 跑”当成最终修复。若默认全量入口仍会覆盖上述高负载链路，CI runner 只是下一个被打挂的宿主机。**
+- 只有在操作者明确知道资源影响、并确认当前机器允许承受该负载时，才允许手动运行包含该链路的全量 `bun test`。
 
 ---
 

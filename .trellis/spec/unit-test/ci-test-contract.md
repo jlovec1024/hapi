@@ -25,7 +25,18 @@
   - `bun install`
   - `bun typecheck`
   - 为 CLI 配置集成测试环境文件
-  - `bun run test`
+  - `bun run test`（默认安全入口）
+- 当前根测试入口 `package.json:test` 会串行触发 `test:cli`、`test:hub`、`test:web`
+- 其中 `package.json:test:cli` 现在默认执行 `cd cli && bun run test:safe`
+- `cli/package.json:test` 现在默认执行 `bun run test:safe`，不会直接进入高副作用 integration 链路
+- CLI runner integration 需要显式执行 `cli/package.json:test:integration` / `test:all`
+- **已确认的高负载证据主要来自 CLI runner integration 链路，而不是单纯因为“用了 Bun”**：
+  - `cli/src/runner/runner.integration.test.ts:148-171`：每个用例前都会 `stopRunner()` 后再 `spawnZhushenCLI(['runner', 'start'])` 启动新的真实 runner 进程
+  - `cli/src/runner/runner.integration.test.ts:262-295`：`stress test: spawn / stop` 会并发创建 20 个 session，并再并发 stop
+  - `cli/src/runner/runner.integration.test.ts:372-396`：额外再拉起第二个 runner 进程验证互斥启动
+  - `cli/src/runner/runner.integration.test.ts:457-484` 与 `560-631`：覆盖 `SIGKILL`、`SIGTERM`、版本失配、自重启等高副作用流程
+  - `cli/src/runner/run.ts:421-549`：被测实现会为 session 真正 `spawnZhushenCLI(... detached: true, stdio: ['ignore', 'pipe', 'pipe'])`，并等待 webhook / timeout
+  - `cli/scripts/unpack-tools.ts:47-103`：测试前还会同步解压两个 tar.gz 工具包（`difftastic`、`ripgrep`）并遍历 chmod
 
 ---
 
@@ -34,6 +45,10 @@
 - 尽可能在本地运行与 CI 入口一致的检查
 - 与测试相关的变更在合并前必须同时通过 typecheck 和 tests
 - 所需的环境配置必须被文档化，并且可以稳定复现
+- `bun test` / `bun run test` 若会对当前机器造成明显负载或干扰业务进程，应优先改为**窄范围验证 + CI 全量验证**，不要把“本地全量跑过”当成唯一门槛
+- 当宿主机承载真实服务、共享 runner、或已出现过资源告警时，本地验证默认从 `bun run typecheck` 与定向测试开始
+- 对“高负载测试命令”的判断必须附带代码证据：至少写清楚入口脚本链路、对应测试文件、以及实际资源成本来源（真实进程 / 并发 fan-out / 同步 I/O / 长等待），不能只凭 `bun test` 这个命令名做推断
+- 当前仓库的已确认高负载入口是根 `package.json:test` 串到 `cli/package.json:test:integration` / `test:all` 的 CLI runner 集成测试链路，而不是 `hub/package.json:test` 或 `web/package.json:test` 这种所有 Bun/Vitest 测试一概同等处理
 
 ---
 
@@ -44,7 +59,7 @@
 
 ### Monorepo 测试失败分诊（CLI 变更）
 
-当面向 CLI 的变更触发 `bun run test:cli` 失败时，按以下顺序分诊：
+当面向 CLI 的变更触发 `bun run test:cli`（默认安全入口）或显式的 `cd cli && bun run test:integration` 失败时，按以下顺序分诊：
 
 1. **先识别无关的全局失败**
    - 如果像 `src/agent/backends/acp/AcpSdkBackend.test.ts` 这样的非 runner 文件在目标区域之前或同时失败，应将其视为独立的基线问题。
