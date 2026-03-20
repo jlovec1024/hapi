@@ -142,7 +142,9 @@ COPY --from=tooling /usr/local/pnpm /usr/local/pnpm
 COPY --from=tooling /usr/local/bin /usr/local/bin
 COPY --from=tooling /opt/zhushen/claude-default /opt/zhushen/claude-default
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY docker/runner-shell.bashrc /etc/profile.d/runner-shell.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && printf '\nif [ -f /etc/profile.d/runner-shell.sh ]; then\n    . /etc/profile.d/runner-shell.sh\nfi\n' >> /etc/bash.bashrc
 
 # ---- Default environment -------------------------------------
 ENV NVM_DIR=/data/nvm

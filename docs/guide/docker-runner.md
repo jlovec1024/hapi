@@ -218,6 +218,19 @@ docker compose run --rm \
 | `trellis` | pnpm 全局 | [Trellis](https://docs.trytrellis.app/) - AI 代码代理，支持多文件编辑 |
 | `ux` | pnpm 全局 | 用户体验 CLI 工具 |
 
+### Shell 交互体验增强
+
+runner 镜像在交互式 Bash 中默认提供以下便捷能力：
+
+- `ll`：等价于 `ls -alF --color=auto`
+- `la`：等价于 `ls -A --color=auto`
+- `l`：等价于 `ls -CF --color=auto`
+- `ls`：默认启用彩色输出
+- Bash completion：自动加载系统 `bash-completion`
+- `less`：默认使用 `LESS=-FRX`
+
+这些增强仅面向交互式 Bash 生效，不影响默认的 `zs runner start-sync` 非交互式启动流程。
+
 ### 依赖闭包说明
 
 runner 运行时镜像已经切换为直接调用编译后的 `zs` 可执行文件作为默认入口（`CMD ["zs", "runner", "start-sync"]`），不再依赖此前的 shell wrapper 来执行 `bun run --cwd /app/cli src/index.ts`。
@@ -254,6 +267,10 @@ docker run --rm -e ZS_NODE_VERSION=20 zs-runner:local node -v
 docker run --rm -e ZS_GO_VERSION=1.22.12 zs-runner:local go version
 docker run --rm zs-runner:local mss --help
 docker run --rm zs-runner:local trellis --help
+```
+
+```bash
+docker run --rm -it zs-runner:local bash -ic 'alias ll && alias la && alias l && printf "%s\n" "$LESS" && ls --color=auto >/dev/null'
 ```
 
 建议额外验证 Claude 配置初始化：
