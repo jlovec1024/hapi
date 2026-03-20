@@ -38,24 +38,22 @@ mock.module('@/utils/process', () => ({
   killProcess: mock(),
   killProcessByChildProcess: mock()
 }))
-mock.module('@/utils/time', async () => {
-  const actual = await import('@/utils/time')
-  return {
-    ...actual,
-    delay: mock(),
-    exponentialBackoffDelay: mock(() => 0),
-    createBackoff: mock(() => mock(async <T>(callback: () => Promise<T>) => await callback())),
-    backoff: mock(async <T>(callback: () => Promise<T>) => await callback()),
-    withRetry: mock(async <T>(fn: () => Promise<T>) => await fn())
-  }
-})
-mock.module('@/utils/errorUtils', async () => {
-  const actual = await import('@/utils/errorUtils')
-  return {
-    ...actual,
-    isRetryableConnectionError: mock(() => false)
-  }
-})
+mock.module('@/utils/time', () => ({
+  delay: mock(),
+  exponentialBackoffDelay: mock(() => 0),
+  createBackoff: mock(() => mock(async <T>(callback: () => Promise<T>) => await callback())),
+  backoff: mock(async <T>(callback: () => Promise<T>) => await callback()),
+  withRetry: mock(async <T>(fn: () => Promise<T>) => await fn())
+}))
+mock.module('@/utils/errorUtils', () => ({
+  apiValidationError: mock((message: string) => new Error(message)),
+  extractErrorInfo: mock(() => ({
+    message: 'boom',
+    messageLower: 'boom',
+    responseErrorText: ''
+  })),
+  isRetryableConnectionError: mock(() => false)
+}))
 mock.module('./controlClient', () => ({
   notifyRunnerSessionStarted: mock(async () => ({ ok: true })),
   listRunnerSessions: mock(async () => []),
@@ -69,9 +67,25 @@ mock.module('./controlClient', () => ({
   isRunnerRunningCurrentlyInstalledZhushenVersion: mockIsRunnerRunningCurrentlyInstalledZhushenVersion,
   stopRunner: mockStopRunner
 }))
+mock.module('node:fs/promises', () => ({
+  access: mock(),
+  mkdir: mock(),
+  mkdtemp: mock(),
+  writeFile: mock(),
+  default: {
+    access: mock(),
+    mkdir: mock(),
+    mkdtemp: mock(),
+    writeFile: mock()
+  }
+}))
 mock.module('./controlServer', () => ({ startRunnerControlServer: mock() }))
 mock.module('./worktree', () => ({ createWorktree: mock(), removeWorktree: mock() }))
-mock.module('@/agent/sessionFactory', () => ({ buildMachineMetadata: mock() }))
+mock.module('@/agent/sessionFactory', () => ({
+  bootstrapSession: mock(),
+  buildMachineMetadata: mock(),
+  buildSessionMetadata: mock()
+}))
 mock.module('@/claude/utils/authConfig', () => ({
   checkClaudeAuthConfig: mock(() => ({ ok: true, source: { type: 'env', envKey: 'CLAUDE_CODE_OAUTH_TOKEN' }, checkedPaths: [] })),
   formatClaudeAuthConfigError: mock(() => 'missing auth details')

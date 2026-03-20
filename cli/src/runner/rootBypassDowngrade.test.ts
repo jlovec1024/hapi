@@ -94,20 +94,18 @@ mock.module('@/utils/process', () => ({
   killProcess: mockKillProcess,
   killProcessByChildProcess: mockKillProcessByChildProcess
 }))
-mock.module('@/utils/time', async () => {
-  const actual = await import('@/utils/time')
-  return {
-    ...actual,
-    withRetry: mockWithRetry
-  }
-})
-mock.module('@/utils/errorUtils', async () => {
-  const actual = await import('@/utils/errorUtils')
-  return {
-    ...actual,
-    isRetryableConnectionError: mockIsRetryableConnectionError
-  }
-})
+mock.module('@/utils/time', () => ({
+  withRetry: mockWithRetry
+}))
+mock.module('@/utils/errorUtils', () => ({
+  apiValidationError: mock((message: string) => new Error(message)),
+  extractErrorInfo: mock(() => ({
+    message: 'boom',
+    messageLower: 'boom',
+    responseErrorText: ''
+  })),
+  isRetryableConnectionError: mockIsRetryableConnectionError
+}))
 mock.module('./controlClient', () => ({
   notifyRunnerSessionStarted: mock(async () => ({ ok: true })),
   listRunnerSessions: mock(async () => []),
@@ -132,7 +130,11 @@ mock.module('./controlServer', () => ({
   })
 }))
 mock.module('./worktree', () => ({ createWorktree: mockCreateWorktree, removeWorktree: mockRemoveWorktree }))
-mock.module('@/agent/sessionFactory', () => ({ buildMachineMetadata: mockBuildMachineMetadata }))
+mock.module('@/agent/sessionFactory', () => ({
+  bootstrapSession: mock(),
+  buildMachineMetadata: mockBuildMachineMetadata,
+  buildSessionMetadata: mock()
+}))
 mock.module('../../package.json', () => ({ default: { version: '1.0.0', bugs: 'https://github.com/test/test' } }))
 mock.module('@/utils/spawnZhushenCLI', () => ({
   spawnZhushenCLI: mockSpawnZhushenCLI,
@@ -142,7 +144,11 @@ mock.module('@/utils/spawnZhushenCLI', () => ({
 mock.module('@/ui/logger', () => ({
   logger: mockLogger
 }))
-mock.module('fs/promises', () => ({
+mock.module('node:fs/promises', () => ({
+  access: mockAccess,
+  mkdir: mockMkdir,
+  mkdtemp: mockMkdtemp,
+  writeFile: mockWriteFile,
   default: {
     access: mockAccess,
     mkdir: mockMkdir,

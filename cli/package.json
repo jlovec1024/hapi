@@ -46,7 +46,7 @@
     "test": "bun run tools:unpack && bun test",
     "test:bun": "bun run tools:unpack && bun test",
     "test:fast": "bun run tools:unpack && bun test --bail=1 --max-concurrency=8 src/api src/parsers src/utils src/modules src/agent/backends src/claude/utils src/codex/utils src/cursor/utils src/opencode/utils src/bin",
-    "test:runtime": "bun run tools:unpack && bun test --bail=1 --max-concurrency=4 src/runner/controlClient.test.ts src/runner/run.test.ts src/runner/rootBypassDowngrade.test.ts src/agent/sessionFactory.test.ts src/commands/claude.test.ts src/configuration.test.ts src/ui/logger.test.ts src/terminal/TerminalManager.test.ts src/codex/codexRemoteLauncher.test.ts",
+    "test:runtime": "bun run tools:unpack && bun test --bail=1 --max-concurrency=4 src/commands/claude.test.ts src/configuration.test.ts src/ui/logger.test.ts src/terminal/TerminalManager.test.ts src/codex/codexRemoteLauncher.test.ts && bun test --bail=1 --max-concurrency=1 src/runner/controlClient.test.ts && bun test --bail=1 --max-concurrency=1 src/agent/sessionFactory.test.ts && bun test --bail=1 --max-concurrency=1 src/runner/run.test.ts src/runner/rootBypassDowngrade.test.ts",
     "test:ink": "bun run tools:unpack && bun x vitest@4.0.16 run src/ui/ink/useSwitchControls.vitest.ts --pool=threads --maxWorkers=1 --no-file-parallelism",
     "test:changed": "bun run tools:unpack && bun test --bail=1 --max-concurrency=4 src/agent/sessionFactory.test.ts src/codex/codexRemoteLauncher.test.ts src/commands/claude.test.ts src/configuration.test.ts src/runner/rootBypassDowngrade.test.ts src/runner/run.test.ts src/terminal/TerminalManager.test.ts src/ui/logger.test.ts",
     "test:win": "bun test",
