@@ -23,7 +23,8 @@ mock.module('@/persistence', () => ({
   clearRunnerLock: mockClearRunnerLock,
   writeRunnerState: mock(),
   acquireRunnerLock: mock(),
-  releaseRunnerLock: mock()
+  releaseRunnerLock: mock(),
+  readSettings: mock(async () => ({}))
 }))
 
 mock.module('@/utils/process', () => ({
@@ -35,7 +36,8 @@ mock.module('@/utils/process', () => ({
 
 mock.module('@/projectPath', () => ({
   isBunCompiled: mock(() => false),
-  projectPath: mock(() => '/project')
+  projectPath: mock(() => '/project'),
+  runtimePath: mock(() => '/runtime')
 }))
 
 mock.module('../../package.json', () => ({
@@ -46,7 +48,6 @@ mock.module('../../package.json', () => ({
 
 describe('isRunnerRunningCurrentlyInstalledZhushenVersion degraded handling', () => {
   beforeEach(() => {
-    mock.restore()
     mockReadRunnerState.mockReset()
     mockClearRunnerState.mockReset()
     mockClearRunnerLock.mockReset()

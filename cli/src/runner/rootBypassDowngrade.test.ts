@@ -170,7 +170,6 @@ describe('Root user BYPASS mode downgrade', () => {
   const originalGetuid = process.getuid
 
   beforeEach(() => {
-    mock.restore()
     capturedSpawnSession = null
     capturedOnZhushenSessionWebhook = null
     runnerStop = mock(async () => undefined)

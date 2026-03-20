@@ -94,7 +94,6 @@ mock.module('../../package.json', () => ({ default: { version: '1.0.0' } }))
 
 describe('startRunner degraded handling', () => {
   beforeEach(() => {
-    mock.restore()
     mockGetRunnerAvailability.mockReset()
     mockIsRunnerRunningCurrentlyInstalledZhushenVersion.mockReset()
     mockStopRunner.mockReset()
@@ -106,9 +105,7 @@ describe('startRunner degraded handling', () => {
     mockClearRunnerLock.mockReset()
   })
 
-  afterEach(() => {
-    mock.restore()
-  })
+
 
   it('does not stop the existing runner when availability is degraded', async () => {
     mockGetRunnerAvailability.mockResolvedValue({

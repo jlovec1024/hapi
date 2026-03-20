@@ -73,7 +73,6 @@ mock.module('../../package.json', () => ({
 
 describe('bootstrapSession', () => {
     beforeEach(() => {
-        mock.restore()
         mockCreate.mockReset()
         mockGetOrCreateMachine.mockReset()
         mockGetOrCreateSession.mockReset()

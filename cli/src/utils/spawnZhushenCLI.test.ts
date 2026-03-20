@@ -68,7 +68,6 @@ describe('spawnZhushenCLI windowsHide behavior', () => {
   })
 
   beforeEach(() => {
-    mock.restore()
     spawnMock.mockClear()
     setVersions({ ...process.versions, bun: '1.3.5' })
   })
@@ -133,7 +132,6 @@ describe('spawnZhushenCLI cwd propagation for bun runtime', () => {
   })
 
   beforeEach(() => {
-    mock.restore()
     spawnMock.mockClear()
   })
 
