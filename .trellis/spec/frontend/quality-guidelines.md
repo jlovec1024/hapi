@@ -164,9 +164,57 @@ Zhushen Web 通过以下方式维持高代码质量：
 
 ---
 
-## 检查前的环境恢复
+## 品牌资源一致性检查（favicon / PWA / 安装图标）
 
-如果本地 / 前端依赖尚未安装，检查命令可能会因以下错误而失败：
+当修改项目 logo、品牌色或应用名称时，不能只改网页可见入口，还必须把“安装入口”当作同一条交付链路的一部分检查。
+
+### 必查文件
+
+- `web/index.html`：`favicon`、`apple-touch-icon`、`mask-icon`
+- `web/vite.config.ts`：`VitePWA().manifest.icons`、`name`、`short_name`
+- `web/public/`：被上述配置引用的实际图标文件
+
+### 常见陷阱
+
+**陷阱：站点 logo 已更新，但 Chrome 安装后的应用图标仍显示旧图标**
+
+- **症状**：浏览器标签页、页面内 logo 已正确，但“安装应用”后的桌面 / 启动器图标仍是旧资源
+- **根因**：只更新了 `index.html` 或页面内资源，没有同步 `manifest.icons` 指向的 `pwa-*.png`
+- **为什么容易漏**：网页入口与 PWA 安装入口属于两套资源声明，浏览器安装时优先使用 manifest，而不是页面中的 `favicon` / `icon.svg`
+
+### 修改检查清单
+
+- [ ] 是否同时检查了 `favicon.ico`、`icon.svg`、`apple-touch-icon`、`mask-icon`
+- [ ] 是否同时检查了 `manifest.icons` 中的全部 PNG 资源（如 `pwa-64x64.png`、`pwa-192x192.png`、`pwa-512x512.png`）
+- [ ] `name` / `short_name` / logo / 主题色 是否仍与当前品牌一致
+- [ ] 是否执行过一次真实的安装链路验证（Chrome install prompt / DevTools Application / 安装后的启动器图标）
+- [ ] 如果资源文件名未变，仅内容变更，是否考虑了浏览器 / Service Worker 缓存导致的旧图标残留
+
+### 禁止模式
+
+```typescript
+// Bad：只改页面入口，不改安装入口
+<link rel="icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+// 但 manifest.icons 仍指向旧的 pwa-*.png
+```
+
+```typescript
+// Good：把品牌资源当成一组跨入口契约统一维护
+VitePWA({
+  manifest: {
+    icons: [
+      { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
+      { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+      { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' }
+    ]
+  }
+})
+```
+
+---
+
+## 检查前的环境恢复
 - `tsc: command not found`
 - `vitest: command not found`
 

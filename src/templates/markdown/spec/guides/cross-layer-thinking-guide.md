@@ -190,6 +190,28 @@ Source → Transform → Store → Retrieve → Transform → Display
 
 ---
 
+## 品牌资源跨入口契约检查清单（HTML Head ↔ PWA Manifest ↔ Public Assets）
+
+当你修改应用 logo、favicon、应用名称或主题色时，不要把它当成单个静态文件修改；它实际上是一个跨入口契约：
+
+- [ ] `web/index.html` 中的 `favicon`、`apple-touch-icon`、`mask-icon` 是否与当前品牌一致？
+- [ ] `web/vite.config.ts` 中 `VitePWA().manifest.icons`、`name`、`short_name` 是否同步更新？
+- [ ] `web/public/` 中被引用的 `pwa-*.png`、`favicon.ico`、`icon.svg`、`apple-touch-icon-180x180.png` 是否来自同一版品牌资源？
+- [ ] 你是否验证了“页面内可见 logo 正确”与“Chrome 安装后应用图标正确”是两件不同的事？
+- [ ] 如果文件名未变只替换内容，是否验证过浏览器安装缓存 / Service Worker 缓存不会继续提供旧图标？
+
+典型失败模式：
+- 页面头部资源已经更新，所以标签页与页面内 logo 正确。
+- 但 PWA manifest 仍引用旧的 `pwa-192x192.png` / `pwa-512x512.png`。
+- 最终只有“安装后的应用图标”错误，导致问题看起来像浏览器缓存，实际是跨入口资源声明不一致。
+
+建议动作：
+- 把品牌资源更新视为“一次改一组”，而不是一次改一个文件。
+- 修改前先搜索全部 logo / icon / manifest 引用位置，再统一替换。
+- 修改后至少做一次真实安装链路验证，而不是只看页面渲染结果。
+
+---
+
 ## Session-Scoped Client Cache 检查清单（Web State ↔ Session Identity）
 
 当 UI 状态会跨渲染缓存（例如 `useRef`、query fallback、optimistic state）时：

@@ -16,8 +16,8 @@
     </filter>
   </defs>
 
-  <rect width="512" height="512" rx="128" fill="#081226"/>
-  <rect x="28" y="28" width="456" height="456" rx="112" fill="#0F1B35"/>
+  <rect width="512" height="512" rx="128" fill="#FFFFFF"/>
+  <rect x="28" y="28" width="456" height="456" rx="112" fill="#FFFFFF"/>
 
   <g filter="url(#icon-shadow)">
     <path d="M256 84 394 164V324L256 404 118 324V164L256 84Z" fill="url(#icon-bg)"/>
