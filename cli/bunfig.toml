@@ -1,2 +1,4 @@
+preload = ["./test-preload.ts", "./test-setup.ts"]
+
 [runtime.typescript.paths]
 "@/*" = ["./src/*"]

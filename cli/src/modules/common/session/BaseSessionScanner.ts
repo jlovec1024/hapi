@@ -1,5 +1,5 @@
-import { InvalidateSync } from "@/utils/sync";
-import { startFileWatcher } from "@/modules/watcher/startFileWatcher";
+import { InvalidateSync } from "../../../utils/sync";
+import { startFileWatcher } from "../../watcher/startFileWatcher";
 
 export type SessionFileScanEntry<TEvent> = {
     event: TEvent;

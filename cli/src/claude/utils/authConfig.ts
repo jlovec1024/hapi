@@ -111,7 +111,7 @@ function detectLegacyConfigSource(legacyPath: string): ClaudeAuthConfigSource | 
 
 export function checkClaudeAuthConfig(env: NodeJS.ProcessEnv = process.env): ClaudeAuthConfigCheckResult {
   const settingsPath = getClaudeSettingsPath(env);
-  const legacyConfigPath = getClaudeLegacyConfigPath();
+  const legacyConfigPath = getClaudeLegacyConfigPath(env);
   const checkedPaths = [settingsPath, legacyConfigPath];
 
   const envSource = detectEnvSource(env);

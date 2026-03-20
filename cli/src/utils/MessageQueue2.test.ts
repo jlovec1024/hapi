@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { MessageQueue2 } from './MessageQueue2';
 import { hashObject } from './deterministicJson';
 

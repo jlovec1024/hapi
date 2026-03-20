@@ -188,9 +188,32 @@ Source → Transform → Store → Retrieve → Transform → Display
 参考可执行契约：
 - `backend/quality-guidelines.md` → `Scenario: 低 ROI 工作控制契约（停止信号 + 延后判定）`
 
+
+## 测试运行时跨层契约检查清单（Test File ↔ Module Registry ↔ Importer）
+
+当修改测试框架、测试文件或模块级 mock 时，不要只把测试文件当成孤立单元；还要把它看成运行时模块图的一部分：
+- [ ] 当前 test file 的顶层 mock 是否会影响同一进程里后续加载的其他 test file？
+- [ ] 你 mock 的模块是否是“公共基础模块”（例如 `child_process`、`fs`、`protocol`、shared utils、runtime helper），其导出会被很多导入链复用？
+- [ ] mock 返回对象是否保留了调用方仍会访问的全部导出，而不只是当前 case 直接断言的那个函数？
+- [ ] 是否存在“当前文件单独运行通过，但分批 / 全量运行失败”的迹象？如果有，是否先怀疑共享模块注册表污染而不是业务逻辑回归？
+- [ ] 你是否在 mock 工厂内部再次 `import()` 了同一个被 mock 模块，从而触发半初始化模块问题？
+- [ ] 对依赖真实 renderer / TTY / 特定 mock API 的测试，是否应该拆到独立测试 lane，而不是混在默认主测试通道里？
+
+典型失败模式：
+- 一个测试为了方便，只 mock 了模块里的单个导出；另一个无关测试却依赖该模块的其他导出，结果在批量运行时报 `Export named 'X' not found`。
+- 一个 Bun `mock.module()` 工厂里递归导入了同一个模块，拿到半初始化对象；错误表面像“源码没导出”，实际是测试运行时契约被破坏。
+- 一个依赖 Vitest 特有 API 或真实 Ink renderer 的测试混进默认 Bun test lane，导致失败看起来像业务问题，实际是测试通道分层错误。
+
+建议动作：
+- 对公共模块 mock，优先使用“保留真实导出 + 覆盖局部行为”或“显式完整 stub”。
+- 对跨测试污染明显的场景，优先新增分批脚本（例如 `test:fast` / `test:runtime` / `test:changed`）缩短反馈回路。
+- 把特殊运行时测试（Ink、真实 renderer、特定 fake timer / mock API）拆到独立 lane，避免和默认运行器混跑。
+
+参考可执行契约：
+- `unit-test/mocking-guidelines.md` → `模块级 Mock 合约（Bun / Vitest 通用）`
+
 ---
 
-## Session-Scoped Client Cache 检查清单（Web State ↔ Session Identity）
 
 当 UI 状态会跨渲染缓存（例如 `useRef`、query fallback、optimistic state）时：
 - [ ] 缓存是否按稳定身份（`session.id`、`workspaceId` 等）分 key / 作用域？

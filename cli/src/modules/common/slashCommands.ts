@@ -3,6 +3,10 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { parse as parseYaml } from 'yaml';
 
+function resolveHomeDir(env: NodeJS.ProcessEnv = process.env): string {
+    return env.HOME ?? homedir();
+}
+
 export interface SlashCommand {
     name: string;
     description?: string;
@@ -83,12 +87,12 @@ function parseFrontmatter(fileContent: string): { description?: string; content:
  * Get the user commands directory for an agent type.
  * Returns null if the agent doesn't support user commands.
  */
-function getUserCommandsDir(agent: string): string | null {
+function getUserCommandsDir(agent: string, env: NodeJS.ProcessEnv = process.env): string | null {
     switch (agent) {
         case 'claude':
-            return join(homedir(), '.claude', 'commands');
+            return join(resolveHomeDir(env), '.claude', 'commands');
         case 'codex': {
-            const codexHome = process.env.CODEX_HOME ?? join(homedir(), '.codex');
+            const codexHome = env.CODEX_HOME ?? join(resolveHomeDir(env), '.codex');
             return join(codexHome, 'prompts');
         }
         default:
@@ -185,8 +189,8 @@ async function scanCommandsDir(
 /**
  * Scan user-defined commands from ~/.claude/commands/ or equivalent
  */
-async function scanUserCommands(agent: string): Promise<SlashCommand[]> {
-    const dir = getUserCommandsDir(agent);
+async function scanUserCommands(agent: string, env: NodeJS.ProcessEnv = process.env): Promise<SlashCommand[]> {
+    const dir = getUserCommandsDir(agent, env);
     if (!dir) {
         return [];
     }
@@ -214,13 +218,13 @@ async function scanProjectCommands(agent: string, projectDir?: string): Promise<
  * Reads ~/.claude/plugins/installed_plugins.json to find installed plugins,
  * then scans each plugin's commands directory.
  */
-async function scanPluginCommands(agent: string): Promise<SlashCommand[]> {
+async function scanPluginCommands(agent: string, env: NodeJS.ProcessEnv = process.env): Promise<SlashCommand[]> {
     // Only Claude supports plugins for now
     if (agent !== 'claude') {
         return [];
     }
 
-    const installedPluginsPath = join(homedir(), '.claude', 'plugins', 'installed_plugins.json');
+    const installedPluginsPath = join(resolveHomeDir(env), '.claude', 'plugins', 'installed_plugins.json');
 
     try {
         const content = await readFile(installedPluginsPath, 'utf-8');
@@ -268,13 +272,13 @@ async function scanPluginCommands(agent: string): Promise<SlashCommand[]> {
  * Merge order follows locality precedence for custom commands:
  * built-in -> global user -> plugin -> project (project overrides same-name globals).
  */
-export async function listSlashCommands(agent: string, projectDir?: string): Promise<SlashCommand[]> {
+export async function listSlashCommands(agent: string, projectDir?: string, env: NodeJS.ProcessEnv = process.env): Promise<SlashCommand[]> {
     const builtin = BUILTIN_COMMANDS[agent] ?? [];
 
     // Scan all command sources in parallel
     const [user, plugin, project] = await Promise.all([
-        scanUserCommands(agent),
-        scanPluginCommands(agent),
+        scanUserCommands(agent, env),
+        scanPluginCommands(agent, env),
         scanProjectCommands(agent, projectDir),
     ]);
 

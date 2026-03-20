@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'bun:test'
 import { request } from 'node:http'
 import { startHookServer, type SessionHookData } from './startHookServer'
 

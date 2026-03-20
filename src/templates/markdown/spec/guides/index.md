@@ -66,6 +66,8 @@ These guides help you **ask the right questions before coding**.
 
 - [ ] Adding or modifying GitHub Actions workflows
 - [ ] Modifying test files (`.test.ts` / `.spec.ts`)
+- [ ] **修改模块级 mock 或迁移测试运行器（Vitest/Bun）**
+- [ ] **单测单独通过，但批量 / 全量运行失败**
 - [ ] Upgrading runtime versions (bun/node/python)
 - [ ] **Adding new project dependencies**
 - [ ] **Modifying build or test commands**

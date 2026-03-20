@@ -1,3 +1,8 @@
+/**
+ * This test uses Ink's real terminal renderer and mutates process-level TTY / act state.
+ * It still relies on Vitest-specific APIs such as vi.importActual.
+ * Keep it in a dedicated Vitest lane via `bun run test:ink` so it does not destabilize the default Bun test lane.
+ */
 import React, { act, useEffect } from 'react';
 import { PassThrough } from 'node:stream';
 import { render, type Instance } from 'ink';

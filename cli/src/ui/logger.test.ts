@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { execFileSync } from 'child_process'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { mkdirSync, rmSync, writeFileSync, utimesSync } from 'fs'
 import { tmpdir } from 'os'
 import { dirname, join } from 'path'
@@ -7,10 +7,13 @@ import { fileURLToPath } from 'url'
 
 const cliDir = dirname(fileURLToPath(new URL('../../package.json', import.meta.url)))
 const bunBinary = process.env.BUN_BINARY ?? '/usr/local/bin/bun'
-const originalArgs = process.argv.slice()
-const originalZsHome = process.env.ZS_HOME
-const originalDebug = process.env.DEBUG
-const originalRunnerLogDestination = process.env.ZS_RUNNER_LOG_DESTINATION
+
+type LoggerProbeResult = {
+  writeRunnerLogsToStdio: boolean
+  logPath?: string
+  runnerLogs: Array<{ file: string; path: string; modified: string }>
+  latestRunnerLog: { file: string; path: string; modified: string } | null
+}
 
 function createTempHome(): string {
   const home = join(tmpdir(), `zs-logger-test-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`)
@@ -18,7 +21,7 @@ function createTempHome(): string {
   return home
 }
 
-function runLoggerProbe(tempHome: string, extraEnv: NodeJS.ProcessEnv = {}) {
+function runLoggerProbe(tempHome: string, extraEnv: NodeJS.ProcessEnv = {}): LoggerProbeResult {
   const output = execFileSync(bunBinary, ['--eval', `
     process.argv = ['bun', 'src/index.ts', 'runner', 'start-sync']
     import('./src/ui/logger.ts').then(async ({ logger, listRunnerLogFiles, getLatestRunnerLog }) => {
@@ -28,8 +31,16 @@ function runLoggerProbe(tempHome: string, extraEnv: NodeJS.ProcessEnv = {}) {
       console.log(JSON.stringify({
         writeRunnerLogsToStdio: logger.isWritingRunnerLogsToStdio(),
         logPath: logger.getLogPath(),
-        runnerLogs,
-        latestRunnerLog
+        runnerLogs: runnerLogs.map(log => ({
+          file: log.file,
+          path: log.path,
+          modified: log.modified.toISOString(),
+        })),
+        latestRunnerLog: latestRunnerLog ? {
+          file: latestRunnerLog.file,
+          path: latestRunnerLog.path,
+          modified: latestRunnerLog.modified.toISOString(),
+        } : null,
       }))
     })
   `], {
@@ -38,17 +49,18 @@ function runLoggerProbe(tempHome: string, extraEnv: NodeJS.ProcessEnv = {}) {
       ...process.env,
       ...extraEnv,
       ZS_HOME: tempHome,
+      ZS_RUNNER_LOG_DESTINATION: extraEnv.ZS_RUNNER_LOG_DESTINATION,
     },
     encoding: 'utf8'
   }).trim()
 
   const lines = output.split('\n')
-  return JSON.parse(lines[lines.length - 1]) as {
-    writeRunnerLogsToStdio: boolean
-    logPath?: string
-    runnerLogs: Array<{ file: string; path: string; modified: string }>
-    latestRunnerLog: { file: string; path: string; modified: string } | null
+  const jsonLine = lines.at(-1)
+  if (!jsonLine) {
+    throw new Error('Logger probe produced no JSON output')
   }
+
+  return JSON.parse(jsonLine) as LoggerProbeResult
 }
 
 describe('runner logger destination', () => {
@@ -56,29 +68,9 @@ describe('runner logger destination', () => {
 
   beforeEach(() => {
     tempHome = createTempHome()
-    process.argv = ['bun', 'src/index.ts', 'runner', 'start-sync']
-    process.env.ZS_HOME = tempHome
-    delete process.env.DEBUG
-    delete process.env.ZS_RUNNER_LOG_DESTINATION
   })
 
   afterEach(() => {
-    process.argv = originalArgs.slice()
-    if (originalZsHome === undefined) {
-      delete process.env.ZS_HOME
-    } else {
-      process.env.ZS_HOME = originalZsHome
-    }
-    if (originalDebug === undefined) {
-      delete process.env.DEBUG
-    } else {
-      process.env.DEBUG = originalDebug
-    }
-    if (originalRunnerLogDestination === undefined) {
-      delete process.env.ZS_RUNNER_LOG_DESTINATION
-    } else {
-      process.env.ZS_RUNNER_LOG_DESTINATION = originalRunnerLogDestination
-    }
     rmSync(tempHome, { recursive: true, force: true })
   })
 
@@ -88,12 +80,11 @@ describe('runner logger destination', () => {
     expect(result.writeRunnerLogsToStdio).toBe(false)
     expect(result.logPath).toBeDefined()
     expect(result.logPath?.endsWith('-runner.log')).toBe(true)
+    expect(result.logPath?.startsWith(join(tempHome, 'logs'))).toBe(true)
   })
 
   it('reads stdio logging from env override', () => {
-    const result = runLoggerProbe(tempHome, {
-      ZS_RUNNER_LOG_DESTINATION: 'stdio'
-    })
+    const result = runLoggerProbe(tempHome, { ZS_RUNNER_LOG_DESTINATION: 'stdio' })
 
     expect(result.writeRunnerLogsToStdio).toBe(true)
     expect(result.logPath).toBeUndefined()
@@ -101,6 +92,7 @@ describe('runner logger destination', () => {
 
   it('reads file logging from settings when env is absent', () => {
     writeFileSync(join(tempHome, 'settings.json'), JSON.stringify({ runnerLogDestination: 'file' }, null, 2))
+
     const result = runLoggerProbe(tempHome)
 
     expect(result.writeRunnerLogsToStdio).toBe(false)
@@ -109,9 +101,8 @@ describe('runner logger destination', () => {
 
   it('prefers env override over settings file', () => {
     writeFileSync(join(tempHome, 'settings.json'), JSON.stringify({ runnerLogDestination: 'file' }, null, 2))
-    const result = runLoggerProbe(tempHome, {
-      ZS_RUNNER_LOG_DESTINATION: 'stdio'
-    })
+
+    const result = runLoggerProbe(tempHome, { ZS_RUNNER_LOG_DESTINATION: 'stdio' })
 
     expect(result.writeRunnerLogsToStdio).toBe(true)
     expect(result.logPath).toBeUndefined()
@@ -119,9 +110,8 @@ describe('runner logger destination', () => {
 
   it('ignores invalid env values and falls back to settings/default', () => {
     writeFileSync(join(tempHome, 'settings.json'), JSON.stringify({ runnerLogDestination: 'file' }, null, 2))
-    const result = runLoggerProbe(tempHome, {
-      ZS_RUNNER_LOG_DESTINATION: 'invalid'
-    })
+
+    const result = runLoggerProbe(tempHome, { ZS_RUNNER_LOG_DESTINATION: 'invalid-value' })
 
     expect(result.writeRunnerLogsToStdio).toBe(false)
     expect(result.logPath).toBeDefined()
@@ -176,9 +166,7 @@ describe('runner logger destination', () => {
   })
 
   it('returns empty results when logs directory is missing', () => {
-    const result = runLoggerProbe(tempHome, {
-      ZS_RUNNER_LOG_DESTINATION: 'stdio'
-    })
+    const result = runLoggerProbe(tempHome, { ZS_RUNNER_LOG_DESTINATION: 'stdio' })
 
     expect(result.runnerLogs).toEqual([])
     expect(result.latestRunnerLog).toBeNull()

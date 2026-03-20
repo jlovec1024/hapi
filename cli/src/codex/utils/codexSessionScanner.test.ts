@@ -1,9 +1,21 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 import { mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { existsSync } from 'node:fs';
-import { createCodexSessionScanner } from './codexSessionScanner';
+
+mock.module('../../ui/logger', () => ({
+    logger: {
+        debug: () => {},
+        warn: () => {},
+        info: () => {},
+        infoDeveloper: () => {},
+        getLogPath: () => undefined,
+        isWritingRunnerLogsToStdio: () => false
+    }
+}));
+
+const { createCodexSessionScanner } = await import('./codexSessionScanner');
 import type { CodexSessionEvent } from './codexEventConverter';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -71,7 +83,9 @@ describe('codexSessionScanner', () => {
 
         await wait(200);
         expect(events).toHaveLength(1);
-        expect(events[0].type).toBe('response_item');
+        const [event] = events;
+        expect(event).not.toBeUndefined();
+        expect(event!.type).toBe('response_item');
     });
 
     it('limits session scan to dates within the start window', async () => {
@@ -113,7 +127,9 @@ describe('codexSessionScanner', () => {
 
         await wait(200);
         expect(events).toHaveLength(1);
-        expect(events[0].type).toBe('response_item');
+        const [event] = events;
+        expect(event).not.toBeUndefined();
+        expect(event!.type).toBe('response_item');
     });
 
     it('fails fast when cwd is missing and no sessionId is provided', async () => {

@@ -1,31 +1,37 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mockExecFile = vi.fn()
-const mockLstat = vi.fn()
-const mockReadFile = vi.fn()
-const mockRealpath = vi.fn()
+const mockExecFile = mock()
+const mockLstat = mock()
+const mockReadFile = mock()
+const mockRealpath = mock()
 const mockLogger = {
-    debug: vi.fn(),
-    warn: vi.fn()
+    debug: mock(),
+    warn: mock()
 }
 
-vi.mock('node:child_process', () => ({
+mock.module('node:child_process', () => ({
     execFile: mockExecFile
 }))
 
-vi.mock('node:fs/promises', () => ({
+mock.module('node:fs/promises', () => ({
     lstat: mockLstat,
     readFile: mockReadFile,
     realpath: mockRealpath
 }))
 
-vi.mock('@/ui/logger', () => ({
+mock.module('@/ui/logger', () => ({
     logger: mockLogger
 }))
 
 describe('gitSafeDirectory', () => {
     beforeEach(() => {
-        vi.clearAllMocks()
+        mockExecFile.mockReset()
+        mockLstat.mockReset()
+        mockReadFile.mockReset()
+        mockRealpath.mockReset()
+        mockLogger.debug.mockReset()
+        mockLogger.warn.mockReset()
+
         mockRealpath.mockImplementation(async (path: string) => path)
     })
 
@@ -44,6 +50,18 @@ describe('gitSafeDirectory', () => {
                 return {
                     isDirectory: () => false,
                     isFile: () => true
+                }
+            }
+            if (path === '/repo/worktrees/feature') {
+                return {
+                    isDirectory: () => true,
+                    isFile: () => false
+                }
+            }
+            if (path === '/repo') {
+                return {
+                    isDirectory: () => true,
+                    isFile: () => false
                 }
             }
             throw new Error(`unexpected lstat: ${path}`)
@@ -83,6 +101,12 @@ describe('gitSafeDirectory', () => {
                     isFile: () => false
                 }
             }
+            if (path === '/repo') {
+                return {
+                    isDirectory: () => true,
+                    isFile: () => false
+                }
+            }
             throw new Error(`unexpected lstat: ${path}`)
         })
         mockExecFile.mockImplementationOnce((_cmd: string, _args: string[], callback: (error: Error | null, result?: { stdout: string; stderr: string }) => void) => {
@@ -99,6 +123,12 @@ describe('gitSafeDirectory', () => {
     it('surfaces a clear error when repairing safe.directory fails', async () => {
         mockLstat.mockImplementation(async (path: string) => {
             if (path === '/repo/.git') {
+                return {
+                    isDirectory: () => true,
+                    isFile: () => false
+                }
+            }
+            if (path === '/repo') {
                 return {
                     isDirectory: () => true,
                     isFile: () => false

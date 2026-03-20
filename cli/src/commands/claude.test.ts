@@ -1,66 +1,105 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
 
-const mockInitializeToken = vi.fn()
-const mockMaybeAutoStartServer = vi.fn()
-const mockAuthAndSetupMachineIfNeeded = vi.fn()
-const mockIsRunnerRunningCurrentlyInstalledZhushenVersion = vi.fn()
-const mockSpawnZhushenCLI = vi.fn()
-const mockRunClaude = vi.fn()
-const mockCheckClaudeAuthConfig = vi.fn()
-const mockFormatClaudeAuthConfigError = vi.fn(() => 'missing auth details')
+const mockInitializeToken = mock()
+const mockMaybeAutoStartServer = mock()
+const mockAuthAndSetupMachineIfNeeded = mock()
+const mockIsRunnerRunningCurrentlyInstalledZhushenVersion = mock()
+const mockSpawnZhushenCLI = mock()
+const mockRunClaude = mock()
+const mockCheckClaudeAuthConfig = mock()
+const mockFormatClaudeAuthConfigError = mock(() => 'missing auth details')
 
-vi.mock('@/configuration', () => ({
+mock.module('chalk', () => ({
+    default: {
+        bold: Object.assign(mock((value: string) => value), {
+            cyan: mock((value: string) => value)
+        }),
+        gray: mock((value: string) => value),
+        red: mock((value: string) => value),
+        yellow: mock((value: string) => value)
+    }
+}))
+
+mock.module('@/configuration', () => ({
     configuration: {
         apiUrl: 'http://example.test'
     }
 }))
 
-vi.mock('@/runner/controlClient', () => ({
-    isRunnerRunningCurrentlyInstalledZhushenVersion: mockIsRunnerRunningCurrentlyInstalledZhushenVersion
+mock.module('@/runner/controlClient', () => ({
+    notifyRunnerSessionStarted: mock(async () => ({ ok: true })),
+    listRunnerSessions: mock(async () => []),
+    stopRunnerSession: mock(async () => false),
+    spawnRunnerSession: mock(async () => ({})),
+    stopRunnerHttp: mock(async () => undefined),
+    getInstalledCliMtimeMs: mock(() => undefined),
+    getRunnerAvailability: mock(async () => ({ status: 'missing', state: null })),
+    checkIfRunnerRunningAndCleanupStaleState: mock(async () => false),
+    isRunnerRunningCurrentlyInstalledZhushenVersion: mockIsRunnerRunningCurrentlyInstalledZhushenVersion,
+    cleanupRunnerState: mock(async () => undefined),
+    stopRunner: mock(async () => false)
 }))
 
-vi.mock('@/ui/auth', () => ({
+mock.module('@/ui/auth', () => ({
     authAndSetupMachineIfNeeded: mockAuthAndSetupMachineIfNeeded
 }))
 
-vi.mock('@/ui/logger', () => ({
+mock.module('@/ui/logger', () => ({
     logger: {
-        debug: vi.fn(),
-        debugLargeJson: vi.fn()
+        debug: mock(),
+        debugLargeJson: mock()
     }
 }))
 
-vi.mock('@/ui/tokenInit', () => ({
+mock.module('@/ui/tokenInit', () => ({
     initializeToken: mockInitializeToken
 }))
 
-vi.mock('@/utils/spawnZhushenCLI', () => ({
-    spawnZhushenCLI: mockSpawnZhushenCLI
+mock.module('@/utils/spawnZhushenCLI', () => ({
+    spawnZhushenCLI: mockSpawnZhushenCLI,
+    getZhushenCliCommand: mock(() => ({ command: 'zs', args: [] })),
+    getSpawnedCliWorkingDirectory: mock(() => process.cwd())
 }))
 
-vi.mock('@/utils/autoStartServer', () => ({
+mock.module('@/utils/autoStartServer', () => ({
     maybeAutoStartServer: mockMaybeAutoStartServer
 }))
 
-vi.mock('@/utils/bunRuntime', () => ({
-    withBunRuntimeEnv: vi.fn(() => process.env)
+mock.module('@/utils/bunRuntime', () => ({
+    withBunRuntimeEnv: mock(() => process.env)
 }))
 
-vi.mock('@/utils/errorUtils', () => ({
-    extractErrorInfo: vi.fn(() => ({
+mock.module('@/utils/errorUtils', () => ({
+    apiValidationError: mock((message: string) => new Error(message)),
+    extractErrorInfo: mock(() => ({
         message: 'boom',
         messageLower: 'boom'
-    }))
+    })),
+    isRetryableConnectionError: mock(() => false)
 }))
 
-vi.mock('@/claude/utils/authConfig', () => ({
+mock.module('@/claude/utils/authConfig', () => ({
     checkClaudeAuthConfig: mockCheckClaudeAuthConfig,
     formatClaudeAuthConfigError: mockFormatClaudeAuthConfigError
 }))
 
+mock.module('@/claude/runClaude', () => ({
+    runClaude: mockRunClaude
+}))
+
 describe('claudeCommand runner availability gating', () => {
     beforeEach(() => {
-        vi.clearAllMocks()
+        mock.restore()
+        mockInitializeToken.mockReset()
+        mockMaybeAutoStartServer.mockReset()
+        mockAuthAndSetupMachineIfNeeded.mockReset()
+        mockIsRunnerRunningCurrentlyInstalledZhushenVersion.mockReset()
+        mockSpawnZhushenCLI.mockReset()
+        mockRunClaude.mockReset()
+        mockCheckClaudeAuthConfig.mockReset()
+        mockFormatClaudeAuthConfigError.mockReset()
+        mockFormatClaudeAuthConfigError.mockReturnValue('missing auth details')
+
         mockInitializeToken.mockResolvedValue(undefined)
         mockMaybeAutoStartServer.mockResolvedValue(undefined)
         mockAuthAndSetupMachineIfNeeded.mockResolvedValue(undefined)
@@ -72,7 +111,7 @@ describe('claudeCommand runner availability gating', () => {
             checkedPaths: []
         })
         mockSpawnZhushenCLI.mockReturnValue({
-            unref: vi.fn()
+            unref: mock()
         })
     })
 
@@ -109,10 +148,10 @@ describe('claudeCommand runner availability gating', () => {
             suggestions: ['set env']
         })
 
-        const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null | undefined) => {
+        const exitSpy = spyOn(process, 'exit').mockImplementation(((code?: string | number | null | undefined) => {
             throw new Error(`EXIT:${code ?? 0}`)
         }) as never)
-        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+        const errorSpy = spyOn(console, 'error').mockImplementation(() => undefined)
 
         try {
             const { claudeCommand } = await import('./claude')
@@ -126,7 +165,3 @@ describe('claudeCommand runner availability gating', () => {
         }
     })
 })
-
-vi.mock('@/claude/runClaude', () => ({
-    runClaude: mockRunClaude
-}))

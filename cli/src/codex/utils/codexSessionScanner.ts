@@ -1,5 +1,5 @@
-import { BaseSessionScanner, SessionFileScanEntry, SessionFileScanResult, SessionFileScanStats } from "@/modules/common/session/BaseSessionScanner";
-import { logger } from "@/ui/logger";
+import { BaseSessionScanner, SessionFileScanEntry, SessionFileScanResult, SessionFileScanStats } from "../../modules/common/session/BaseSessionScanner";
+import { logger } from "../../ui/logger";
 import { join, relative, resolve, sep } from "node:path";
 import { homedir } from "node:os";
 import { readFile, readdir, stat } from "node:fs/promises";
