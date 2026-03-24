@@ -18,6 +18,7 @@
         "build:web": "cd web && bun run build",
         "dev:hub": "cd hub && bun run dev",
         "dev:web": "cd web && bun run dev",
+        "start:local-test-env": "bun run scripts/start-local-test-env.ts",
         "typecheck": "bun run typecheck:cli && bun run typecheck:web && bun run typecheck:hub",
         "type-check": "bun run typecheck",
         "lint": "bun run typecheck",
