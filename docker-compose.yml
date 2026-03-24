@@ -22,6 +22,8 @@ services:
     environment:
       CLI_API_TOKEN: zhushen
       ZS_API_URL: http://zs-hub:80
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL}
     volumes:
       - runner-data:/data/runner
       - goenv-data:/data/goenv

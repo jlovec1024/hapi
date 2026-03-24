@@ -1760,78 +1760,86 @@ docker run --rm -e ZCF_DEFAULT_OUTPUT_STYLE=engineer-professional -v "$PWD/.clau
 
 ---
 
-## 场景：本地 Docker Compose 集成测试环境契约（固定本地镜像 + 最小环境）
+## 场景：人工测试环境统一使用启动脚本搭建
 
 ### 1. 范围 / 触发条件
-- 触发条件：修改 `docker-compose.yml` 本地联调入口，或调整 compose 相关脚本/文档契约。
+- 触发条件：修改本地人工测试环境入口、`docker-compose.yml`、测试环境脚本、相关文档或 package script。
+- 为什么需要 code-spec 深度：
+  - 这是跨脚本 / compose / 文档的基础设施契约。
+  - 会影响开发者如何启动人工测试环境，以及哪些参数允许被脚本接管。
 
 ### 2. 签名
-- `docker-compose.yml`
-- `package.json`（不再提供 `docker:check`）
-- `zs-hub`
-  - `image: zs-hub:local`
-  - `ports: ["18080:80"]`
-  - `ZS_LISTEN_PORT=80`
-  - `ZS_PUBLIC_URL=http://localhost:18080`
-  - `CLI_API_TOKEN=zhushen`
-- `zs-runner`
-  - `image: zs-runner:local`
-  - `CLI_API_TOKEN=zhushen`
-  - `ZS_API_URL=http://zs-hub:80`
+- 启动入口：`bun run start:local-test-env`
+- 脚本文件：`scripts/start-local-test-env.ts`
+- 共享实现：`cli/src/claude/utils/startLocalTestEnv.ts`
+- 测试文件：`cli/src/claude/utils/start-local-test-env.test.ts`
+- Compose 文件：`docker-compose.yml`
+- Compose project name：`zhushen`
 
 ### 3. 契约
-- 本地 compose 使用固定镜像 tag：`zs-hub:local`、`zs-runner:local`。
-- 为了拿到最新代码，推荐路径是**重新构建镜像**，而不是依赖容器内热编译或启动后再编译。
-- 本地 compose 不依赖根目录 `.env`。
-- runner 访问 hub 必须使用容器内地址 `http://zs-hub:80`，不能写成 `http://localhost:18080`。
-- 手工测试入口固定为 `http://localhost:18080`。
-- 不再引用 `bun run docker:check` 或 `docker/check-compose-env.sh`。
+- 所有人工测试环境必须通过统一脚本 `bun run start:local-test-env` 拉起。
+- 脚本职责仅限：解析 Claude 认证相关配置，并执行带 `--build` 的 compose 启动。
+- 脚本不得附带其他逻辑，例如自动执行测试、自动做额外健康检查、自动跟日志、自动停止环境。
+- Claude 配置读取顺序固定为：
+  1. 当前进程环境变量 `ANTHROPIC_API_KEY`、`ANTHROPIC_BASE_URL`
+  2. `~/.claude/settings.json` 中 `.env.ANTHROPIC_API_KEY`、`.env.ANTHROPIC_BASE_URL`
+- compose project name 固定为 `zhushen`。
+- 人工测试环境无需通过脚本修改端口；如无新需求，不引入额外端口改写逻辑。
+- 文档和规范不得再要求开发者手工拼接等价的 `docker compose up ...` 命令来搭建人工测试环境。
 
 ### 4. 校验与错误矩阵
-- 仍要求 `.env` -> 旧契约残留。
-- `ZS_API_URL=http://localhost:18080` -> runner 连错地址。
-- 文档仍写 `bun run docker:check` -> 引用失效入口。
-- 修改代码后直接重启旧容器、不重建镜像 -> 运行的不是最新代码。
+- 未通过统一脚本启动人工测试环境 -> 违反人工测试入口契约。
+- 脚本额外包含测试执行 / 健康检查 / 日志跟随 / 停止逻辑 -> 超出最小职责范围。
+- 缺失 `ANTHROPIC_API_KEY` 或 `ANTHROPIC_BASE_URL`，且 `~/.claude/settings.json` 里也无回退值 -> 明确报错并退出。
+- 为人工测试环境新增端口改写逻辑 -> 与当前契约冲突，除非需求明确变更。
+- 文档继续要求手工 compose 命令或旧入口 -> 文档与代码契约不一致。
 
 ### 5. 良好 / 基线 / 反例
-- Good：代码更新后重新构建镜像，再 `docker compose up -d`，页面可访问且 runner 连上 hub。
-- Base：`docker compose config --quiet` 通过，`docker compose up -d` 可启动。
-- Bad：依赖旧镜像、容器内临时编译或额外 `.env` 才能跑通。
+- Good：开发者执行 `bun run start:local-test-env`，脚本解析配置后直接执行带 `--build` 的 compose 启动，不做其他事。
+- Base：环境变量缺失时，脚本能从 `~/.claude/settings.json` 读取回退值并成功启动。
+- Bad：为人工测试额外增加端口覆盖、健康检查、日志 tail，或要求开发者手工执行 compose 命令。
 
 ### 6. 必需测试（含断言点）
-- `docker compose config --quiet` 在无 `.env` 情况下通过。
-- 代码变更后执行镜像重建，再启动 compose，确保运行内容来自最新镜像。
-- 浏览器可访问 `http://localhost:18080`。
-- `docker compose logs zs-runner` 可观察到 runner 已连接 hub。
-- `package.json` 不再包含 `docker:check`。
+- 单元测试：环境变量存在时，断言优先使用环境变量值。
+- 单元测试：环境变量缺失时，断言回退读取 `~/.claude/settings.json` 的 `.env` 字段。
+- 单元测试：两种来源都缺失时，断言抛出明确错误。
+- 单元测试：断言 compose 调用包含固定 project name `zhushen` 与 `--build`。
+- 单元测试：断言脚本不会触发任何测试命令，也不会注入端口改写参数。
+- 文档检查：README / Docker 指南的人工测试入口与脚本契约一致。
 
 ### 7. 错误示例 vs 正确示例
 #### 错误示例
-```yaml
-services:
-  zs-runner:
-    environment:
-      ZS_API_URL: http://localhost:18080
+```sh
+# 直接手工拼接人工测试环境命令
+ANTHROPIC_API_KEY=xxx ANTHROPIC_BASE_URL=https://example.com \
+  docker compose up -d --build zs-hub zs-runner
 ```
 
-```sh
-# 代码变了，但只重启旧容器
-docker compose restart
+```ts
+// 在启动脚本里附带额外逻辑
+await startCompose();
+await runTests();
+await waitForHealthy();
+```
+
+```ts
+// 无需求时擅自覆盖端口
+composeEnv.ZS_LISTEN_PORT = '18080';
 ```
 
 #### 正确示例
-```yaml
-services:
-  zs-runner:
-    image: zs-runner:local
-    environment:
-      CLI_API_TOKEN: zhushen
-      ZS_API_URL: http://zs-hub:80
+```sh
+bun run start:local-test-env
 ```
 
-```sh
-docker compose build
-docker compose up -d
+```ts
+const env = await resolveAnthropicEnv(process.env);
+await dockerComposeUp({
+  composeFile: projectDockerComposeFile,
+  projectName: 'zhushen',
+  build: true,
+  env,
+});
 ```
 
 ---

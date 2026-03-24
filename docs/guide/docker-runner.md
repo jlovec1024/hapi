@@ -18,6 +18,23 @@ docker build -f Dockerfile.runner -t zs-runner:local .
 
 ## 运行方式
 
+### 本地测试环境启动脚本
+
+如果只是为了拉起本地测试环境，而不希望自动执行测试命令，可在仓库根目录运行：
+
+```bash
+bun run start:local-test-env
+```
+
+该脚本会：
+
+1. 优先读取当前环境中的 `ANTHROPIC_API_KEY` 与 `ANTHROPIC_BASE_URL`；
+2. 若缺失，则回退读取 `~/.claude/settings.json` 中 `.env.ANTHROPIC_API_KEY` 与 `.env.ANTHROPIC_BASE_URL`；
+3. 使用项目根目录 `docker-compose.yml`；
+4. 固定 compose project name 为 `zhushen`；
+5. 执行带 `--build` 的启动；
+6. 只启动环境，不自动运行测试命令。
+
 ### 作为后台 Runner 服务
 
 使用 Docker Compose 启动服务（需要提供必填环境变量）：

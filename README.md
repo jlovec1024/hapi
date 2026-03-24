@@ -36,6 +36,14 @@ docker compose up -d --build zs-hub zs-runner
 docker compose logs -f zs-hub zs-runner
 ```
 
+如需仅拉起本地测试环境（不自动执行测试命令），可运行：
+
+```bash
+bun run start:local-test-env
+```
+
+脚本会优先读取当前环境中的 `ANTHROPIC_API_KEY`、`ANTHROPIC_BASE_URL`；若缺失，则回退读取 `~/.claude/settings.json` 中的 `.env.ANTHROPIC_API_KEY`、`.env.ANTHROPIC_BASE_URL`，然后使用项目根目录 `docker-compose.yml` 以固定 compose project name `zhushen` 执行带 `--build` 的启动。
+
 ### 配置
 
 必填环境变量（通过命令行 `-e` 或项目根目录 `.env` 提供）：
