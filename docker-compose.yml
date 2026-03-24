@@ -3,12 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.hub
-    image: ${ZS_HUB_IMAGE:-zs-hub:local}
+    image: zs-hub:local
     environment:
-      ZS_PUBLIC_URL: ${ZS_PUBLIC_URL:-http://localhost:80}
-      CLI_API_TOKEN: ${CLI_API_TOKEN}
+      ZS_LISTEN_PORT: 80
+      ZS_PUBLIC_URL: http://localhost:18080
+      CLI_API_TOKEN: zhushen
     ports:
-      - "${ZS_LISTEN_PORT:-80}:80"
+      - 18080:80
     volumes:
       - hub-data:/data/hub
     restart: unless-stopped
@@ -17,14 +18,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.runner
-    image: ${ZS_RUNNER_IMAGE:-zs-runner:local}
+    image: zs-runner:local
     environment:
-      CLI_API_TOKEN: ${CLI_API_TOKEN}
-      ZS_GO_VERSION: ${ZS_GO_VERSION:-1.24.3}
-      ZS_NODE_VERSION: ${ZS_NODE_VERSION:-24}
-      ZS_RUNNER_LOG_DESTINATION: ${ZS_RUNNER_LOG_DESTINATION:-stdio}
-      ZS_GIT_USER_NAME: "${ZS_GIT_USER_NAME:-zs runner}"
-      ZS_GIT_USER_EMAIL: "${ZS_GIT_USER_EMAIL:-zs-runner@local}"
+      CLI_API_TOKEN: zhushen
+      ZS_API_URL: http://zs-hub:80
     volumes:
       - runner-data:/data/runner
       - goenv-data:/data/goenv

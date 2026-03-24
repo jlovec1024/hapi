@@ -1760,6 +1760,82 @@ docker run --rm -e ZCF_DEFAULT_OUTPUT_STYLE=engineer-professional -v "$PWD/.clau
 
 ---
 
+## 场景：本地 Docker Compose 集成测试环境契约（固定本地镜像 + 最小环境）
+
+### 1. 范围 / 触发条件
+- 触发条件：修改 `docker-compose.yml` 本地联调入口，或调整 compose 相关脚本/文档契约。
+
+### 2. 签名
+- `docker-compose.yml`
+- `package.json`（不再提供 `docker:check`）
+- `zs-hub`
+  - `image: zs-hub:local`
+  - `ports: ["18080:80"]`
+  - `ZS_LISTEN_PORT=80`
+  - `ZS_PUBLIC_URL=http://localhost:18080`
+  - `CLI_API_TOKEN=zhushen`
+- `zs-runner`
+  - `image: zs-runner:local`
+  - `CLI_API_TOKEN=zhushen`
+  - `ZS_API_URL=http://zs-hub:80`
+
+### 3. 契约
+- 本地 compose 使用固定镜像 tag：`zs-hub:local`、`zs-runner:local`。
+- 为了拿到最新代码，推荐路径是**重新构建镜像**，而不是依赖容器内热编译或启动后再编译。
+- 本地 compose 不依赖根目录 `.env`。
+- runner 访问 hub 必须使用容器内地址 `http://zs-hub:80`，不能写成 `http://localhost:18080`。
+- 手工测试入口固定为 `http://localhost:18080`。
+- 不再引用 `bun run docker:check` 或 `docker/check-compose-env.sh`。
+
+### 4. 校验与错误矩阵
+- 仍要求 `.env` -> 旧契约残留。
+- `ZS_API_URL=http://localhost:18080` -> runner 连错地址。
+- 文档仍写 `bun run docker:check` -> 引用失效入口。
+- 修改代码后直接重启旧容器、不重建镜像 -> 运行的不是最新代码。
+
+### 5. 良好 / 基线 / 反例
+- Good：代码更新后重新构建镜像，再 `docker compose up -d`，页面可访问且 runner 连上 hub。
+- Base：`docker compose config --quiet` 通过，`docker compose up -d` 可启动。
+- Bad：依赖旧镜像、容器内临时编译或额外 `.env` 才能跑通。
+
+### 6. 必需测试（含断言点）
+- `docker compose config --quiet` 在无 `.env` 情况下通过。
+- 代码变更后执行镜像重建，再启动 compose，确保运行内容来自最新镜像。
+- 浏览器可访问 `http://localhost:18080`。
+- `docker compose logs zs-runner` 可观察到 runner 已连接 hub。
+- `package.json` 不再包含 `docker:check`。
+
+### 7. 错误示例 vs 正确示例
+#### 错误示例
+```yaml
+services:
+  zs-runner:
+    environment:
+      ZS_API_URL: http://localhost:18080
+```
+
+```sh
+# 代码变了，但只重启旧容器
+docker compose restart
+```
+
+#### 正确示例
+```yaml
+services:
+  zs-runner:
+    image: zs-runner:local
+    environment:
+      CLI_API_TOKEN: zhushen
+      ZS_API_URL: http://zs-hub:80
+```
+
+```sh
+docker compose build
+docker compose up -d
+```
+
+---
+
 ## 场景：不附带二进制产物的 GitHub Release 契约（Release Drafter + Install Notes）
 
 ### 1. 范围 / 触发条件

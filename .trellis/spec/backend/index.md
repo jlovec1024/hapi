@@ -17,7 +17,7 @@
 | [目录结构](./directory-structure.md) | 模块组织与文件布局 | 待补充 |
 | [数据库规范](./database-guidelines.md) | ORM/SQL 模式、查询与迁移 | 待补充 |
 | [错误处理](./error-handling.md) | 错误类型与处理策略 | 已更新（spawn RPC 契约） |
-| [质量规范](./quality-guidelines.md) | 代码标准与禁止模式 | 已更新（分支拓扑 / PR 自动化 / 独立主线契约） |
+| [质量规范](./quality-guidelines.md) | 代码标准与禁止模式 | 已更新（分支拓扑 / Docker Compose 本地集成测试环境） |
 | [日志规范](./logging-guidelines.md) | 结构化日志与日志级别 | 待补充 |
 
 ---
