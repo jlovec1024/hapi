@@ -9,12 +9,12 @@ import {
     type CodeHeaderProps,
     type MarkdownTextPrimitiveProps,
 } from '@assistant-ui/react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import mermaid from 'mermaid'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/use-translation'
 import { SyntaxHighlighter } from '@/components/assistant-ui/shiki-highlighter'
@@ -157,12 +157,7 @@ function Code(props: ComponentPropsWithoutRef<'code'>) {
     const isCodeBlock = useIsMarkdownCodeBlock()
 
     if (isCodeBlock) {
-        return (
-            <code
-                {...props}
-                className={cn('aui-md-codeblockcode font-mono', props.className)}
-            />
-        )
+        return <code {...props} className={cn('aui-md-codeblockcode font-mono', props.className)} />
     }
 
     return (
@@ -179,13 +174,7 @@ function Code(props: ComponentPropsWithoutRef<'code'>) {
 function A(props: ComponentPropsWithoutRef<'a'>) {
     const rel = props.target === '_blank' ? (props.rel ?? 'noreferrer') : props.rel
 
-    return (
-        <a
-            {...props}
-            rel={rel}
-            className={cn('aui-md-a text-[var(--app-link)] underline', props.className)}
-        />
-    )
+    return <a {...props} rel={rel} className={cn('aui-md-a text-[var(--app-link)] underline', props.className)} />
 }
 
 function Paragraph(props: ComponentPropsWithoutRef<'p'>) {

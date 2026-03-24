@@ -212,6 +212,30 @@ Source → Transform → Store → Retrieve → Transform → Display
 
 ---
 
+## Markdown 数学公式渲染契约检查清单（LLM Output ↔ Markdown Pipeline ↔ Renderer）
+
+当你要让 AI 输出的数学公式在 Web UI 中正确渲染时，不要只检查“文本里有没有公式”；这实际上是一个跨层契约：
+
+- [ ] **生成层语法是否与渲染层一致**：当前 Web 端是否明确只支持 `$...$`（行内）与 `$$...$$`（块级）？如果上游输出 `\(...\)` / `\[...\]`，是先转换还是明确视为未支持？
+- [ ] **remark / rehype 插件是否成套存在**：只有 `remark-gfm` 不会解析数学公式；若要渲染公式，必须显式接入 math 解析与渲染插件，并确认样式资源同时就位。
+- [ ] **所有 Markdown 入口是否共享同一套能力**：`MarkdownTextPrimitive` 的不同封装（普通消息、tool 输出、reasoning 等）是否都复用了同一组 markdown plugins 与共享 props 工厂，而不是各自手写一份配置？
+- [ ] **全局样式入口是否完整**：如果公式渲染依赖 KaTeX/MathJax 全局 CSS，是否已经在所有实际应用入口统一引入，而不是只在某个局部组件里“碰巧可用”？
+- [ ] **测试边界是否选对层级**：如果底层 markdown primitive 依赖 assistant/thread 上下文，测试是否优先锁定共享配置函数与真实业务接线，而不是在脱离上下文时直接渲染 primitive 导致假阴性？
+
+典型失败模式：
+- LLM 输出了 `\[ ... \]` 或 `$$ ... $$`，但前端 markdown pipeline 只挂了 `remark-gfm`，结果公式被当作普通文本显示。
+- 一个入口（例如聊天正文）未来补了 math 插件，但另一个入口（例如 ToolCard / reasoning / markdown renderer）仍复用旧配置，导致同样的公式在不同卡片中表现不一致。
+- 只修改了 UI 样式或文案，没有验证底层 parser 是否真的支持对应语法，于是“看起来像 markdown 问题”，本质却是生成层与渲染层契约不一致。
+
+建议动作：
+- 先确定产品层决策：**支持数学公式** 还是 **禁止输出数学公式语法**，不要保持模糊中间态。
+- 若支持：先统一承诺并测试 `$...$` / `$$...$$`，再视真实需求评估是否额外兼容 `\(...\)` / `\[...\]`。
+- 若暂不支持：在系统 prompt / 输出规范中明确禁止使用 LaTeX 数学分隔符，改用代码块、项目符号或自然语言解释。
+- 添加回归测试，覆盖行内公式、块级公式、非法公式三类输入。
+- 手动验证时，按 `frontend/quality-guidelines.md` 中 `手动测试：Markdown 数学公式渲染（Docker Compose）` 章节执行环境搭建、端口冲突回退、访问地址展示与最小提示词测试。
+
+---
+
 ## Session-Scoped Client Cache 检查清单（Web State ↔ Session Identity）
 
 当 UI 状态会跨渲染缓存（例如 `useRef`、query fallback、optimistic state）时：

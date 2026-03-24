@@ -246,6 +246,103 @@ bun run test
 - **位置**：测试文件与源码同目录（`*.test.ts`、`*.test.tsx`）
 - **运行方式**：`bun run test`（在 web 目录中执行）
 
+### 手动测试：Markdown 数学公式渲染（Docker Compose）
+
+#### 1. Scope / Trigger
+- Trigger：当变更涉及 `MarkdownRenderer`、`MarkdownTextPrimitive` 封装、KaTeX 样式入口、聊天消息展示链路，或任何会影响 AI 输出数学公式渲染的改动时，必须执行此手动测试。
+
+#### 2. Signatures
+- Build：`docker compose build`
+- Start：`docker compose up -d`
+- Optional rebuild start：`docker compose up --build -d`
+- Compose file：`./docker-compose.yml`
+- Claude settings fallback：`/data/claude/.claude/settings.json`
+- Default access URL：`http://localhost:18080`
+
+#### 3. Contracts
+- Environment keys（优先级：当前 shell 环境变量 > Claude settings 文件）：
+  - `ANTHROPIC_API_KEY`：必需；用于 runner 内 Claude API 鉴权
+  - `ANTHROPIC_BASE_URL`：可选；若环境变量存在则注入；若环境变量不存在但 Claude settings 中存在自定义 endpoint，则按 settings 中值使用
+- Port contract：
+  - 默认 `18080:80`
+  - 若 `18080` 被占用，必须改用其它本地端口（例如 `28080:80`）再启动
+- Access contract：
+  - 启动成功后必须输出实际访问地址，例如 `http://localhost:18080` 或 `http://localhost:28080`
+- Prompt contract：
+  - 手动测试必须使用“只输出 markdown 正文、不要解释、不要代码围栏”的提示词，避免模型自由发挥污染验证结果
+
+#### 4. Validation & Error Matrix
+| Condition | Expected behavior | Action |
+| --- | --- | --- |
+| `ANTHROPIC_API_KEY` 存在于当前环境 | 直接注入 compose | 正常启动 |
+| 当前环境无 API 变量，但 `/data/claude/.claude/settings.json` 存在对应配置 | 使用 settings 中配置 | 正常启动 |
+| 环境变量与 settings 都缺失 API 配置 | 不应继续测试 | 先补齐认证配置 |
+| `18080` 未占用 | 使用默认地址 | 访问 `http://localhost:18080` |
+| `18080` 已被占用 | 不要强行复用冲突端口 | 改用新端口并展示新地址 |
+| 页面可打开但消息显示原始 `$...$` / `$$...$$` | 判定公式渲染失败 | 检查 markdown plugin / CSS / 消息链路 |
+| 页面可打开且 DOM 中存在 `.katex` / `.katex-display` | 判定渲染链路生效 | 继续做内容验证 |
+
+#### 5. Good / Base / Bad Cases
+- Good：`docker compose build` 和 `docker compose up -d` 成功，页面可访问；普通 assistant 消息中的 `$...$` 与 `$$...$$` 被正确渲染，列表与表格未损坏。
+- Base：改用无冲突端口后服务可启动，并能给出当前访问地址。
+- Bad：缺失 API 配置仍继续启动；端口冲突时不换端口；消息仍显示原始公式分隔符。
+
+#### 6. Tests Required
+- Environment assertion：确认 `ANTHROPIC_API_KEY` 来源可用（环境变量优先，否则 Claude settings）
+- Start assertion：`docker compose build` 与 `docker compose up -d` / `docker compose up --build -d` 可成功执行
+- Access assertion：记录并展示当前访问地址
+- UI assertion：普通 assistant 消息至少覆盖以下内容
+  - 行内公式：`欧拉公式：$e^{i\pi}+1=0$`
+  - 块级公式：`$$\int_0^1 x^2 \, dx = \frac{1}{3}$$`
+  - 列表混合：`- item two with $x^2$`
+  - 表格混合：`| 动能 | $E_k=\frac{1}{2}mv^2$ |`
+- DOM assertion：浏览器开发者工具中应看到 `.katex` 或 `.katex-display`
+
+#### 7. Wrong vs Correct
+
+##### Wrong
+```bash
+# 只尝试启动，不确认 API 配置与端口冲突
+docker compose up --build -d
+# 启动失败后也不展示新的访问地址
+```
+
+##### Correct
+```bash
+# 1. 优先读取当前环境中的 Claude API 变量；缺失时再读取 /data/claude/.claude/settings.json
+# 2. 如 18080 冲突，使用 compose override 把宿主机端口改成 28080
+# 3. 先 build，再 up -d
+docker compose build
+cat >/tmp/docker-compose.override.yml <<'EOF'
+services:
+  zs-hub:
+    ports:
+      - 28080:80
+EOF
+docker compose -f ./docker-compose.yml -f /tmp/docker-compose.override.yml up -d
+# 4. 明确告诉测试者访问 http://localhost:28080
+```
+
+#### 推荐测试提示词（简单版）
+
+```text
+你现在是 markdown 生成器。
+请严格只输出 markdown 正文，不要解释，不要前言，不要代码围栏。
+
+内容必须包含：
+1. 欧拉公式：$e^{i\pi}+1=0$
+2. $$\int_0^1 x^2 \, dx = \frac{1}{3}$$
+3. - item two with $x^2$
+4. | 名称 | 公式 |
+   | --- | --- |
+   | 动能 | $E_k=\frac{1}{2}mv^2$ |
+```
+
+#### 最小人工测试用例（不依赖长 prompt）
+- Case 1：让 assistant 只回复 `欧拉公式：$e^{i\pi}+1=0$`，确认行内公式渲染
+- Case 2：让 assistant 只回复 `$$\int_0^1 x^2 \, dx = \frac{1}{3}$$`，确认块级公式渲染
+- Case 3：让 assistant 回复“列表 + 表格 + 公式”混合内容，确认 GFM 与数学公式同时生效
+
 ### 测什么
 
 **优先级 1 - 关键路径**：

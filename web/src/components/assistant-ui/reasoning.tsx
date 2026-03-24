@@ -39,7 +39,7 @@ function ShimmerDot() {
  */
 export const Reasoning: FC = () => {
     const markdownProps = getMarkdownPrimitiveProps({
-        className: 'aui-reasoning-content text-sm text-[var(--app-hint)]',
+        className: 'aui-reasoning-content min-w-0 max-w-full break-words text-sm text-[var(--app-hint)]',
     })
 
     return <MarkdownTextPrimitive {...markdownProps} smooth={false} />

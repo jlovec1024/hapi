@@ -9,6 +9,7 @@ import { queryClient } from '@/lib/query-client'
 import { createAppRouter } from '@/app/router'
 import { I18nProvider } from '@/lib/i18n-context'
 import '@/app/styles/index.css'
+import 'katex/dist/katex.min.css'
 
 async function bootstrap() {
     initializeFontScale()
