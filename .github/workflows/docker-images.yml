@@ -70,6 +70,15 @@ jobs:
           file: ${{ matrix.dockerfile }}
           platforms: linux/amd64
           push: false
+          load: ${{ matrix.name == 'runner' }}
+          tags: zs-runner:pr
+
+      - name: Runner smoke test
+        if: matrix.name == 'runner'
+        run: |
+          docker run --rm zs-runner:pr docker --version
+          docker run --rm zs-runner:pr docker compose version
+          docker run --rm zs-runner:pr glab --version
 
   compose-smoke:
     if: github.event_name != 'pull_request'

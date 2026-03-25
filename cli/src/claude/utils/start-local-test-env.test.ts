@@ -71,9 +71,9 @@ describe('startLocalTestEnv', () => {
         });
     });
 
-    it('throws a clear error when ANTHROPIC_API_KEY is missing from both sources', () => {
+    it('throws a clear aggregated error when required values are missing from both sources', () => {
         expect(() => resolveStartupConfig({}, settingsPath)).toThrow(
-            `缺少 Claude 启动配置: ANTHROPIC_API_KEY。请先设置环境变量，或在 ${settingsPath} 的 .env 中提供对应字段。`
+            `缺少 Claude 启动配置: ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL。请先设置环境变量，或在 ${settingsPath} 的 .env 中提供对应字段。`
         );
     });
 

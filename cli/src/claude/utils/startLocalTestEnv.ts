@@ -23,12 +23,7 @@ function isNonEmptyString(value: unknown): value is string {
     return typeof value === 'string' && value.trim().length > 0;
 }
 
-function resolveRequiredConfigValue(
-    envValue: unknown,
-    settingsValue: unknown,
-    key: 'ANTHROPIC_API_KEY' | 'ANTHROPIC_BASE_URL',
-    settingsPath: string
-): string {
+function resolveRequiredConfigValue(envValue: unknown, settingsValue: unknown): string | null {
     if (isNonEmptyString(envValue)) {
         return envValue.trim();
     }
@@ -37,7 +32,7 @@ function resolveRequiredConfigValue(
         return settingsValue.trim();
     }
 
-    throw new Error(`缺少 Claude 启动配置: ${key}。请先设置环境变量，或在 ${settingsPath} 的 .env 中提供对应字段。`);
+    return null;
 }
 
 export function getRepoRoot(): string {
@@ -74,19 +69,29 @@ export function resolveStartupConfig(env: NodeJS.ProcessEnv = process.env, setti
     const resolvedSettingsPath = settingsPath ?? getClaudeSettingsPath();
     const settingsEnv = readClaudeSettingsEnv(settingsPath);
 
+    const anthropicApiKey = resolveRequiredConfigValue(
+        env.ANTHROPIC_API_KEY,
+        settingsEnv.ANTHROPIC_API_KEY
+    );
+    const anthropicBaseUrl = resolveRequiredConfigValue(
+        env.ANTHROPIC_BASE_URL,
+        settingsEnv.ANTHROPIC_BASE_URL
+    );
+
+    const missingKeys = [
+        anthropicApiKey === null ? 'ANTHROPIC_API_KEY' : null,
+        anthropicBaseUrl === null ? 'ANTHROPIC_BASE_URL' : null
+    ].filter((value): value is string => value !== null);
+
+    if (missingKeys.length > 0 || anthropicApiKey === null || anthropicBaseUrl === null) {
+        throw new Error(
+            `缺少 Claude 启动配置: ${missingKeys.join(', ')}。请先设置环境变量，或在 ${resolvedSettingsPath} 的 .env 中提供对应字段。`
+        );
+    }
+
     return {
-        anthropicApiKey: resolveRequiredConfigValue(
-            env.ANTHROPIC_API_KEY,
-            settingsEnv.ANTHROPIC_API_KEY,
-            'ANTHROPIC_API_KEY',
-            resolvedSettingsPath
-        ),
-        anthropicBaseUrl: resolveRequiredConfigValue(
-            env.ANTHROPIC_BASE_URL,
-            settingsEnv.ANTHROPIC_BASE_URL,
-            'ANTHROPIC_BASE_URL',
-            resolvedSettingsPath
-        )
+        anthropicApiKey,
+        anthropicBaseUrl
     };
 }
 
