@@ -124,7 +124,8 @@ cd zhushen
 bun install
 bun run build:single-exe
 
-./cli/dist/zs
+# 输出文件位于 cli/dist-exe/<target>/zs（Windows 为 zs.exe）
+./cli/dist-exe/<target>/zs
 ```
 </details>
 

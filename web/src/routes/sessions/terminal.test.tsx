@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 import { I18nProvider } from '@/lib/i18n-context'
@@ -130,6 +130,11 @@ describe('TerminalPage paste behavior', () => {
         terminalResetSpy.mockReset()
         localStorage.clear()
         localStorage.setItem('zs-lang', 'en')
+    })
+
+    afterEach(async () => {
+        // 等待所有待处理 React 更新完成，避免 jsdom teardown 后触发 scheduler 回调
+        await waitFor(() => {})
     })
 
     it('does not open manual paste dialog when clipboard text is empty', async () => {
