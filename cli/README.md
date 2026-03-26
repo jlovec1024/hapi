@@ -119,7 +119,6 @@
 
 ```bash
 bun install
-bun run build:cli
 cd cli && bun run build:exe
 ```
 
