@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useSpawnSession } from './useSpawnSession'
@@ -18,10 +18,17 @@ function createWrapper() {
 }
 
 describe('useSpawnSession', () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
     beforeEach(() => {
         vi.clearAllMocks()
     })
 
+    afterEach(() => {
+        consoleLogSpy.mockClear()
+        consoleErrorSpy.mockClear()
+    })
     it('returns error when api is null', async () => {
         const { result } = renderHook(() => useSpawnSession(null), {
             wrapper: createWrapper(),

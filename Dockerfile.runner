@@ -72,11 +72,6 @@ RUN curl -fsSL "https://github.com/rtk-ai/rtk/releases/download/v${RTK_VERSION}/
 # ---- Cleanup transient caches -------------------------------
 RUN rm -rf /root/.cache /tmp/*
 
-# ---- Download tunwg binary (Linux x64 only) -----------------
-# Only download the specific binary needed for this build target
-# Avoids dependency on other platform resource availability
-RUN TUNWG_TARGET_PLATFORM=x64-linux bun run download:tunwg
-
 # ---- Build zs executable (Linux x64) ------------------------
 # Use existing build script to compile standalone executable
 RUN cd /app/cli && bun run build:exe --target bun-linux-x64-baseline --outdir /tmp/zs-build

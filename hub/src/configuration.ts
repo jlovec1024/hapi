@@ -18,9 +18,6 @@
  * - ZS_LISTEN_PORT: Port for HTTP service (default: 3006)
  * - ZS_PUBLIC_URL: Public URL for external access
  * - CORS_ORIGINS: Comma-separated CORS origins
- * - ZS_RELAY_API: Relay API domain for tunwg (default: relay.zhushen.run)
- * - ZS_RELAY_AUTH: Relay auth key for tunwg (default: zs)
- * - ZS_RELAY_FORCE_TCP: Force TCP relay mode when UDP is unavailable (true/1)
  * - VAPID_SUBJECT: Contact email or URL for Web Push (defaults to mailto:admin@zhushen.run)
  * - ZS_HOME: Data directory (default: ~/.zhushen)
  * - DB_PATH: SQLite database path (default: {ZS_HOME}/zhushen.db)

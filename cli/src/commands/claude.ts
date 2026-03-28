@@ -79,7 +79,6 @@ ${chalk.bold('Usage:')}
   zs connect           (not available in direct-connect mode)
   zs notify            (not available in direct-connect mode)
   zs hub               Start the API + web hub
-  zs hub --relay       Start with public relay
   zs runner            Manage background service that allows
                             to spawn new sessions away from your computer
   zs doctor            System diagnostics & troubleshooting

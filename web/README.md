@@ -131,7 +131,7 @@ bun run build:web
 
 ## 独立托管
 
-可将 `web/dist` 部署到静态托管平台（如 GitHub Pages、Cloudflare Pages），并连接任意 zhushen Hub：
+可将 `web/dist` 部署到任意静态托管平台，并连接任意 zhushen Hub：
 
 1. 构建 web app。若静态站点使用子路径，请设置 Vite base：
 

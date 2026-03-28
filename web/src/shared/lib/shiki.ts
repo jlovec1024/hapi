@@ -131,6 +131,7 @@ export function useShikiHighlighter(
 
             // Skip highlighting for unsupported languages (graceful fallback to plain text)
             if (lang === 'text' || !loadedLangs.includes(lang)) {
+                if (cancelled) return
                 setHighlighted(null)
                 return
             }
@@ -149,6 +150,7 @@ export function useShikiHighlighter(
                 jsxs,
                 Fragment,
             })
+            if (cancelled) return
             setHighlighted(rendered as ReactNode)
         }
 

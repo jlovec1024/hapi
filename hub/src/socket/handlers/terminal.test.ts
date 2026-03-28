@@ -1,9 +1,16 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, mock, afterEach } from 'bun:test'
 import { registerTerminalHandlers } from './terminal'
 import { registerTerminalHandlers as registerCliTerminalHandlers } from './cli/terminalHandlers'
 import { TerminalRegistry } from '../terminalRegistry'
 import type { SocketServer, SocketWithData } from '../socketTypes'
 import type { StoredSession } from '../../store'
+
+const originalConsoleError = console.error
+
+afterEach(() => {
+    console.error = originalConsoleError
+    mock.restore()
+})
 
 type EmittedEvent = {
     event: string
@@ -106,6 +113,7 @@ function lastEmit(socket: FakeSocket, event: string): EmittedEvent | undefined {
 
 describe('terminal socket handlers', () => {
     it('rejects terminal creation when session is inactive', () => {
+        console.error = mock(() => undefined) as typeof console.error
         const { terminalSocket, terminalRegistry } = createHarness({ sessionActive: false })
 
         terminalSocket.trigger('terminal:create', {
@@ -225,7 +233,6 @@ describe('terminal socket handlers', () => {
         expect(terminalRegistry.get('terminal-1')?.socketId).toBe('terminal-socket-2')
     })
 
-
     it('reuses terminal id for same socket/session without emitting duplicate-id error', () => {
         const { terminalSocket, cliNamespace, terminalRegistry } = createHarness()
         const cliSocket = new FakeSocket('cli-socket-1')
@@ -299,7 +306,6 @@ describe('terminal socket handlers', () => {
         expect(terminalRegistry.get('terminal-1')?.cliSocketId).toBe('cli-socket-1')
     })
 
-
     it('removes stale detached terminal when cli reports terminal not found', () => {
         const { io, terminalSocket, cliNamespace, terminalRegistry } = createHarness()
         const cliSocket = new FakeSocket('cli-socket-1')
@@ -344,6 +350,7 @@ describe('terminal socket handlers', () => {
     })
 
     it('enforces per-socket terminal limits', () => {
+        console.error = mock(() => undefined) as typeof console.error
         const { terminalSocket, cliNamespace } = createHarness({ maxTerminalsPerSocket: 1 })
         const cliSocket = new FakeSocket('cli-socket-1')
         connectCliSocket(cliNamespace, cliSocket, 'session-1')
@@ -362,10 +369,84 @@ describe('terminal socket handlers', () => {
             rows: 24
         })
 
-        const errorEvent = lastEmit(terminalSocket, 'terminal:error')
-        expect(errorEvent?.data).toEqual({
+        expect(lastEmit(terminalSocket, 'terminal:error')?.data).toEqual({
             terminalId: 'terminal-2',
             message: 'Too many terminals open (max 1).'
         })
+    })
+})
+
+describe('CLI terminal handlers', () => {
+    it('forwards ready/output/exit events to registered browser terminal socket', () => {
+        const io = new FakeServer()
+        const terminalSocket = new FakeSocket('browser-terminal')
+        terminalSocket.data.namespace = 'default'
+        const terminalNamespace = io.of('/terminal')
+        terminalNamespace.sockets.set(terminalSocket.id, terminalSocket)
+
+        const cliSocket = new FakeSocket('cli-terminal')
+        cliSocket.data.namespace = 'default'
+        const terminalRegistry = new TerminalRegistry({ idleTimeoutMs: 0 })
+        terminalRegistry.register('terminal-1', 'session-1', terminalSocket.id, cliSocket.id)
+
+        registerCliTerminalHandlers(cliSocket as unknown as SocketWithData, {
+            terminalRegistry,
+            terminalNamespace: terminalNamespace as never,
+            resolveSessionAccess: () => ({ ok: true, value: { id: 'session-1', namespace: 'default', active: true } as StoredSession }),
+            emitAccessError: () => {}
+        })
+
+        cliSocket.trigger('terminal:ready', { sessionId: 'session-1', terminalId: 'terminal-1' })
+        cliSocket.trigger('terminal:output', { sessionId: 'session-1', terminalId: 'terminal-1', data: 'hello' })
+        cliSocket.trigger('terminal:exit', { sessionId: 'session-1', terminalId: 'terminal-1', code: 0, signal: null })
+
+        const stored = terminalRegistry.get('terminal-1')
+        expect(stored).toBeNull()
+
+        expect(terminalSocket.emitted).toEqual([
+            { event: 'terminal:ready', data: { sessionId: 'session-1', terminalId: 'terminal-1' } },
+            { event: 'terminal:output', data: { sessionId: 'session-1', terminalId: 'terminal-1', data: 'hello' } },
+            { event: 'terminal:exit', data: { sessionId: 'session-1', terminalId: 'terminal-1', code: 0, signal: null } }
+        ])
+    })
+
+    it('removes stale terminal when cli reports terminal not found', () => {
+        const io = new FakeServer()
+        const terminalSocket = new FakeSocket('browser-terminal')
+        terminalSocket.data.namespace = 'default'
+        const terminalNamespace = io.of('/terminal')
+        terminalNamespace.sockets.set(terminalSocket.id, terminalSocket)
+
+        const cliSocket = new FakeSocket('cli-terminal')
+        cliSocket.data.namespace = 'default'
+        const terminalRegistry = new TerminalRegistry({ idleTimeoutMs: 0 })
+        terminalRegistry.register('terminal-1', 'session-1', terminalSocket.id, cliSocket.id)
+        terminalRegistry.register('terminal-2', 'session-2', terminalSocket.id, cliSocket.id)
+
+        registerCliTerminalHandlers(cliSocket as unknown as SocketWithData, {
+            terminalRegistry,
+            terminalNamespace: terminalNamespace as never,
+            resolveSessionAccess: (sessionId) => ({ ok: true, value: { id: sessionId, namespace: 'default', active: true } as StoredSession }),
+            emitAccessError: () => {}
+        })
+
+        cliSocket.trigger('terminal:error', {
+            sessionId: 'session-1',
+            terminalId: 'terminal-1',
+            message: 'Terminal not found.'
+        })
+
+        expect(terminalRegistry.get('terminal-1')).toBeNull()
+        expect(terminalRegistry.get('terminal-2')).not.toBeNull()
+        expect(terminalSocket.emitted).toEqual([
+            {
+                event: 'terminal:error',
+                data: {
+                    sessionId: 'session-1',
+                    terminalId: 'terminal-1',
+                    message: 'Terminal not found.'
+                }
+            }
+        ])
     })
 })

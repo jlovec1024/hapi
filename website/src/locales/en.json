@@ -110,7 +110,7 @@
   },
   "installation": {
     "title": "Get Started in Seconds",
-    "e2ee": "🔒 End-to-end encrypted with WireGuard + TLS",
+    "e2ee": "🔒 Local-first control with token-based access",
     "npm": {
       "step1": "1. Start the Server",
       "step2": "2. Start a Coding Session",

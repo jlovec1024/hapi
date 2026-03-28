@@ -8,8 +8,8 @@
  *
  * In the direct-connect architecture:
  * - zhushen-hub is the hub (Socket.IO + REST)
- * - zs CLI connects directly to the hub (no relay)
- * - No E2E encryption; data is stored as JSON in SQLite
+ * - zs CLI connects directly to the hub
+ * - Data is stored as JSON in SQLite
  *
  * MIGRATION_PHASE: 2
  * NOTE(layering): shrink this file over time. Prefer moving new business rules,

@@ -58,22 +58,18 @@ opencode --version
 │  └─────────┘                                       │
 └─────────────────────────────────────────────────────┘
                     │
-           [Tunnel / Public URL]
-                    │
-              ┌─────▼─────┐
-              │ Phone/Web │
-              └───────────┘
+             浏览器 / 手机
 ```
 
 - **CLI**：运行 `zs` 启动会话，CLI 封装你的 AI Agent 并与 hub 同步。
-- **Hub**：运行 `zs hub`，负责会话存储、权限处理、远程访问能力。
+- **Hub**：运行 `zs hub`，负责会话存储、权限处理与远程访问能力。
 - **Runner**：运行 `zs runner start`，让你无需保持终端前台也能从手机/Web 远程拉起会话。
 
 ### 典型工作流
 
 **仅本地使用**：`zs hub` → `zs` → 在终端工作
 
-**远程访问**：`zs hub --relay` → `zs runner start` → 从手机/Web 控制
+**远程访问**：`zs hub` → `zs runner start` → 从手机/Web 控制
 
 ## 安装 CLI
 
@@ -136,27 +132,18 @@ Hub 可部署在：
 - **本地桌面**（默认）
 - **远程主机**（VPS、云主机或任意可联网机器）
 
-### 默认模式：Public Relay（推荐）
+### 默认模式：本地访问
 
 ```bash
-zs hub --relay
+zs hub
 ```
 
-终端会显示访问 URL 和二维码，扫码即可从任意网络访问。
-
-
-- 使用 WireGuard + TLS 实现 **端到端加密**
-- 几乎零配置
-- 可穿透 NAT、防火墙和复杂网络环境
-
-> **提示**：relay 默认使用 UDP。若连接不稳定，可设置 `ZS_RELAY_FORCE_TCP=true` 强制 TCP。
+默认监听 `http://localhost:3006`。
 
 ### 仅本地模式
 
 ```bash
 zs hub
-# 或
-zs hub --no-relay
 ```
 
 默认监听 `http://localhost:3006`。
@@ -190,7 +177,6 @@ zs hub --no-relay
 | `ZS_LISTEN_PORT` | `3006` | `listenPort` | Hub HTTP 端口 |
 | `ZS_PUBLIC_URL` | - | `publicUrl` | 对外访问 URL |
 | `CORS_ORIGINS` | - | `corsOrigins` | 允许的 CORS 来源（逗号分隔） |
-| `ZS_RELAY_FORCE_TCP` | `false` | - | relay 强制 TCP |
 | `VAPID_SUBJECT` | `mailto:admin@zhushen.run` | - | Web Push 联系信息 |
 | `ZS_HOME` | `~/.zhushen` | - | 配置目录路径 |
 | `DB_PATH` | `~/.zhushen/zhushen.db` | - | 数据库文件路径 |
@@ -246,50 +232,13 @@ zs auth logout
 
 ## 运维与部署
 
-### 自托管隧道
+### 远程访问部署建议
 
-如果你不想使用公共 relay（例如追求更低延迟或自管基础设施），可用以下方式：
+如果你需要在局域网之外访问 Hub，建议采用你熟悉的标准部署方式，例如：
 
-<details>
-<summary>Cloudflare Tunnel</summary>
-
-https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
-
-> **说明**：Cloudflare Quick Tunnels（TryCloudflare）不支持 SSE，主神实时更新依赖 SSE，因此不支持。请使用 Named Tunnel。
-
-**Named Tunnel 配置示例：**
-
-```bash
-# 安装 cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
-
-# 创建并配置 named tunnel
-cloudflared tunnel create zhushen
-cloudflared tunnel route dns zhushen zhushen.yourdomain.com
-
-# 运行 tunnel
-cloudflared tunnel --protocol http2 run zhushen
-```
-
-> **提示**：建议使用 `--protocol http2`（而非默认 QUIC）以减少长连接超时问题。
-
-</details>
-
-<details>
-<summary>Tailscale</summary>
-
-https://tailscale.com/download
-
-```bash
-sudo tailscale up
-zs hub
-```
-
-通过 Tailscale IP 访问：
-
-```
-http://100.x.x.x:3006
-```
-</details>
+- 将 Hub 部署在你可访问的自有主机上
+- 通过 Nginx、Caddy 等反向代理接入 HTTPS
+- 为 `ZS_PUBLIC_URL` 配置稳定的外部访问地址
 
 <details>
 <summary>公网 IP / 反向代理</summary>
@@ -370,7 +319,7 @@ pm2 save
 
 ```bash
 # Hub
-nohup zs hub --relay > ~/.zhushen/logs/hub.log 2>&1 &
+nohup zs hub > ~/.zhushen/logs/hub.log 2>&1 &
 
 # Runner
 nohup zs runner start --foreground > ~/.zhushen/logs/runner.log 2>&1 &
@@ -401,7 +350,7 @@ pm2 支持崩溃自动重启、开机自启。
 npm install -g pm2
 
 # 启动 hub 与 runner
-pm2 start "zs hub --relay" --name zhushen-hub
+pm2 start "zs hub" --name zhushen-hub
 pm2 start "zs runner start --foreground" --name zhushen-runner
 
 # 查看状态与日志
@@ -433,7 +382,6 @@ pm2 save       # 保存进程列表
     <array>
         <string>/usr/local/bin/zs</string>
         <string>hub</string>
-        <string>--relay</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -489,7 +437,7 @@ launchctl unload ~/Library/LaunchAgents/com.zhushen.runner.plist
 
 > **macOS 休眠提示**：显示器休眠后，后台进程可能被挂起。可使用 `caffeinate` 防止休眠：
 > ```bash
-> caffeinate -dimsu zs hub --relay
+> caffeinate -dimsu zs hub
 > ```
 > 或在单独终端运行 `caffeinate -dimsu`。
 </details>
@@ -508,7 +456,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/zs hub --relay
+ExecStart=/usr/local/bin/zs hub
 Restart=always
 RestartSec=5
 

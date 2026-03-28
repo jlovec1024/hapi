@@ -173,7 +173,7 @@ export default function VsComparison() {
                   <tr>
                     <td className="flex items-center gap-2 p-4 font-medium"><Shield className="h-4 w-4" /> {isZh ? "安全侧重点" : "Security Focus"}</td>
                     <td className="p-4 text-muted-foreground">{isZh ? "平台隔离、托管访问控制" : "Platform isolation and hosted access control"}</td>
-                    <td className="p-4 font-bold">{isZh ? "传输层 TLS / 隧道 + 本机控制" : "Transport-layer TLS / Tunnel + Local Control"}</td>
+                    <td className="p-4 font-bold">{isZh ? "本地优先访问控制 + 本机控制" : "Local-first access control + Local Machine Control"}</td>
                   </tr>
                   <tr>
                     <td className="flex items-center gap-2 p-4 font-medium"><Users className="h-4 w-4" /> {isZh ? "目标用户" : "Target User"}</td>

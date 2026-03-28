@@ -21,6 +21,7 @@ function createApiError(status: number, body: unknown): ApiError {
 describe('useVisibilityReporter', () => {
     const addEventListenerSpy = vi.spyOn(document, 'addEventListener')
     const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener')
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const originalVisibilityState = document.visibilityState
 
     beforeEach(() => {
@@ -39,6 +40,7 @@ describe('useVisibilityReporter', () => {
             configurable: true,
             value: originalVisibilityState,
         })
+        consoleErrorSpy.mockClear()
     })
 
     it('stops retrying stale subscriptions after subscription_not_found', async () => {

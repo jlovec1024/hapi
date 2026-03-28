@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -6,7 +6,18 @@ import { existsSync } from 'node:fs';
 import { createCodexSessionScanner } from './codexSessionScanner';
 import type { CodexSessionEvent } from './codexEventConverter';
 
+const { mockLoggerWarn } = vi.hoisted(() => ({
+    mockLoggerWarn: vi.fn(),
+}));
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+vi.mock('@/ui/logger', () => ({
+    logger: {
+        debug: vi.fn(),
+        warn: mockLoggerWarn,
+    },
+}));
 
 describe('codexSessionScanner', () => {
     let testDir: string;
@@ -25,6 +36,7 @@ describe('codexSessionScanner', () => {
         process.env.CODEX_HOME = testDir;
 
         events = [];
+        mockLoggerWarn.mockClear();
     });
 
     afterEach(async () => {
@@ -149,3 +161,4 @@ describe('codexSessionScanner', () => {
         expect(events).toHaveLength(0);
     });
 });
+

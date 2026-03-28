@@ -48,7 +48,7 @@ vi.mock('@/hooks/useCopyToClipboard', () => ({
     useCopyToClipboard: () => ({ copied: false, copy: vi.fn() }),
 }))
 
-vi.mock('@/lib/shiki', () => ({
+vi.mock('@/shared/lib/shiki', () => ({
     langAlias: {},
     useShikiHighlighter: (content: string) => content,
 }))

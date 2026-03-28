@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockGetRunnerAvailability = vi.fn();
 const mockIsRunnerRunningCurrentlyInstalledZhushenVersion = vi.fn();
 const mockStopRunner = vi.fn();
+const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
 vi.mock('@/api/api', () => ({ ApiClient: vi.fn() }));
 vi.mock('@/ui/logger', () => ({
@@ -43,6 +44,7 @@ vi.mock('../../package.json', () => ({ default: { version: '1.0.0' } }));
 describe('startRunner degraded handling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    consoleLogSpy.mockClear();
   });
 
   it('does not stop the existing runner when availability is degraded', async () => {
@@ -71,3 +73,4 @@ describe('startRunner degraded handling', () => {
     }
   });
 });
+

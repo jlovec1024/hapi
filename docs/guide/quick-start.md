@@ -15,15 +15,12 @@ npm install -g @jlovec/zhushen --registry=https://registry.npmjs.org
 ## 启动 Hub
 
 ```bash
-zs hub --relay
+zs hub
 ```
 
 首次运行时，主神会生成一个访问令牌（access token）并保存到 `~/.zhushen/settings.json`。
 
-
-终端会显示一个 URL 和二维码，用于远程访问。
-
-> 通过 WireGuard + TLS 实现端到端加密。
+终端会显示本地访问地址，用于在浏览器或手机内网访问。
 
 ## 开始编码会话
 

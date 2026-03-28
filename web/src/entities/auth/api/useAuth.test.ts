@@ -3,6 +3,18 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { useAuth } from './useAuth'
 import type { AuthSource } from '../model'
 
+function createJwtWithExp(expSeconds: number): string {
+    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/g, '')
+    const payload = btoa(JSON.stringify({ exp: expSeconds }))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/g, '')
+    return `${header}.${payload}.signature`
+}
+
 describe('useAuth', () => {
     beforeEach(() => {
         vi.clearAllMocks()
@@ -19,7 +31,7 @@ describe('useAuth', () => {
     it('authenticates with access token', async () => {
         const authSource: AuthSource = { type: 'accessToken', token: 'test-token' }
         const mockAuthResponse = {
-            token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTl9.signature',
+            token: createJwtWithExp(Math.floor(Date.now() / 1000) + 3600),
             user: { id: 1, username: 'testuser' }
         }
 

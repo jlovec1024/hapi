@@ -26,9 +26,6 @@ zs hub 的 HTTP API 与实时更新服务。
 - `CORS_ORIGINS`：逗号分隔来源或 `*`。
 - `ZS_HOME`：数据目录（默认：`~/.zhushen`）。
 - `DB_PATH`：SQLite 数据库路径（默认：`ZS_HOME/zhushen.db`）。
-- `ZS_RELAY_API`：Relay API 域名（默认：`relay.zhushen.run`）。
-- `ZS_RELAY_AUTH`：Relay 认证 key（默认：`zs`）。
-- `ZS_RELAY_FORCE_TCP`：强制 TCP relay 模式（`true/1`）。
 - `VAPID_SUBJECT`：Web Push 联系邮箱/URL。
 
 ## 运行
@@ -207,7 +204,7 @@ hub 构建产物为 `hub/dist/index.js`，web 资源位于 `web/dist`。
 
 ## 独立托管 Web
 
-Web UI 可与 hub 分离托管（例如 GitHub Pages、Cloudflare Pages）：
+Web UI 可与 hub 分离托管到任意静态托管平台：
 
 1. 在仓库根目录构建并部署 `web/dist`。
 2. 设置 `CORS_ORIGINS`（或 `ZS_PUBLIC_URL`）为静态站点来源。
